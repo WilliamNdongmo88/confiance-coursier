@@ -2,52 +2,62 @@ import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
+import { LucideBike, LucideUser } from '@lucide/angular';
 
 @Component({
   selector: 'app-register',
   standalone: true,
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, LucideBike, LucideUser],
   template: `
-    <div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #f7f8f5;">
-      <div style="width: 100%; max-width: 400px; padding: 32px; background: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-        <h1 style="font-size: 1.8rem; color: #123b32; text-align: center; margin-bottom: 24px;">Créer un compte</h1>
+    <div class="min-h-screen flex items-center justify-center px-4 py-8">
+      <div class="auth-card">
+        <div class="text-center mb-6">
+          <div class="brand-icon">
+            <svg lucideBike size="20"></svg>
+          </div>
+          <h1 class="text-xl font-extrabold text-[#123b32]">ConfianceCoursier</h1>
+        </div>
+
+        <h2 class="auth-title">Créer un compte</h2>
+
+        <p class="text-sm text-gray-500 text-center mb-3">Je suis :</p>
+        <div class="grid grid-cols-2 gap-3 mb-6">
+          <button type="button" (click)="role = 'CLIENT'"
+            [class]="role === 'CLIENT' ? 'border-2 border-[#123b32] bg-[#e4f1e8] p-4 rounded-xl text-center' : 'border-2 border-gray-200 p-4 rounded-xl text-center'">
+            <svg lucideUser size="24" class="mx-auto mb-2 text-[#123b32]"></svg>
+            <div class="font-bold text-sm text-[#15241f]">Client</div>
+            <div class="text-xs text-gray-500">Je commande</div>
+          </button>
+          <button type="button" (click)="role = 'COURIER'"
+            [class]="role === 'COURIER' ? 'border-2 border-[#123b32] bg-[#e4f1e8] p-4 rounded-xl text-center' : 'border-2 border-gray-200 p-4 rounded-xl text-center'">
+            <svg lucideBike size="24" class="mx-auto mb-2 text-[#123b32]"></svg>
+            <div class="font-bold text-sm text-[#15241f]">Coursier</div>
+            <div class="text-xs text-gray-500">J'exécute</div>
+          </button>
+        </div>
 
         <form (ngSubmit)="onSubmit()">
-          <div style="margin-bottom: 16px;">
-            <label style="display: block; margin-bottom: 8px; font-weight: 600;">Nom complet</label>
-            <input type="text" [(ngModel)]="fullName" name="fullName" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+          <div class="mb-4">
+            <label class="block text-sm font-semibold text-gray-700 mb-1">Nom complet</label>
+            <input type="text" [(ngModel)]="fullName" name="fullName" required class="form-input" placeholder="Jean Dupont">
           </div>
-
-          <div style="margin-bottom: 16px;">
-            <label style="display: block; margin-bottom: 8px; font-weight: 600;">Email</label>
-            <input type="email" [(ngModel)]="email" name="email" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+          <div class="mb-4">
+            <label class="block text-sm font-semibold text-gray-700 mb-1">Email</label>
+            <input type="email" [(ngModel)]="email" name="email" required class="form-input" placeholder="vous@email.com">
           </div>
-
-          <div style="margin-bottom: 16px;">
-            <label style="display: block; margin-bottom: 8px; font-weight: 600;">Téléphone</label>
-            <input type="tel" [(ngModel)]="phone" name="phone" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+          <div class="mb-4">
+            <label class="block text-sm font-semibold text-gray-700 mb-1">Téléphone</label>
+            <input type="tel" [(ngModel)]="phone" name="phone" required class="form-input" placeholder="+237 6XX XXX XXX">
           </div>
-
-          <div style="margin-bottom: 16px;">
-            <label style="display: block; margin-bottom: 8px; font-weight: 600;">Mot de passe</label>
-            <input type="password" [(ngModel)]="password" name="password" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+          <div class="mb-6">
+            <label class="block text-sm font-semibold text-gray-700 mb-1">Mot de passe</label>
+            <input type="password" [(ngModel)]="password" name="password" required class="form-input" placeholder="Min 8 caractères">
           </div>
-
-          <div style="margin-bottom: 16px;">
-            <label style="display: block; margin-bottom: 8px; font-weight: 600;">Rôle</label>
-            <select [(ngModel)]="role" name="role" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
-              <option value="CLIENT">Client</option>
-              <option value="COURIER">Coursier</option>
-            </select>
-          </div>
-
-          <button type="submit" style="width: 100%; padding: 12px; background: #123b32; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer;">
-            S'inscrire
-          </button>
+          <button type="submit" class="btn-primary">Créer mon compte</button>
         </form>
 
-        <p style="text-align: center; margin-top: 16px;">
-          Déjà un compte ? <a routerLink="/login" style="color: #123b32; font-weight: 600;">Se connecter</a>
+        <p class="text-center text-sm text-gray-600 mt-6">
+          Déjà un compte ? <a routerLink="/login" class="auth-link">Se connecter</a>
         </p>
       </div>
     </div>

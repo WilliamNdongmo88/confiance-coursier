@@ -2,34 +2,38 @@ import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
+import { LucideBike } from '@lucide/angular';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, LucideBike],
   template: `
-    <div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #f7f8f5;">
-      <div style="width: 100%; max-width: 400px; padding: 32px; background: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-        <h1 style="font-size: 1.8rem; color: #123b32; text-align: center; margin-bottom: 24px;">Se connecter</h1>
+    <div class="min-h-screen flex items-center justify-center px-4 py-8">
+      <div class="auth-card">
+        <div class="text-center mb-8">
+          <div class="brand-icon">
+            <svg lucideBike size="20"></svg>
+          </div>
+          <h1 class="text-xl font-extrabold text-[#123b32]">ConfianceCoursier</h1>
+        </div>
+
+        <h2 class="auth-title">Se connecter</h2>
 
         <form (ngSubmit)="onSubmit()">
-          <div style="margin-bottom: 16px;">
-            <label style="display: block; margin-bottom: 8px; font-weight: 600;">Email</label>
-            <input type="email" [(ngModel)]="email" name="email" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+          <div class="mb-4">
+            <label class="block text-sm font-semibold text-gray-700 mb-1">Email</label>
+            <input type="email" [(ngModel)]="email" name="email" required class="form-input" placeholder="vous@email.com">
           </div>
-
-          <div style="margin-bottom: 16px;">
-            <label style="display: block; margin-bottom: 8px; font-weight: 600;">Mot de passe</label>
-            <input type="password" [(ngModel)]="password" name="password" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+          <div class="mb-6">
+            <label class="block text-sm font-semibold text-gray-700 mb-1">Mot de passe</label>
+            <input type="password" [(ngModel)]="password" name="password" required class="form-input" placeholder="••••••••">
           </div>
-
-          <button type="submit" style="width: 100%; padding: 12px; background: #123b32; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer;">
-            Se connecter
-          </button>
+          <button type="submit" class="btn-primary">Se connecter</button>
         </form>
 
-        <p style="text-align: center; margin-top: 16px;">
-          Pas encore de compte ? <a routerLink="/register" style="color: #123b32; font-weight: 600;">S'inscrire</a>
+        <p class="text-center text-sm text-gray-600 mt-6">
+          Pas encore de compte ? <a routerLink="/register" class="auth-link">S'inscrire</a>
         </p>
       </div>
     </div>
