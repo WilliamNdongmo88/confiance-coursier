@@ -169,7 +169,7 @@ Toutes les routes protégées sont actuellement accessibles sans token. Un utili
 ---
 
 ### TICK-006 🔴 [FE] Corriger `OtpComponent` — 6 inputs individuels + Toast
-**Statut :** ⬜
+**Statut :** ✅
 **Priorité :** Bloquant (UX + conformité maquette)
 **Fichiers concernés :**
 - `frontend/src/app/features/auth/otp/otp.component.ts`
@@ -1065,7 +1065,7 @@ Le flux d'offre doit passer par le chat (spec fonctionnelle §2.1). Le coursier 
 | TICK-003 | DTO `CreateOfferRequest` | S0 | BE | 🔴 | ✅ |
 | TICK-004 | Exposer `chatRoomId` dans les réponses | S0 | BE | 🔴 | ✅ |
 | TICK-005 | Guards Angular (authGuard + roleGuard) | S0 | FE | 🔴 | ✅ |
-| TICK-006 | OtpComponent — 6 inputs + Timer | S0 | FE | 🔴 | ⬜ |
+| TICK-006 | OtpComponent — 6 inputs + Timer | S0 | FE | 🔴 | ✅ |
 | TICK-007 | RegisterComponent — rôle + champs conditionnels | S0 | FE | 🟡 | ⬜ |
 | TICK-008 | Design system maquette dans Angular | S1 | FE | 🔴 | ⬜ |
 | TICK-009 | Refondre LoginComponent | S1 | FE | 🟡 | ⬜ |

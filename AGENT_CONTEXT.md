@@ -283,6 +283,20 @@ spring.data.redis.port=6379
 - **`core/services/auth.service.ts`** : ajout signal `isLoggedIn` (computed depuis `_isLoggedIn`) ; `logout()` supprime `jwt_token` + `user_id` + `user_role` + met à jour le signal ; `login()` appelle `saveToken()` via `tap()` ; `AuthResponse` enrichi avec `fullName`
 - **`app.routes.ts`** : doublons supprimés (3 redirects `''`, 2 `client/create-course`) ; `canActivate: [authGuard, roleGuard]` appliqué sur routes client/coursier ; `canActivate: [authGuard]` sur `/chat/:roomId`
 - Build vérifié : `ng build --configuration development` → **exit 0**
+
+### Session 12 — TICK-006 : OtpComponent — 6 inputs + Timer
+- **`features/auth/otp/otp.component.ts`** : refonte complète
+  - 6 inputs `maxlength="1"` avec `@ViewChildren` pour accès direct aux éléments
+  - Auto-avancement : saisie d'un chiffre → focus automatique sur le suivant
+  - Backspace : efface le chiffre courant ou recule au précédent
+  - Flèches gauche/droite : navigation entre inputs
+  - Coller (paste) : distribue les 6 chiffres sur les inputs automatiquement
+  - Timer 60s avec `setInterval` + `OnDestroy` pour cleanup
+  - Bouton "Renvoyer le code" actif après expiration du timer
+  - Tous les `alert()` remplacés par `toastService.success()` / `toastService.error()` / `toastService.info()`
+  - Email masqué affiché (`ab***@domaine.com`)
+  - Bouton "Vérifier" désactivé tant que les 6 chiffres ne sont pas remplis
+- Build vérifié : `ng build --configuration development` → **exit 0**
 - Lecture exhaustive de tous les fichiers backend et frontend
 - Inventaire complet dressé (voir §8 ci-dessous)
 
