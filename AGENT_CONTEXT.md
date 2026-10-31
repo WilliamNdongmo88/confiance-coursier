@@ -297,6 +297,18 @@ spring.data.redis.port=6379
   - Email masqué affiché (`ab***@domaine.com`)
   - Bouton "Vérifier" désactivé tant que les 6 chiffres ne sont pas remplis
 - Build vérifié : `ng build --configuration development` → **exit 0**
+
+### Session 13 — TICK-007 : RegisterComponent — champs coursier conditionnels
+- **`features/auth/register/register.component.ts`** : refonte complète
+  - Cartes rôle CLIENT / COURSIER cliquables avec style sélectionné (bordure verte `#123b32`)
+  - Champs coursier (`vehicle` select + `interventionZone` input) affichés uniquement si `role === 'COURIER'` via `*ngIf`
+  - Champ "Confirmer le mot de passe" avec validation visuelle (bordure rouge si mismatch)
+  - Case CGU obligatoire (checkbox `required`)
+  - Bouton "Créer" désactivé si CGU non cochée ou mots de passe différents
+  - `fullName` bien envoyé au backend dans `authService.register()`
+  - Redirect vers `/verify-otp?email=...` après inscription réussie
+  - Suppression de la dépendance `SpinnerComponent` et `LucideAngular` (non installés comme standalone)
+- Build vérifié : `ng build --configuration development` → **exit 0**
 - Lecture exhaustive de tous les fichiers backend et frontend
 - Inventaire complet dressé (voir §8 ci-dessous)
 

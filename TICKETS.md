@@ -192,7 +192,7 @@ L'implémentation actuelle utilise un seul champ texte et des `alert()` au lieu 
 ---
 
 ### TICK-007 🟡 [FE] Corriger `RegisterComponent` — champs coursier conditionnels
-**Statut :** ⬜
+**Statut :** ✅
 **Priorité :** Important
 **Fichiers concernés :**
 - `frontend/src/app/features/auth/register/register.component.ts`
@@ -1066,7 +1066,7 @@ Le flux d'offre doit passer par le chat (spec fonctionnelle §2.1). Le coursier 
 | TICK-004 | Exposer `chatRoomId` dans les réponses | S0 | BE | 🔴 | ✅ |
 | TICK-005 | Guards Angular (authGuard + roleGuard) | S0 | FE | 🔴 | ✅ |
 | TICK-006 | OtpComponent — 6 inputs + Timer | S0 | FE | 🔴 | ✅ |
-| TICK-007 | RegisterComponent — rôle + champs conditionnels | S0 | FE | 🟡 | ⬜ |
+| TICK-007 | RegisterComponent — rôle + champs conditionnels | S0 | FE | 🟡 | ✅ |
 | TICK-008 | Design system maquette dans Angular | S1 | FE | 🔴 | ⬜ |
 | TICK-009 | Refondre LoginComponent | S1 | FE | 🟡 | ⬜ |
 | TICK-010 | Refresh Token (backend) | S1 | BE | 🟡 | ⬜ |
