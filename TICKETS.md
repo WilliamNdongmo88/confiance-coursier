@@ -42,7 +42,7 @@
 ---
 
 ### TICK-001 🔴 [BE] Ajouter `fullName` sur l'entité `User`
-**Statut :** ⬜
+**Statut :** ✅
 **Priorité :** Bloquant
 **Fichiers concernés :**
 - `user/domain/User.java`
@@ -1060,7 +1060,7 @@ Le flux d'offre doit passer par le chat (spec fonctionnelle §2.1). Le coursier 
 
 | ID | Titre | Sprint | Composante | Priorité | Statut |
 |----|-------|--------|-----------|----------|--------|
-| TICK-001 | Ajouter `fullName` sur `User` | S0 | BE | 🔴 | ⬜ |
+| TICK-001 | Ajouter `fullName` sur `User` | S0 | BE | 🔴 | ✅ |
 | TICK-002 | Corriger les `findAll()` dans `CourseService` | S0 | BE | 🔴 | ⬜ |
 | TICK-003 | DTO `CreateOfferRequest` | S0 | BE | 🔴 | ⬜ |
 | TICK-004 | Exposer `chatRoomId` dans les réponses | S0 | BE | 🔴 | ⬜ |

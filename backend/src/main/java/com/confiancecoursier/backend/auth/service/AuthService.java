@@ -44,6 +44,7 @@ public class AuthService {
 
         User user = User.builder()
                 .email(request.getEmail())
+                .fullName(request.getFullName())
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .phone(request.getPhone())
                 .role(request.getRole().toUpperCase())
@@ -67,7 +68,7 @@ public class AuthService {
         UserDetails userDetails = userDetailsService.loadUserByUsername(user.getEmail());
         String token = jwtService.generateToken(userDetails);
 
-        return new AuthResponse(token, user.getEmail(), user.getRole(), user.getId());
+        return new AuthResponse(token, user.getEmail(), user.getFullName(), user.getRole(), user.getId());
     }
 
     public void verifyOtp(String email, String otp) {

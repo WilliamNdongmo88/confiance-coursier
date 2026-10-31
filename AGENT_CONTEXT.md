@@ -249,7 +249,14 @@ spring.data.redis.port=6379
 - Correction `@import 'tailwindcss'` → `@use 'tailwindcss'` dans `styles.scss` (dépréciation Dart Sass)
 - Installation `zone.js` manquant
 
-### Session 6 — Analyse complète du projet (prise de connaissance)
+### Session 7 — TICK-001 : Ajouter `fullName` sur l'entité `User`
+- **`User.java`** : ajout du champ `private String fullName` avec `@Column(name = "full_name")`
+- **`AuthService.java`** : `.fullName(request.getFullName())` ajouté dans le builder + `user.getFullName()` dans le retour `AuthResponse`
+- **`AuthResponse.java`** : ajout du champ `fullName` (5 args : token, email, fullName, role, userId)
+- **`V3__add_fullname_to_users.sql`** : migration déjà présente (vérifiée, rien à créer)
+- **`pom.xml`** : suppression de la dépendance dupliquée `spring-boot-starter-webmvc-test`
+- **`AuthControllerTest.java`** : ajout de `.status("ACTIVE")` sur les builders User manquants
+- Build vérifié : `mvnw compile` → **BUILD SUCCESS** avec Java 21
 - Lecture exhaustive de tous les fichiers backend et frontend
 - Inventaire complet dressé (voir §8 ci-dessous)
 

@@ -67,6 +67,7 @@ class AuthControllerTest {
                 .email("login@test.com")
                 .passwordHash(passwordEncoder.encode("password123"))
                 .role("CLIENT")
+                .status("ACTIVE")
                 .build();
         userRepository.save(user);
 
@@ -89,6 +90,7 @@ class AuthControllerTest {
                 .email("wrongpass@test.com")
                 .passwordHash(passwordEncoder.encode("password123"))
                 .role("CLIENT")
+                .status("ACTIVE")
                 .build();
         userRepository.save(user);
 
