@@ -8,6 +8,9 @@ import java.util.List;
 
 @Repository
 public interface CourseRepository extends JpaRepository<Course, Long> {
-    // Pour l'instant, on récupère toutes les courses publiées pour les coursiers
-    List<Course> findByStatus(String status);
+    // Récupère toutes les courses avec un statut donné (ex: PUBLISHED)
+    List<Course> findByStatusOrderByCreatedAtDesc(String status);
+
+    // Récupère toutes les courses d'un client
+    List<Course> findByClientIdOrderByCreatedAtDesc(Long clientId);
 }

@@ -67,7 +67,7 @@ public class AuthService {
         UserDetails userDetails = userDetailsService.loadUserByUsername(user.getEmail());
         String token = jwtService.generateToken(userDetails);
 
-        return new AuthResponse(token, user.getEmail(), user.getRole());
+        return new AuthResponse(token, user.getEmail(), user.getRole(), user.getId());
     }
 
     public void verifyOtp(String email, String otp) {

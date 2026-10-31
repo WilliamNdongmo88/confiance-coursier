@@ -19,6 +19,7 @@ export interface AuthResponse {
   token: string;
   email: string;
   role: string;
+  userId: number;
 }
 
 @Injectable({
@@ -41,15 +42,25 @@ export class AuthService {
     return this.http.post(`${this.apiUrl}/verify-otp`, { email, otp });
   }
 
-  saveToken(token: string): void {
-    localStorage.setItem('jwt_token', token);
-  }
-
   getToken(): string | null {
     return localStorage.getItem('jwt_token');
   }
 
   logout(): void {
     localStorage.removeItem('jwt_token');
+  }
+
+  saveToken(token: string, userId: number, role: string): void {
+    localStorage.setItem('jwt_token', token);
+    localStorage.setItem('user_id', String(userId));
+    localStorage.setItem('user_role', role);
+  }
+
+  getCurrentUserId(): number {
+    return Number(localStorage.getItem('user_id')) || 0;
+  }
+
+  getCurrentUserRole(): string {
+    return localStorage.getItem('user_role') || 'INCONNU';
   }
 }
