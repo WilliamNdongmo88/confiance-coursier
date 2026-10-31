@@ -13,4 +13,7 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
 
     // Récupère toutes les courses d'un client
     List<Course> findByClientIdOrderByCreatedAtDesc(Long clientId);
+
+    // Récupère toutes les missions d'un coursier
+    List<Course> findByCourierIdOrderByCreatedAtDesc(Long courierId);
 }

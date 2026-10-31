@@ -17,7 +17,4 @@ public class CreateCourseRequest {
 
     @NotNull(message = "La date planifiée est obligatoire")
     private LocalDateTime scheduledAt;
-
-    // Optionnel : le client peut suggérer un budget initial
-    private Double suggestedBudget;
 }

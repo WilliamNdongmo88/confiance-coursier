@@ -257,6 +257,12 @@ spring.data.redis.port=6379
 - **`pom.xml`** : suppression de la dépendance dupliquée `spring-boot-starter-webmvc-test`
 - **`AuthControllerTest.java`** : ajout de `.status("ACTIVE")` sur les builders User manquants
 - Build vérifié : `mvnw compile` → **BUILD SUCCESS** avec Java 21
+
+### Session 8 — TICK-002 : Corriger les `findAll()` dans `CourseService`
+- **`CourseRepository.java`** : ajout de `findByCourierIdOrderByCreatedAtDesc(Long courierId)`
+- **`CourseService.java`** : `getMyCourses()` utilise désormais `findByClientIdOrderByCreatedAtDesc()` ; `getMyMissions()` utilise `findByCourierIdOrderByCreatedAtDesc()` — plus de `findAll()` + filtre mémoire
+- **`CreateCourseRequest.java`** : suppression du champ `suggestedBudget` (déclaré mais jamais utilisé)
+- Build vérifié : `mvnw compile` → **BUILD SUCCESS**
 - Lecture exhaustive de tous les fichiers backend et frontend
 - Inventaire complet dressé (voir §8 ci-dessous)
 

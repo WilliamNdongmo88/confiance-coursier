@@ -34,9 +34,8 @@ public class CourseService {
     }
 
     public List<CourseResponse> getMyCourses(Long clientId) {
-        // On récupère les courses du client (tous statuts confondus)
-        return courseRepository.findAll().stream()
-                .filter(c -> c.getClientId().equals(clientId))
+        return courseRepository.findByClientIdOrderByCreatedAtDesc(clientId)
+                .stream()
                 .map(CourseResponse::fromEntity)
                 .collect(Collectors.toList());
     }
@@ -97,8 +96,8 @@ public class CourseService {
     }
 
     public List<CourseResponse> getMyMissions(Long courierId) {
-        return courseRepository.findAll().stream()
-                .filter(c -> c.getCourierId() != null && c.getCourierId().equals(courierId))
+        return courseRepository.findByCourierIdOrderByCreatedAtDesc(courierId)
+                .stream()
                 .map(CourseResponse::fromEntity)
                 .collect(Collectors.toList());
     }

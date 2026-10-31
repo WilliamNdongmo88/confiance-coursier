@@ -66,7 +66,7 @@ La valeur est silencieusement ignorée dans `AuthService.register()`.
 ---
 
 ### TICK-002 🔴 [BE] Corriger les requêtes `findAll()` dans `CourseService`
-**Statut :** ⬜
+**Statut :** ✅
 **Priorité :** Bloquant (performance)
 **Fichiers concernés :**
 - `course/service/CourseService.java`
@@ -1061,7 +1061,7 @@ Le flux d'offre doit passer par le chat (spec fonctionnelle §2.1). Le coursier 
 | ID | Titre | Sprint | Composante | Priorité | Statut |
 |----|-------|--------|-----------|----------|--------|
 | TICK-001 | Ajouter `fullName` sur `User` | S0 | BE | 🔴 | ✅ |
-| TICK-002 | Corriger les `findAll()` dans `CourseService` | S0 | BE | 🔴 | ⬜ |
+| TICK-002 | Corriger les `findAll()` dans `CourseService` | S0 | BE | 🔴 | ✅ |
 | TICK-003 | DTO `CreateOfferRequest` | S0 | BE | 🔴 | ⬜ |
 | TICK-004 | Exposer `chatRoomId` dans les réponses | S0 | BE | 🔴 | ⬜ |
 | TICK-005 | Guards Angular (authGuard + roleGuard) | S0 | FE | 🔴 | ⬜ |
