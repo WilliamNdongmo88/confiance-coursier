@@ -4,17 +4,16 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { CourseService } from '../../../core/services/course.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { SpinnerComponent } from '../../../shared/spinner/spinner.component';
+import { AppShellComponent } from '../../../shared/components/app-shell/app-shell.component';
 
 @Component({
   selector: 'app-create-course',
   standalone: true,
-  imports: [FormsModule, RouterLink, SpinnerComponent],
+  imports: [FormsModule, RouterLink, SpinnerComponent, AppShellComponent],
   template: `
-    <div class="min-h-screen bg-[#f7f8f5] p-6">
-      <div class="max-w-2xl mx-auto">
-        <a routerLink="/client/dashboard" class="text-sm text-[#123b32] font-bold">← Retour</a>
-
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-8 mt-4">
+    <app-shell [pageTitle]="isEditMode ? 'Modifier la course' : 'Nouvelle course'">
+      <div class="max-w-2xl">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
           <h1 class="text-2xl font-bold text-[#15241f] mb-6">
             {{ isEditMode ? 'Modifier la course' : 'Créer une nouvelle course' }}
           </h1>
@@ -51,7 +50,7 @@ import { SpinnerComponent } from '../../../shared/spinner/spinner.component';
           </form>
         </div>
       </div>
-    </div>
+    </app-shell>
   `
 })
 export class CreateCourseComponent implements OnInit {

@@ -312,6 +312,18 @@ spring.data.redis.port=6379
 - Lecture exhaustive de tous les fichiers backend et frontend
 - Inventaire complet dressé (voir §8 ci-dessous)
 
+### Session 14 — TICK-008 : Intégrer le design system de la maquette dans Angular
+- **`core/services/theme.service.ts`** : créé — signal `isDarkMode`, init depuis `localStorage('theme')`, `toggleTheme()` applique `data-theme` sur `<html>` + persiste ; guard SSR via `isPlatformBrowser`
+- **`core/services/auth.service.ts`** : `saveToken()` accepte désormais `fullName` et stocke `user_full_name` ; `logout()` supprime la clé ; ajout `getCurrentUserFullName()` (additif, ne casse rien)
+- **`shared/components/sidebar-client/`**, **`sidebar-courier/`**, **`sidebar-admin/`** : créés — reprennent la structure `.app-sidebar` de la maquette, nav avec `routerLinkActive`, bloc compte + déconnexion ; input `open` pilotée par l'AppShell
+- **`shared/components/app-shell/app-shell.component.ts`** : créé — overlay + sidebar (sélection par rôle) + topbar (hamburger, fil d'Ariane, toggle thème, utilisateur) + `<ng-content>` ; ferme la sidebar sur `NavigationEnd` (mobile) et sur Échap
+- **`app.ts`** : injecte `ThemeService` au boot pour appliquer le thème persistant
+- **`styles.scss`** : `@import` SCSS des 3 CSS retirés (ne résolvait pas sous le builder esbuild) → CSS chargés en global via le tableau `styles` de `angular.json` (ordre main → app-layout → refonte → styles.scss) ; bloc de tokens `:root` non dupliqué pour ne pas écraser le mode sombre de la maquette
+- **`index.html`** : ajout police **Inter** + script inline appliquant `data-theme` avant le boot Angular (anti-FOUC)
+- **Wiring** : `ClientDashboardComponent`, `CourierDashboardComponent`, `CreateCourseComponent` enrobés dans `<app-shell>` (navbar inline supprimée) → la sidebar s'affiche sur les pages authentifiées
+- **⚠ Chat** : laissé tel quel — son enrobage dans l'app-shell (layout pleine hauteur) est l'objet de **TICK-017** (refonte ChatComponent avec carte d'offre intégrée)
+- Build vérifié : `.\node_modules\.bin\ng build --configuration development` → **exit 0** (styles.css 82 kB, design CSS bien bundlé — vérifié via le marqueur `/* src/assets/css/main.css */` dans `dist/frontend/browser/styles.css`)
+
 ---
 
 ## 8. PROBLÈMES CONNUS À CORRIGER (backlog technique)

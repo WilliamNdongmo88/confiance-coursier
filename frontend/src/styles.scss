@@ -1,48 +1,90 @@
-@import "tailwindcss";
+@use "tailwindcss";
 
 /* ============================================================
-   COMPOSANTS COMMUNS — Charte Forêt & Ivoire
-   ============================================================ */
+   Design system ConfianceCoursier — forêt & ivoire
+   ============================================================
+   Les feuilles de style de la maquette (main.css, app-layout.css,
+   refonte.css) sont chargées en global via `angular.json` (tableau
+   "styles"), AVANT ce fichier. Elles définissent les tokens de la
+   charte (forêt / ivoire / lime / encre) ainsi que le mode sombre
+   `[data-theme="dark"]`. Les règles ci-dessous complètent/surchargent
+   pour les besoins des composants Angular.
+   Couleurs de marque : primaire #17634f, forêt #123b32, lime #d7ed9a,
+   papier #f7f8f5, encre #18271f. */
 
+/* Variables de marque Angular-spécifiques */
 html, body {
   height: 100%;
   margin: 0;
-  font-family: 'Inter', sans-serif;
-  background-color: #f7f8f5; /* brand-paper */
-  color: #15241f; /* brand-ink */
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  background-color: var(--cc-paper, #f7f8f5);
+  color: var(--cc-ink, #18271f);
 }
 
-/* Bouton primaire (vert forêt) */
+/* Bouton primaire (vert forêt) — utilisé dans les composants Angular */
 .btn-primary {
-  @apply w-full py-3 bg-[#123b32] text-white font-bold rounded-lg transition-all hover:bg-[#1b5144] hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.75rem 1.25rem;
+  background: #17634f;
+  color: #fff;
+  font-weight: 700;
+  border-radius: 9px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.15s;
+
+  &:hover:not(:disabled) {
+    background: #104d3d;
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 }
 
-/* Bouton secondaire (blanc) */
-.btn-secondary {
-  @apply w-full py-3 bg-white text-[#123b32] font-bold rounded-lg border border-gray-200 transition-all hover:bg-gray-50;
-}
-
-/* Champs de formulaire */
+/* Champ formulaire */
 .form-input {
-  @apply w-full px-4 py-3 border border-gray-200 rounded-lg outline-none transition-all focus:border-[#123b32] focus:ring-2 focus:ring-[#d7ed9a] bg-white;
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid var(--cc-line, #e2e8e2);
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  background: #fff;
+  color: var(--cc-ink, #18271f);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+
+  &:focus {
+    border-color: #17634f;
+    box-shadow: 0 0 0 3px rgba(23, 99, 79, 0.12);
+  }
 }
 
-/* Carte blanche centrée */
+/* Carte d'auth */
 .auth-card {
-  @apply w-full max-w-md bg-white rounded-2xl shadow-xl p-8 md:p-10;
-}
-
-/* Titre de page */
-.auth-title {
-  @apply text-2xl font-bold text-center mb-6 text-[#15241f];
+  width: 100%;
+  max-width: 440px;
+  background: #fff;
+  border: 1px solid var(--cc-line, #e2e8e2);
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(18, 59, 50, 0.1);
+  padding: 40px;
 }
 
 /* Lien */
 .auth-link {
-  @apply text-[#123b32] font-bold hover:underline;
-}
+  color: #17634f;
+  font-weight: 700;
+  text-decoration: none;
 
-/* Badge "Forêt" (pour les icônes) */
-.brand-icon {
-  @apply w-10 h-10 bg-[#123b32] text-white rounded-lg flex items-center justify-center mx-auto mb-4;
+  &:hover {
+    text-decoration: underline;
+  }
 }

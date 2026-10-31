@@ -222,7 +222,7 @@ La maquette `register.html` affiche des champs supplémentaires (véhicule, zone
 ---
 
 ### TICK-008 🔴 [FE] Intégrer le design system de la maquette dans Angular
-**Statut :** ⬜
+**Statut :** ✅
 **Priorité :** Bloquant (toutes les interfaces en dépendent)
 **Fichiers concernés :**
 - `frontend/src/styles.scss`
@@ -234,14 +234,14 @@ La maquette utilise 3 fichiers CSS (`main.css`, `app-layout.css`, `refonte.css`)
 Tous les composants Angular actuels utilisent des styles inline basiques sans cohérence avec la maquette.
 
 **Travail à faire :**
-- [ ] Copier `maquette-v2/assets/css/main.css`, `app-layout.css`, `refonte.css` dans `frontend/src/assets/css/`
-- [ ] Les importer dans `styles.scss`
-- [ ] Créer `shared/components/app-shell/app-shell.component.ts` (sidebar + topbar + overlay)
-- [ ] Créer `shared/components/sidebar-client/sidebar-client.component.ts`
-- [ ] Créer `shared/components/sidebar-courier/sidebar-courier.component.ts`
-- [ ] Créer `shared/components/sidebar-admin/sidebar-admin.component.ts`
-- [ ] Configurer les variables CSS du thème (forest, lime, paper, ink) dans `styles.scss`
-- [ ] Ajouter le toggle dark mode (signal `isDarkMode` dans un `ThemeService`)
+- [x] Copier `maquette-v2/assets/css/main.css`, `app-layout.css`, `refonte.css` dans `frontend/src/assets/css/` (déjà présents)
+- [x] Les importer dans `styles.scss` (via le tableau `styles` de `angular.json` — plus robuste que `@import` SCSS)
+- [x] Créer `shared/components/app-shell/app-shell.component.ts` (sidebar + topbar + overlay)
+- [x] Créer `shared/components/sidebar-client/sidebar-client.component.ts`
+- [x] Créer `shared/components/sidebar-courier/sidebar-courier.component.ts`
+- [x] Créer `shared/components/sidebar-admin/sidebar-admin.component.ts`
+- [x] Configurer les variables CSS du thème (forest, lime, paper, ink) dans `styles.scss` (fournies par les CSS de la maquette + documentées)
+- [x] Ajouter le toggle dark mode (signal `isDarkMode` dans un `ThemeService`)
 
 **Critères d'acceptance :**
 - Les couleurs `#123b32`, `#d7ed9a`, `#f7f8f5` sont utilisées partout

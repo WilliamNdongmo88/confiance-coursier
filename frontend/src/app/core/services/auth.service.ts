@@ -43,7 +43,7 @@ export class AuthService {
   login(data: LoginRequest): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.apiUrl}/login`, data).pipe(
       tap((response) => {
-        this.saveToken(response.token, response.userId, response.role);
+        this.saveToken(response.token, response.userId, response.role, response.fullName);
       })
     );
   }
@@ -61,13 +61,17 @@ export class AuthService {
     localStorage.removeItem('jwt_token');
     localStorage.removeItem('user_id');
     localStorage.removeItem('user_role');
+    localStorage.removeItem('user_full_name');
     this._isLoggedIn.set(false);
   }
 
-  saveToken(token: string, userId: number, role: string): void {
+  saveToken(token: string, userId: number, role: string, fullName?: string): void {
     localStorage.setItem('jwt_token', token);
     localStorage.setItem('user_id', String(userId));
     localStorage.setItem('user_role', role);
+    if (fullName) {
+      localStorage.setItem('user_full_name', fullName);
+    }
     this._isLoggedIn.set(true);
   }
 
@@ -77,5 +81,10 @@ export class AuthService {
 
   getCurrentUserRole(): string {
     return localStorage.getItem('user_role') || 'INCONNU';
+  }
+
+  /** Retourne le nom complet de l'utilisateur connecté (ou chaîne vide si absent). */
+  getCurrentUserFullName(): string {
+    return localStorage.getItem('user_full_name') || '';
   }
 }

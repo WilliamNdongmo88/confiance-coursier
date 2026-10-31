@@ -1,6 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { ToastComponent } from './shared/toast/toast.component';
+import { ThemeService } from './core/services/theme.service';
 
 @Component({
   selector: 'app-root',
@@ -11,4 +12,8 @@ import { ToastComponent } from './shared/toast/toast.component';
     <app-toast></app-toast>
   `
 })
-export class App {}
+export class App {
+  // Instancie le ThemeService au démarrage pour appliquer le thème persistant
+  // et exposer le signal isDarkMode à toute l'application.
+  private theme = inject(ThemeService);
+}
