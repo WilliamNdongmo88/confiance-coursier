@@ -1,6 +1,7 @@
 package com.confiancecoursier.backend.course.api;
 
 import com.confiancecoursier.backend.course.api.dto.CreateOfferRequest;
+import com.confiancecoursier.backend.course.api.dto.CreateOfferResponse;
 import com.confiancecoursier.backend.course.domain.CourseOffer;
 import com.confiancecoursier.backend.course.service.OfferService;
 import com.confiancecoursier.backend.shared.exception.BusinessException;
@@ -26,11 +27,11 @@ public class OfferController {
     }
 
     @PostMapping
-    public ResponseEntity<CourseOffer> createOffer(@PathVariable Long courseId,
-                                                   @Valid @RequestBody CreateOfferRequest request) {
+    public ResponseEntity<CreateOfferResponse> createOffer(@PathVariable Long courseId,
+                                                           @Valid @RequestBody CreateOfferRequest request) {
         Long courierId = getCurrentUserId();
-        CourseOffer offer = offerService.createOffer(courseId, courierId, request.getAmount(), request.getDetails());
-        return ResponseEntity.ok(offer);
+        CreateOfferResponse response = offerService.createOffer(courseId, courierId, request.getAmount(), request.getDetails());
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping

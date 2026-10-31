@@ -114,7 +114,7 @@ N'importe quelle valeur peut être passée — c'est un risque de sécurité et 
 ---
 
 ### TICK-004 🔴 [BE] Exposer `chatRoomId` dans `CourseResponse` et les réponses d'offre
-**Statut :** ⬜
+**Statut :** ✅
 **Priorité :** Bloquant
 **Fichiers concernés :**
 - `course/api/dto/CourseResponse.java`
@@ -1063,7 +1063,7 @@ Le flux d'offre doit passer par le chat (spec fonctionnelle §2.1). Le coursier 
 | TICK-001 | Ajouter `fullName` sur `User` | S0 | BE | 🔴 | ✅ |
 | TICK-002 | Corriger les `findAll()` dans `CourseService` | S0 | BE | 🔴 | ✅ |
 | TICK-003 | DTO `CreateOfferRequest` | S0 | BE | 🔴 | ✅ |
-| TICK-004 | Exposer `chatRoomId` dans les réponses | S0 | BE | 🔴 | ⬜ |
+| TICK-004 | Exposer `chatRoomId` dans les réponses | S0 | BE | 🔴 | ✅ |
 | TICK-005 | Guards Angular (authGuard + roleGuard) | S0 | FE | 🔴 | ⬜ |
 | TICK-006 | OtpComponent — 6 inputs + Timer | S0 | FE | 🔴 | ⬜ |
 | TICK-007 | RegisterComponent — rôle + champs conditionnels | S0 | FE | 🟡 | ⬜ |

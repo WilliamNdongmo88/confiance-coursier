@@ -2,6 +2,7 @@ package com.confiancecoursier.backend.course.service;
 
 import com.confiancecoursier.backend.chat.domain.ChatRoom;
 import com.confiancecoursier.backend.chat.repository.ChatRoomRepository;
+import com.confiancecoursier.backend.course.api.dto.CreateOfferResponse;
 import com.confiancecoursier.backend.course.domain.Course;
 import com.confiancecoursier.backend.course.domain.CourseOffer;
 import com.confiancecoursier.backend.course.repository.CourseOfferRepository;
@@ -29,7 +30,7 @@ public class OfferService {
     }
 
     @Transactional
-    public CourseOffer createOffer(Long courseId, Long courierId, BigDecimal amount, String details) {
+    public CreateOfferResponse createOffer(Long courseId, Long courierId, BigDecimal amount, String details) {
         // 1. Vérifier que la course existe et est PUBLISHED
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new BusinessException("Course non trouvée."));
@@ -54,16 +55,18 @@ public class OfferService {
         offerRepository.save(offer);
 
         // 4. Créer le salon de chat (s'il n'existe pas déjà)
-        if (chatRoomRepository.findByCourseIdAndCourierId(courseId, courierId).isEmpty()) {
-            ChatRoom chatRoom = ChatRoom.builder()
-                    .courseId(courseId)
-                    .clientId(course.getClientId())
-                    .courierId(courierId)
-                    .build();
-            chatRoomRepository.save(chatRoom);
-        }
+        ChatRoom chatRoom = chatRoomRepository
+                .findByCourseIdAndCourierId(courseId, courierId)
+                .orElseGet(() -> {
+                    ChatRoom newRoom = ChatRoom.builder()
+                            .courseId(courseId)
+                            .clientId(course.getClientId())
+                            .courierId(courierId)
+                            .build();
+                    return chatRoomRepository.save(newRoom);
+                });
 
-        return offer;
+        return new CreateOfferResponse(offer.getId(), chatRoom.getId());
     }
 
     public List<CourseOffer> getOffersForCourse(Long courseId) {
@@ -108,7 +111,7 @@ public class OfferService {
         // 5. Mettre à jour la course
         course.setCourierId(offerToAccept.getCourierId());
         course.setAcceptedOfferId(offerToAccept.getId());
-        course.setCourseAmount(offerToAccept.getAmount()); // On stocke le montant accepté
+        course.setCourseAmount(offerToAccept.getAmount());
         course.setStatus("ASSIGNED");
         courseRepository.save(course);
 

@@ -268,6 +268,14 @@ spring.data.redis.port=6379
 - **`course/api/dto/CreateOfferRequest.java`** : créé avec `@NotNull @DecimalMin("0.01") BigDecimal amount` et `@NotBlank String details`
 - **`OfferController.java`** : signature `createOffer()` remplacée — `Map<String, Object>` → `@Valid @RequestBody CreateOfferRequest` ; imports `Map`, `BigDecimal` supprimés
 - Build vérifié : `mvnw compile` → **BUILD SUCCESS**
+
+### Session 10 — TICK-004 : Exposer `chatRoomId` dans les réponses
+- **`course/api/dto/CreateOfferResponse.java`** : créé avec `offerId` + `chatRoomId`
+- **`course/service/OfferService.java`** : `createOffer()` retourne `CreateOfferResponse` ; `ChatRoom` sauvegardé et son `id` retourné (via `orElseGet()` pour éviter doublons)
+- **`course/api/OfferController.java`** : retourne `CreateOfferResponse` au lieu de `CourseOffer`
+- **`course/api/dto/CourseResponse.java`** : ajout de `chatRoomId` (nullable) + `courseAmount`, `currency`, `acceptedOfferId` ; surcharge `fromEntity(Course, Long chatRoomId)`
+- **`course/service/CourseService.java`** : injection de `ChatRoomRepository` ; `getMyCourses()`, `getCourseById()`, `updateCourse()`, `getMyMissions()` peuplent maintenant `chatRoomId` ; méthode privée `resolveChatRoomId(Course)` factorisée
+- Build vérifié : `mvnw compile` → **BUILD SUCCESS**
 - Lecture exhaustive de tous les fichiers backend et frontend
 - Inventaire complet dressé (voir §8 ci-dessous)
 

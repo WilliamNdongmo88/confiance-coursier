@@ -1,5 +1,6 @@
 package com.confiancecoursier.backend.course.service;
 
+import com.confiancecoursier.backend.chat.repository.ChatRoomRepository;
 import com.confiancecoursier.backend.course.api.dto.CreateCourseRequest;
 import com.confiancecoursier.backend.course.api.dto.CourseResponse;
 import com.confiancecoursier.backend.course.domain.Course;
@@ -15,9 +16,11 @@ import java.util.stream.Collectors;
 public class CourseService {
 
     private final CourseRepository courseRepository;
+    private final ChatRoomRepository chatRoomRepository;
 
-    public CourseService(CourseRepository courseRepository) {
+    public CourseService(CourseRepository courseRepository, ChatRoomRepository chatRoomRepository) {
         this.courseRepository = courseRepository;
+        this.chatRoomRepository = chatRoomRepository;
     }
 
     public CourseResponse createCourse(Long clientId, CreateCourseRequest request) {
@@ -26,7 +29,7 @@ public class CourseService {
                 .description(request.getDescription())
                 .zone(request.getZone())
                 .scheduledAt(request.getScheduledAt())
-                .status("PUBLISHED") // La course est publiée directement
+                .status("PUBLISHED")
                 .build();
 
         Course savedCourse = courseRepository.save(course);
@@ -36,7 +39,10 @@ public class CourseService {
     public List<CourseResponse> getMyCourses(Long clientId) {
         return courseRepository.findByClientIdOrderByCreatedAtDesc(clientId)
                 .stream()
-                .map(CourseResponse::fromEntity)
+                .map(course -> {
+                    Long chatRoomId = resolveChatRoomId(course);
+                    return CourseResponse.fromEntity(course, chatRoomId);
+                })
                 .collect(Collectors.toList());
     }
 
@@ -65,7 +71,7 @@ public class CourseService {
         course.setScheduledAt(request.getScheduledAt());
 
         Course updated = courseRepository.save(course);
-        return CourseResponse.fromEntity(updated);
+        return CourseResponse.fromEntity(updated, resolveChatRoomId(updated));
     }
 
     @Transactional
@@ -92,13 +98,37 @@ public class CourseService {
             throw new BusinessException("Vous n'êtes pas le propriétaire de cette course.");
         }
 
-        return CourseResponse.fromEntity(course);
+        return CourseResponse.fromEntity(course, resolveChatRoomId(course));
     }
 
     public List<CourseResponse> getMyMissions(Long courierId) {
         return courseRepository.findByCourierIdOrderByCreatedAtDesc(courierId)
                 .stream()
-                .map(CourseResponse::fromEntity)
+                .map(course -> {
+                    Long chatRoomId = chatRoomRepository
+                            .findByCourseIdAndCourierId(course.getId(), courierId)
+                            .map(r -> r.getId())
+                            .orElse(null);
+                    return CourseResponse.fromEntity(course, chatRoomId);
+                })
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Résout le chatRoomId pour une course côté client.
+     * Si la course a un coursier assigné, on cherche la room correspondante.
+     * Sinon, on cherche la première room disponible (cas course avec une seule offre).
+     */
+    private Long resolveChatRoomId(Course course) {
+        if (course.getCourierId() != null) {
+            return chatRoomRepository
+                    .findByCourseIdAndCourierId(course.getId(), course.getCourierId())
+                    .map(r -> r.getId())
+                    .orElse(null);
+        }
+        return chatRoomRepository
+                .findByCourseId(course.getId())
+                .map(r -> r.getId())
+                .orElse(null);
     }
 }
