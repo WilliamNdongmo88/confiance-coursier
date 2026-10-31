@@ -138,7 +138,7 @@ Le `ChatRestController` utilise `roomId` comme clé pour charger les messages �
 ---
 
 ### TICK-005 🔴 [FE] Implémenter les Guards Angular (authGuard + roleGuard)
-**Statut :** ⬜
+**Statut :** ✅
 **Priorité :** Bloquant (sécurité)
 **Fichiers concernés :**
 - `frontend/src/app/core/guards/auth.guard.ts` (à créer)
@@ -1064,7 +1064,7 @@ Le flux d'offre doit passer par le chat (spec fonctionnelle §2.1). Le coursier 
 | TICK-002 | Corriger les `findAll()` dans `CourseService` | S0 | BE | 🔴 | ✅ |
 | TICK-003 | DTO `CreateOfferRequest` | S0 | BE | 🔴 | ✅ |
 | TICK-004 | Exposer `chatRoomId` dans les réponses | S0 | BE | 🔴 | ✅ |
-| TICK-005 | Guards Angular (authGuard + roleGuard) | S0 | FE | 🔴 | ⬜ |
+| TICK-005 | Guards Angular (authGuard + roleGuard) | S0 | FE | 🔴 | ✅ |
 | TICK-006 | OtpComponent — 6 inputs + Timer | S0 | FE | 🔴 | ⬜ |
 | TICK-007 | RegisterComponent — rôle + champs conditionnels | S0 | FE | 🟡 | ⬜ |
 | TICK-008 | Design system maquette dans Angular | S1 | FE | 🔴 | ⬜ |

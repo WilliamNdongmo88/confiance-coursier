@@ -276,6 +276,13 @@ spring.data.redis.port=6379
 - **`course/api/dto/CourseResponse.java`** : ajout de `chatRoomId` (nullable) + `courseAmount`, `currency`, `acceptedOfferId` ; surcharge `fromEntity(Course, Long chatRoomId)`
 - **`course/service/CourseService.java`** : injection de `ChatRoomRepository` ; `getMyCourses()`, `getCourseById()`, `updateCourse()`, `getMyMissions()` peuplent maintenant `chatRoomId` ; méthode privée `resolveChatRoomId(Course)` factorisée
 - Build vérifié : `mvnw compile` → **BUILD SUCCESS**
+
+### Session 11 — TICK-005 : Guards Angular (authGuard + roleGuard)
+- **`core/guards/auth.guard.ts`** : créé — vérifie `localStorage.getItem('jwt_token')` ; redirige vers `/login` si absent
+- **`core/guards/role.guard.ts`** : créé — compare `localStorage.getItem('user_role')` avec `route.data['role']` ; redirige vers `/login` si mismatch
+- **`core/services/auth.service.ts`** : ajout signal `isLoggedIn` (computed depuis `_isLoggedIn`) ; `logout()` supprime `jwt_token` + `user_id` + `user_role` + met à jour le signal ; `login()` appelle `saveToken()` via `tap()` ; `AuthResponse` enrichi avec `fullName`
+- **`app.routes.ts`** : doublons supprimés (3 redirects `''`, 2 `client/create-course`) ; `canActivate: [authGuard, roleGuard]` appliqué sur routes client/coursier ; `canActivate: [authGuard]` sur `/chat/:roomId`
+- Build vérifié : `ng build --configuration development` → **exit 0**
 - Lecture exhaustive de tous les fichiers backend et frontend
 - Inventaire complet dressé (voir §8 ci-dessous)
 

@@ -4,20 +4,50 @@ import { LoginComponent } from './features/auth/login/login.component';
 import { OtpComponent } from './features/auth/otp/otp.component';
 import { ClientDashboardComponent } from './features/client/dashboard/dashboard.component';
 import { CreateCourseComponent } from './features/client/create-course/create-course.component';
-import {CourierDashboardComponent} from './features/courier/dashboard/dashboard.component';
-import {ChatComponent} from './features/chat/chat.component';
+import { CourierDashboardComponent } from './features/courier/dashboard/dashboard.component';
+import { ChatComponent } from './features/chat/chat.component';
+import { authGuard } from './core/guards/auth.guard';
+import { roleGuard } from './core/guards/role.guard';
 
 export const routes: Routes = [
-  { path: 'register', component: RegisterComponent },
+  // Routes publiques
+  { path: '', redirectTo: '/login', pathMatch: 'full' },
   { path: 'login', component: LoginComponent },
+  { path: 'register', component: RegisterComponent },
   { path: 'verify-otp', component: OtpComponent },
-  { path: 'client/dashboard', component: ClientDashboardComponent },
-  { path: 'client/create-course', component: CreateCourseComponent },
-  { path: '', redirectTo: '/login', pathMatch: 'full' },
-  { path: 'courier/dashboard', component: CourierDashboardComponent },
-  { path: '', redirectTo: '/login', pathMatch: 'full' },
-  { path: 'client/create-course', component: CreateCourseComponent },
-  { path: 'client/edit-course/:id', component: CreateCourseComponent },
-  { path: '', redirectTo: '/login', pathMatch: 'full' },
-  { path: 'chat/:roomId', component: ChatComponent },
+
+  // Routes CLIENT — token requis + rôle CLIENT
+  {
+    path: 'client/dashboard',
+    component: ClientDashboardComponent,
+    canActivate: [authGuard, roleGuard],
+    data: { role: 'CLIENT' }
+  },
+  {
+    path: 'client/create-course',
+    component: CreateCourseComponent,
+    canActivate: [authGuard, roleGuard],
+    data: { role: 'CLIENT' }
+  },
+  {
+    path: 'client/edit-course/:id',
+    component: CreateCourseComponent,
+    canActivate: [authGuard, roleGuard],
+    data: { role: 'CLIENT' }
+  },
+
+  // Routes COURSIER — token requis + rôle COURIER
+  {
+    path: 'courier/dashboard',
+    component: CourierDashboardComponent,
+    canActivate: [authGuard, roleGuard],
+    data: { role: 'COURIER' }
+  },
+
+  // Route Chat — token requis (accessible aux deux rôles)
+  {
+    path: 'chat/:roomId',
+    component: ChatComponent,
+    canActivate: [authGuard]
+  },
 ];
