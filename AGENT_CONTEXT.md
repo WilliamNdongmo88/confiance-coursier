@@ -263,6 +263,11 @@ spring.data.redis.port=6379
 - **`CourseService.java`** : `getMyCourses()` utilise désormais `findByClientIdOrderByCreatedAtDesc()` ; `getMyMissions()` utilise `findByCourierIdOrderByCreatedAtDesc()` — plus de `findAll()` + filtre mémoire
 - **`CreateCourseRequest.java`** : suppression du champ `suggestedBudget` (déclaré mais jamais utilisé)
 - Build vérifié : `mvnw compile` → **BUILD SUCCESS**
+
+### Session 9 — TICK-003 : DTO `CreateOfferRequest`
+- **`course/api/dto/CreateOfferRequest.java`** : créé avec `@NotNull @DecimalMin("0.01") BigDecimal amount` et `@NotBlank String details`
+- **`OfferController.java`** : signature `createOffer()` remplacée — `Map<String, Object>` → `@Valid @RequestBody CreateOfferRequest` ; imports `Map`, `BigDecimal` supprimés
+- Build vérifié : `mvnw compile` → **BUILD SUCCESS**
 - Lecture exhaustive de tous les fichiers backend et frontend
 - Inventaire complet dressé (voir §8 ci-dessous)
 
