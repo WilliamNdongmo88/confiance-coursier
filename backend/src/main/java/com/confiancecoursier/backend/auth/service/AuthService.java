@@ -6,12 +6,16 @@ import com.confiancecoursier.backend.auth.api.dto.RegisterRequest;
 import com.confiancecoursier.backend.shared.exception.BusinessException;
 import com.confiancecoursier.backend.user.domain.User;
 import com.confiancecoursier.backend.user.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.time.Duration;
 
 @Service
 public class AuthService {
@@ -22,19 +26,25 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final UserDetailsService userDetailsService;
     private final OtpService otpService;
+    private final StringRedisTemplate redisTemplate;
+
+    @Value("${jwt.refresh-expiration}")
+    private long refreshExpirationMs;
 
     public AuthService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
                        JwtService jwtService,
                        AuthenticationManager authenticationManager,
                        UserDetailsService userDetailsService,
-                       OtpService otpService) {
+                       OtpService otpService,
+                       StringRedisTemplate redisTemplate) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.authenticationManager = authenticationManager;
         this.userDetailsService = userDetailsService;
         this.otpService = otpService;
+        this.redisTemplate = redisTemplate;
     }
 
     public void register(RegisterRequest request) {
@@ -66,9 +76,55 @@ public class AuthService {
                 .orElseThrow(() -> new BusinessException("Utilisateur non trouvé."));
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(user.getEmail());
-        String token = jwtService.generateToken(userDetails);
+        String accessToken = jwtService.generateToken(userDetails);
+        String refreshToken = jwtService.generateRefreshToken(userDetails);
 
-        return new AuthResponse(token, user.getEmail(), user.getFullName(), user.getRole(), user.getId());
+        // Stocke le refresh token dans Redis (clé refresh:<userId>) avec TTL 7 jours.
+        storeRefreshToken(user.getId(), refreshToken);
+
+        return new AuthResponse(accessToken, refreshToken, user.getEmail(), user.getFullName(), user.getRole(), user.getId());
+    }
+
+    /**
+     * Valide un refresh token et émet un nouveau couple access/refresh token.
+     * Le refresh token est <strong>rotativé</strong> : l'ancien est invalidé en Redis
+     * et remplacé par le nouveau, ce qui empêche sa réutilisation.
+     */
+    public AuthResponse refreshAccessToken(String refreshToken) {
+        String email = extractEmailSafely(refreshToken);
+        if (email == null) {
+            throw new BusinessException("Refresh token invalide ou expiré.");
+        }
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new BusinessException("Utilisateur non trouvé."));
+
+        // Vérifie que le refresh token correspond à celui stocké (et qu'il n'a pas été révoqué).
+        String stored = getStoredRefreshToken(user.getId());
+        if (stored == null || !stored.equals(refreshToken)) {
+            throw new BusinessException("Refresh token invalide ou déjà utilisé.");
+        }
+
+        UserDetails userDetails = userDetailsService.loadUserByUsername(user.getEmail());
+        String newAccessToken = jwtService.generateToken(userDetails);
+        String newRefreshToken = jwtService.generateRefreshToken(userDetails);
+
+        // Rotation : invalide l'ancien refresh token et stocke le nouveau.
+        storeRefreshToken(user.getId(), newRefreshToken);
+
+        return new AuthResponse(newAccessToken, newRefreshToken, user.getEmail(), user.getFullName(), user.getRole(), user.getId());
+    }
+
+    /**
+     * Déconnexion : invalide le refresh token stocké en Redis pour l'utilisateur.
+     * L'opération est idempotente (un token déjà invalide ne provoque pas d'erreur).
+     */
+    public void logout(String refreshToken) {
+        String email = extractEmailSafely(refreshToken);
+        if (email == null) {
+            return;
+        }
+        userRepository.findByEmail(email).ifPresent(user -> deleteRefreshToken(user.getId()));
     }
 
     public void verifyOtp(String email, String otp) {
@@ -78,5 +134,35 @@ public class AuthService {
         }
         // Ici, on pourrait mettre à jour un champ 'emailVerified' dans la table users
         // Pour l'instant, on considère que l'utilisateur est vérifié si l'OTP passe.
+    }
+
+    // ── Helpers Redis pour le refresh token ──
+
+    private void storeRefreshToken(Long userId, String token) {
+        redisTemplate.opsForValue().set(refreshKey(userId), token, Duration.ofMillis(refreshExpirationMs));
+    }
+
+    private String getStoredRefreshToken(Long userId) {
+        return redisTemplate.opsForValue().get(refreshKey(userId));
+    }
+
+    private void deleteRefreshToken(Long userId) {
+        redisTemplate.delete(refreshKey(userId));
+    }
+
+    private String refreshKey(Long userId) {
+        return "refresh:" + userId;
+    }
+
+    /**
+     * Extrait l'email (subject) du token sans lever d'exception :
+     * renvoie {@code null} si le token est invalide, mal formé ou expiré.
+     */
+    private String extractEmailSafely(String token) {
+        try {
+            return jwtService.extractUsername(token);
+        } catch (Exception e) {
+            return null;
+        }
     }
 }

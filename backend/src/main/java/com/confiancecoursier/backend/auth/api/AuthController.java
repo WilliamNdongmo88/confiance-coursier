@@ -33,4 +33,24 @@ public class AuthController {
         authService.verifyOtp(request.getEmail(), request.getOtp());
         return ResponseEntity.ok(new OtpResponse("OTP vérifié avec succès. Vous pouvez maintenant vous connecter.", false));
     }
+
+    /**
+     * Échange un refresh token valide contre un nouveau couple access/refresh token.
+     * Route publique (sous {@code /api/auth/**}).
+     */
+    @PostMapping("/refresh")
+    public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody RefreshRequest request) {
+        AuthResponse response = authService.refreshAccessToken(request.getRefreshToken());
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Invalide le refresh token stocké en Redis pour l'utilisateur courant.
+     * Idempotent. Route publique (sous {@code /api/auth/**}).
+     */
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(@Valid @RequestBody RefreshRequest request) {
+        authService.logout(request.getRefreshToken());
+        return ResponseEntity.noContent().build();
+    }
 }

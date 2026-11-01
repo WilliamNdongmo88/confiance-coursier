@@ -269,7 +269,7 @@ Tous les composants Angular actuels utilisent des styles inline basiques sans co
 ---
 
 ### TICK-010 🟡 [BE] Implémenter le Refresh Token
-**Statut :** ⬜
+**Statut :** ✅
 **Priorité :** Important
 **Fichiers concernés :**
 - `auth/service/JwtService.java`
@@ -282,12 +282,12 @@ Tous les composants Angular actuels utilisent des styles inline basiques sans co
 Le token expire au bout de 15 minutes → l'utilisateur doit se reconnecter manuellement.
 
 **Travail à faire :**
-- [ ] Ajouter `generateRefreshToken(UserDetails)` dans `JwtService`
-- [ ] Stocker le refresh token dans Redis avec TTL 7 jours (clé : `refresh:<userId>`)
-- [ ] Retourner `refreshToken` dans `AuthResponse` lors du login
-- [ ] Créer `POST /api/auth/refresh` : valide le refresh token → retourne un nouveau access token
-- [ ] Créer `POST /api/auth/logout` : invalide le refresh token dans Redis
-- [ ] Ajouter route `/api/auth/logout` dans `SecurityConfig.permitAll()`
+- [x] Ajouter `generateRefreshToken(UserDetails)` dans `JwtService`
+- [x] Stocker le refresh token dans Redis avec TTL 7 jours (clé : `refresh:<userId>`)
+- [x] Retourner `refreshToken` dans `AuthResponse` lors du login
+- [x] Créer `POST /api/auth/refresh` : valide le refresh token → retourne un nouveau access token
+- [x] Créer `POST /api/auth/logout` : invalide le refresh token dans Redis
+- [x] Ajouter route `/api/auth/logout` dans `SecurityConfig.permitAll()` (déjà couvert par `requestMatchers("/api/auth/**").permitAll()` — refresh et logout sont publics)
 
 **Critères d'acceptance :**
 - `POST /api/auth/login` retourne `{ token, refreshToken, email, role, userId }`

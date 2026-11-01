@@ -338,6 +338,26 @@ spring.data.redis.port=6379
   - **Auto-redirect si déjà connecté** : `ngOnInit` vérifie `authService.isLoggedIn()` et redirige vers le dashboard du rôle courant
 - Build vérifié : `.\node_modules\.bin\ng build --configuration development` → **exit 0**
 
+### Session 16 — TICK-010 : Implémenter le Refresh Token (backend)
+- **`auth/service/JwtService.java`** : ajout `@Value("${jwt.refresh-expiration}")` + `generateRefreshToken(UserDetails)` (même signature que `generateToken`, expiration plus longue) ; `isTokenExpired()` rendu public (validation refresh)
+- **`auth/api/dto/AuthResponse.java`** : ajout champ `refreshToken` (2ᵉ position, après `token`) — `@AllArgsConstructor` mis à jour → **2 seuls call sites mis à jour** (login + refresh dans AuthService)
+- **`auth/api/dto/RefreshRequest.java`** : créé — `@NotBlank String refreshToken` (corps de `/refresh` et `/logout`)
+- **`auth/service/AuthService.java`** : injection de `StringRedisTemplate` + `@Value` refresh TTL
+  - `login()` génère access + refresh, stocke le refresh en Redis (clé `refresh:<userId>`, TTL 7j) et le renvoie
+  - `refreshAccessToken(token)` : valide (signature+expiration via `extractUsername`), vérifie la correspondance Redis, **rotative** (nouveau refresh, ancien invalidé), renvoie le nouveau couple
+  - `logout(token)` : idempotent, supprime la clé Redis `refresh:<userId>` ; helper `extractEmailSafely` (catch-all → null) pour ne jamais 500 sur un token pourri
+- **`auth/api/AuthController.java`** : `POST /api/auth/refresh` + `POST /api/auth/logout` (204 No Content)
+- **SecurityConfig** : inchangé — `/api/auth/**` est déjà `permitAll`, donc refresh + logout sont publics (aucune ligne redondante ajoutée)
+- **Build** : `.\mvnw.cmd test-compile` (Java 21) → **exit 0** (⚠ `JAVA_HOME` pointait sur JDK 17 → basculé sur `jdk-21.0.13.9-hotspot` pour le build)
+- **Vérification runtime end-to-end** (Postgres + Redis Docker actifs) : instance lancée sur port **8081** (le 8080 était occupé par une instance backend préexistante — PID 30020, non touchée) via `java -jar target/backend-0.0.1-SNAPSHOT.jar --server.port=8081`
+  - login → renvoie `token` + `refreshToken` ✅
+  - refresh → nouveau token + nouveau refresh, **rotation** confirmée ✅
+  - logout → 204 ✅
+  - rejeu du refresh avec l'ancien token → **400** (invalide) ✅
+  - rejeu du refresh après logout → **400** ✅
+  - Instance de test (8081) stoppée + logs temporaires supprimés après vérification
+- **Note tests** : `AuthControllerTest` (@SpringBootTest) échoue actuellement à cause d'un problème **préexistant** sans lien avec ce ticket — `@BeforeEach userRepository.deleteAll()` casse sur une FK (`courses_client_id_fkey`) car la base dev contient un user référencé par des courses. Aucun test automatique ajouté (règle « pas de tests auto sauf demande »)
+
 ---
 
 ## 8. PROBLÈMES CONNUS À CORRIGER (backlog technique)
