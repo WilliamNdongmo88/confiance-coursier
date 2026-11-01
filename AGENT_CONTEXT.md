@@ -1,6 +1,6 @@
 # AGENT CONTEXT — confiance-coursier
 > Fichier de continuité pour tout agent IA qui reprend ce projet.
-> Mis à jour au : 2026-10-28 (ajout specs V4/V5)
+> Mis à jour au : 2026-11-01 (session 24)
 > Dernier agent : Kiro CLI
 
 ---
@@ -23,9 +23,9 @@
 confiance-coursier/
 ├── backend/                          ← Spring Boot 4.1.2 / Java 21 / Maven
 │   ├── src/main/java/com/confiancecoursier/backend/
-│   │   ├── BackendApplication.java   ← @SpringBootApplication (CORRIGÉ — plus d'exclude DataSource)
+│   │   ├── BackendApplication.java   ← @SpringBootApplication + chargeur .env maison
 │   │   ├── config/
-│   │   │   ├── SecurityConfig.java   ← JWT, CORS, routes publiques
+│   │   │   ├── SecurityConfig.java   ← JWT, CORS, routes publiques (/api/auth/**)
 │   │   │   ├── WebSocketConfig.java  ← STOMP /ws, broker /topic, prefix /app
 │   │   │   └── HealthController.java ← GET /api/health
 │   │   ├── shared/
@@ -37,39 +37,49 @@ confiance-coursier/
 │   │   ├── auth/
 │   │   │   ├── api/
 │   │   │   │   ├── AuthController.java          ← POST /register /login /verify-otp
+│   │   │   │   │                                   POST /refresh /logout
+│   │   │   │   │                                   POST /resend-otp
+│   │   │   │   │                                   POST /forgot-password /reset-password
 │   │   │   │   └── dto/
 │   │   │   │       ├── RegisterRequest.java     ← email, password, fullName, phone, role
 │   │   │   │       ├── LoginRequest.java        ← email, password
-│   │   │   │       ├── AuthResponse.java        ← token, email, role, userId
+│   │   │   │       ├── AuthResponse.java        ← token, refreshToken, email, fullName, role, userId
 │   │   │   │       ├── OtpResponse.java         ← message, otpRequired
-│   │   │   │       └── VerifyOtpRequest.java    ← email, otp
+│   │   │   │       ├── VerifyOtpRequest.java    ← email, otp
+│   │   │   │       ├── RefreshRequest.java      ← refreshToken
+│   │   │   │       ├── ResendOtpRequest.java    ← email
+│   │   │   │       ├── ForgotPasswordRequest.java ← email
+│   │   │   │       └── ResetPasswordRequest.java  ← token, newPassword
 │   │   │   ├── service/
-│   │   │   │   ├── AuthService.java             ← register/login/verifyOtp
-│   │   │   │   ├── JwtService.java              ← generate/validate JWT HS256
+│   │   │   │   ├── AuthService.java             ← register/login/verifyOtp/resendOtp/refresh/logout
+│   │   │   │   ├── JwtService.java              ← generate/validate JWT HS256 + refresh token
 │   │   │   │   ├── JwtAuthenticationFilter.java ← OncePerRequestFilter, extrait Bearer token
-│   │   │   │   ├── OtpService.java              ← Redis, TTL 5min, usage unique
+│   │   │   │   ├── OtpService.java              ← Redis TTL 5min, usage unique, envoi Brevo REST API
+│   │   │   │   ├── PasswordResetService.java    ← token UUID Redis TTL 15min, envoi Brevo REST API
 │   │   │   │   └── UserDetailsServiceImpl.java  ← charge User par email
 │   │   │   ├── domain/               ← VIDE
 │   │   │   └── repository/           ← VIDE
 │   │   ├── user/
-│   │   │   ├── domain/User.java      ← @Entity users, Lombok @Builder
+│   │   │   ├── domain/User.java      ← @Entity users, Lombok @Builder, fullName
 │   │   │   └── repository/UserRepository.java ← findByEmail, existsByEmail
 │   │   ├── course/
 │   │   │   ├── api/
 │   │   │   │   ├── CourseController.java  ← CRUD + getPublished + missions + acceptOffer
 │   │   │   │   ├── OfferController.java   ← POST/GET offres par course
 │   │   │   │   └── dto/
-│   │   │   │       ├── CreateCourseRequest.java ← description, zone, scheduledAt, suggestedBudget
-│   │   │   │       └── CourseResponse.java      ← fromEntity(), MANQUE champs financiers
+│   │   │   │       ├── CreateCourseRequest.java  ← description, zone, scheduledAt
+│   │   │   │       ├── CreateOfferRequest.java   ← @Valid amount(BigDecimal), details
+│   │   │   │       ├── CreateOfferResponse.java  ← offerId, chatRoomId
+│   │   │   │       └── CourseResponse.java       ← fromEntity() avec chatRoomId, courseAmount, currency, acceptedOfferId
 │   │   │   ├── domain/
 │   │   │   │   ├── Course.java        ← @Entity courses
 │   │   │   │   └── CourseOffer.java   ← @Entity course_offers
 │   │   │   ├── repository/
-│   │   │   │   ├── CourseRepository.java      ← findByStatus, findByClientId
+│   │   │   │   ├── CourseRepository.java      ← findByStatus, findByClientId, findByCourierId
 │   │   │   │   └── CourseOfferRepository.java ← findByCourseId, existsByCourseIdAndCourierId
 │   │   │   └── service/
-│   │   │       ├── CourseService.java  ← CRUD courses
-│   │   │       └── OfferService.java   ← createOffer, acceptOffer, getOffers
+│   │   │       ├── CourseService.java  ← CRUD courses (requêtes ciblées, plus de findAll)
+│   │   │       └── OfferService.java   ← createOffer → CreateOfferResponse avec chatRoomId
 │   │   ├── chat/
 │   │   │   ├── domain/
 │   │   │   │   ├── ChatRoom.java      ← @Entity chat_rooms
@@ -91,39 +101,63 @@ confiance-coursier/
 │   │   ├── report/     ← VIDE
 │   │   └── review/     ← VIDE
 │   ├── src/main/resources/
-│   │   ├── application.properties    ← DB, JPA, Flyway, JWT, Redis config
+│   │   ├── application.properties    ← DB, JPA, Flyway, JWT, Redis, Brevo REST API, frontend.url
 │   │   └── db/migration/
-│   │       ├── V1__init_schema.sql   ← tables: users, kyc_submissions
-│   │       └── V2__create_all_tables.sql ← 10 tables (voir §4)
+│   │       ├── V1__init_schema.sql         ← tables: users, kyc_submissions
+│   │       ├── V2__create_all_tables.sql   ← 10 tables (voir §4)
+│   │       └── V3__add_fullname_to_users.sql ← ALTER TABLE users ADD COLUMN full_name
+│   ├── .env                          ← BREVO_API_KEY, BREVO_SENDER_EMAIL, JWT_SECRET_KEY (gitignoré)
 │   └── src/test/java/.../auth/
-│       └── AuthControllerTest.java   ← CORRIGÉ et déplacé dans src/test
+│       └── AuthControllerTest.java   ← @TestPropertySource désactive OTP email
 │
 ├── frontend/                         ← Angular 21 / Tailwind CSS v4 / Lucide
 │   ├── src/
 │   │   ├── app/
-│   │   │   ├── app.ts               ← <router-outlet> + <app-toast>
+│   │   │   ├── app.ts               ← <router-outlet> + <app-toast> + ThemeService init
 │   │   │   ├── app.config.ts        ← provideHttpClient(withFetch, withInterceptorsFromDi)
 │   │   │   ├── app.routes.ts        ← toutes les routes (voir §6)
-│   │   │   ├── core/services/
-│   │   │   │   ├── auth.service.ts  ← login/register/verifyOtp + localStorage token
-│   │   │   │   ├── course.service.ts← CRUD courses + offres
-│   │   │   │   ├── chat.service.ts  ← STOMP WebSocket + HTTP historique
-│   │   │   │   ├── toast.service.ts ← signal-based toast stack
-│   │   │   │   └── api.service.ts   ← healthCheck()
-│   │   │   └── features/auth/
-│   │   │       ├── login/login.component.ts
-│   │   │       ├── register/register.component.ts
-│   │   │       ├── otp/otp.component.ts
-│   │   │       ├── client/dashboard/client-dashboard.component.ts
-│   │   │       ├── client/create-course/create-course.component.ts
-│   │   │       ├── courier/dashboard/courier-dashboard.component.ts
+│   │   │   ├── core/
+│   │   │   │   ├── services/
+│   │   │   │   │   ├── auth.service.ts      ← login/register/verifyOtp/resendOtp + localStorage (token, email, fullName, role)
+│   │   │   │   │   ├── course.service.ts    ← CRUD courses + offres
+│   │   │   │   │   ├── chat.service.ts      ← STOMP WebSocket + HTTP historique
+│   │   │   │   │   ├── toast.service.ts     ← signal-based toast stack
+│   │   │   │   │   ├── theme.service.ts     ← signal isDarkMode, toggleTheme(), data-theme
+│   │   │   │   │   └── api.service.ts       ← healthCheck()
+│   │   │   │   ├── guards/
+│   │   │   │   │   ├── auth.guard.ts        ← vérifie jwt_token → redirect /login
+│   │   │   │   │   └── role.guard.ts        ← vérifie user_role vs route.data.role
+│   │   │   │   └── interceptors/
+│   │   │   │       └── auth.interceptor.ts  ← Bearer token + 401 → refresh → replay
+│   │   │   ├── shared/components/
+│   │   │   │   ├── app-shell/app-shell.component.ts      ← sidebar + topbar + overlay
+│   │   │   │   ├── sidebar-client/sidebar-client.component.ts
+│   │   │   │   ├── sidebar-courier/sidebar-courier.component.ts
+│   │   │   │   └── sidebar-admin/sidebar-admin.component.ts
+│   │   │   └── features/
+│   │   │       ├── auth/
+│   │   │       │   ├── login/login.component.ts           ← design system, redirect par rôle, forgot-password
+│   │   │       │   ├── register/register.component.ts     ← cartes rôle, champs coursier conditionnels, design system
+│   │   │       │   ├── otp/otp.component.ts               ← 6 @ViewChild individuels, DOM natif (pas de binding Angular)
+│   │   │       │   ├── forgot-password/forgot-password.component.ts ← email → lien reset, écran confirmation
+│   │   │       │   └── reset-password/reset-password.component.ts   ← token queryParam, nouveau mdp, toggle visibilité
+│   │   │       ├── client/
+│   │   │       │   ├── dashboard/dashboard.component.ts   ← métriques, courses actives, badges statut, chatRoomId
+│   │   │       │   └── create-course/create-course.component.ts
+│   │   │       ├── courier/
+│   │   │       │   └── dashboard/dashboard.component.ts
 │   │   │       └── chat/chat.component.ts
-│   │   ├── proxy.conf.json          ← /api → http://localhost:8080
-│   │   └── styles.scss              ← @use '@angular/material', @use 'tailwindcss'
-│   ├── angular.json                 ← proxyConfig: src/proxy.conf.json (CORRIGÉ)
-│   └── postcss.config.json          ← @tailwindcss/postcss (Tailwind v4)
+│   │   ├── assets/css/
+│   │   │   ├── main.css      ← design system global (tokens, boutons, forms…)
+│   │   │   ├── app-layout.css← sidebar, topbar, app-shell
+│   │   │   └── refonte.css   ← auth-wrapper (flex centré), auth-card, auth-topbar, back-link,
+│   │   │                        top-controls, lang-toggle, options-row, forgot-link, role-card…
+│   │   ├── proxy.conf.json   ← /api → http://localhost:8080
+│   │   └── styles.scss       ← @use 'tailwindcss'
+│   ├── angular.json          ← proxyConfig + styles array (main.css, app-layout.css, refonte.css)
+│   └── postcss.config.json   ← @tailwindcss/postcss (Tailwind v4)
 │
-└── docker-compose.yml               ← postgres:5432, redis:6379, minio:9000, pgadmin:5050
+└── docker-compose.yml        ← postgres:5432, redis:6379, minio:9000, pgadmin:5050
 ```
 
 ---
@@ -184,29 +218,37 @@ spring.jpa.hibernate.ddl-auto=validate
 spring.flyway.enabled=true
 spring.flyway.baseline-on-migrate=true
 spring.flyway.locations=classpath:db/migration
-jwt.secret=<hex_secret>
-jwt.expiration=900000          ← 15 minutes
-jwt.refresh-expiration=604800000 ← 7 jours (NON implémenté dans le code)
+jwt.secret=${JWT_SECRET_KEY}
+jwt.expiration=900000              ← 15 minutes
+jwt.refresh-expiration=604800000   ← 7 jours (stocké en Redis)
 spring.data.redis.host=localhost
 spring.data.redis.port=6379
+# Brevo REST API (clés dans backend/.env)
+brevo.api.key=${BREVO_API_KEY}
+brevo.api.url=https://api.brevo.com/v3/smtp/email
+app.otp.sender-email=${BREVO_SENDER_EMAIL}
+app.otp.app-name=${BREVO_APP_NAME:ConfianceCoursier}
+app.otp.email-enabled=true
+app.otp.dev-log=true               ← passer à false en production
+app.frontend.url=http://localhost:4200
 ```
 
 ---
 
 ## 6. ROUTES FRONTEND
 
-| Path | Composant | Authentification requise |
-|------|-----------|--------------------------|
+| Path | Composant | Auth requise |
+|------|-----------|-------------|
 | `/login` | LoginComponent | Non |
 | `/register` | RegisterComponent | Non |
-| `/verify-otp` | OtpComponent | Non |
-| `/client/dashboard` | ClientDashboardComponent | Oui (pas de guard !) |
-| `/client/create-course` | CreateCourseComponent | Oui (pas de guard !) |
-| `/client/edit-course/:id` | CreateCourseComponent | Oui (pas de guard !) |
-| `/courier/dashboard` | CourierDashboardComponent | Oui (pas de guard !) |
-| `/chat/:roomId` | ChatComponent | Oui (pas de guard !) |
-
-**⚠ Aucun guard Angular n'est implémenté — toutes les routes sont accessibles sans token.**
+| `/verify-otp?email=&phone=` | OtpComponent | Non |
+| `/forgot-password` | ForgotPasswordComponent | Non |
+| `/reset-password?token=` | ResetPasswordComponent | Non |
+| `/client/dashboard` | ClientDashboardComponent | Oui — guard CLIENT |
+| `/client/create-course` | CreateCourseComponent | Oui — guard CLIENT |
+| `/client/edit-course/:id` | CreateCourseComponent | Oui — guard CLIENT |
+| `/courier/dashboard` | CourierDashboardComponent | Oui — guard COURIER |
+| `/chat/:roomId` | ChatComponent | Oui — authGuard |
 
 ---
 
@@ -395,34 +437,97 @@ spring.data.redis.port=6379
 - **Build** : `mvnw package -DskipTests` → exit 0
 - **Vérif runtime** (port 8082) : inscription → **`Email OTP envoyé via Brevo API`** ✅ — plus aucune erreur "Authentication failed"
 
+### Session 20 — TICK-013 : Refondre `ClientDashboardComponent` selon la maquette
+- **`features/client/dashboard/dashboard.component.ts`** : refonte complète fidèle à `maquette-v2/client/dashboard.html`
+  - Fil d'Ariane via `<app-shell pageTitle="Vue d'ensemble">`
+  - En-tête : "Bonjour [prénom]," + bouton "Créer une course"
+  - Notice `app-notice`, 3 métriques (`metrics-grid`) : actives, terminées, note (`—` jusqu'au module reviews)
+  - Panel "Courses à suivre" : badges statut colorisés français, bouton Chat → `/chat/{chatRoomId}`, lien "Voir les preuves" si PROOFS_SUBMITTED
+  - Aside CTA contextuel (preuves à valider / vide / en cours)
+  - `DecimalPipe` pour la note, `NgClass` pour les badges
+- **Build** : `ng build --configuration development` → **exit 0**
+
+### Session 21 — Corrections post-TICK-013 (dashboard + auth)
+- **`auth.service.ts`** : `saveToken()` stocke désormais `user_email` (6ᵉ param) ; `clearStorage()` supprime aussi `user_email` ; ajout `getCurrentUserEmail()`
+- **`app-shell.component.ts`** : `firstName` et `initials` : fallback sur `user_email` (partie avant `@`) si `user_full_name` absent — plus jamais "utilisateur" ni "CC" par défaut
+- **`dashboard.component.ts`** : `firstName` utilise `getCurrentUserEmail()` comme fallback ; `averageRating` retourne `null` (affiche `—`) au lieu de 4.8 fictif
+- **`refonte.css`** : `.auth-wrapper` corrigé → `display:flex; align-items:center; justify-content:center` (les 3 pages auth étaient collées en haut à gauche) ; `.auth-card` : ajout `width:100%; background:var(--bg-card,#fff); border:1px solid #e1e8e0` ; toutes les classes auth partagées centralisées ici (`auth-topbar`, `back-link`, `top-controls`, `lang-toggle`, `options-row`, `forgot-link`) — le `LoginComponent` ne les redéfinit plus en inline
+- **`login.component.ts`** : styles inline supprimés (hérités de `refonte.css`)
+- **Build** : `ng build --configuration development` → **exit 0**
+
+### Session 22 — Refonte `RegisterComponent` + `OtpComponent` selon la maquette
+- **`register/register.component.ts`** : refonte complète
+  - Topbar `auth-topbar` (back-link + toggle FR/thème) identique au login
+  - Logo Lucide `<svg lucideBike>` centré
+  - Sélecteur de rôle avec `.role-card` / `.role-card.selected` + icônes Lucide
+  - Tous les champs utilisent `.form-group`, `.form-label`, `.form-input`, `.form-select` du design system
+  - Champs coursier conditionnels (`@if role === 'COURIER'`)
+  - Checkbox CGU `.form-checkbox`, bouton `.btn.btn-primary.btn-block.btn-lg`
+  - Passe `phone` en queryParam vers `/verify-otp?email=...&phone=...`
+  - Styles dark mode dans le composant
+- **`otp/otp.component.ts`** : refonte complète
+  - Design system : `auth-wrapper`, `auth-card`, `back-link` absolu, `top-controls` absolu
+  - Affiche téléphone masqué (principal) + email masqué (secondaire)
+  - **Bug propagation chiffres résolu** : abandon de `*ngFor` + `[value]` → **6 `@ViewChild` individuels** (`d0`…`d5`), DOM 100% natif, `focusAt()` via `setTimeout(0)`
+  - `isComplete` et `otpValue` lisent directement `el.value` des `ElementRef`
+  - `onKeydown(Backspace)` avec `event.preventDefault()`, `onPaste` direct sur DOM
+- **Build** : `ng build --configuration development` → **exit 0**
+
+### Session 23 — Correction `resendCode` + endpoint `POST /api/auth/resend-otp`
+- **Cause** : `resendCode()` appelait `authService.register()` avec données vides → 400 (validation `@NotBlank`) → OTP jamais renvoyé
+- **Backend** :
+  - `auth/api/dto/ResendOtpRequest.java` : créé — `@Email @NotBlank String email`
+  - `AuthService.resendOtp(email)` : appelle `otpService.generateOtp()` si le compte existe (silencieux sinon)
+  - `AuthController` : `POST /api/auth/resend-otp` → 200 systématique
+  - Bug corrigé au passage : `verifyOtp()` avait 2 instructions collées sur une ligne (corrupton édition) → corrigé
+- **Frontend** :
+  - `auth.service.ts` : ajout `resendOtp(email)` → `POST /api/auth/resend-otp`
+  - `otp.component.ts` : `resendCode()` appelle `authService.resendOtp()` ; erreur réseau → toast d'erreur (plus de succès silencieux)
+- **Build backend** : `mvnw package -DskipTests` → exit 0 ; **Frontend** : `ng build` → exit 0
+
+### Session 24 — Page "Mot de passe oublié" (flux complet)
+- **Backend** :
+  - `auth/api/dto/ForgotPasswordRequest.java` : `@Email @NotBlank String email`
+  - `auth/api/dto/ResetPasswordRequest.java` : `@NotBlank String token` + `@Size(min=8) String newPassword`
+  - `auth/service/PasswordResetService.java` : créé
+    - `initiateReset(email)` : génère UUID, stocke `pwd-reset:<token>` en Redis (TTL 15 min), envoie email Brevo REST API avec lien `{frontendUrl}/reset-password?token=xxx`
+    - `resetPassword(token, newPassword)` : valide Redis, met à jour `passwordHash`, supprime le token (usage unique)
+    - Silencieux si email inconnu (anti-énumération)
+  - `AuthController` : `POST /api/auth/forgot-password` + `POST /api/auth/reset-password` (injectés via `PasswordResetService`)
+  - `application.properties` : ajout `app.frontend.url=http://localhost:4200`
+- **Frontend** :
+  - `features/auth/forgot-password/forgot-password.component.ts` : créé
+    - Formulaire email → `POST /api/auth/forgot-password`
+    - Après envoi : écran "Email envoyé !" avec cooldown 60s sur "Renvoyer"
+    - Design system identique aux autres pages auth
+  - `features/auth/reset-password/reset-password.component.ts` : créé
+    - Lit `token` depuis queryParam
+    - Formulaire nouveau mot de passe + confirmation + toggle visibilité (LucideEye/EyeOff)
+    - États : token absent / succès / formulaire
+    - Erreur token expiré → toast + redirect `/forgot-password` après 3s
+  - `app.routes.ts` : routes `/forgot-password` et `/reset-password` ajoutées (publiques)
+  - `login.component.ts` : `forgotPassword()` navigue vers `/forgot-password` (plus de toast "prochainement")
+- **Build backend** : `mvnw package -DskipTests` → exit 0 ; **Frontend** : `ng build` → exit 0
+
 ---
 
-## 8. PROBLÈMES CONNUS À CORRIGER (backlog technique)
+## 8. PROBLÈMES CONNUS RÉSIDUELS
 
 ### Backend
 
-| Priorité | Problème | Fichier | Correction suggérée |
-|----------|----------|---------|---------------------|
-| 🔴 HAUTE | `fullName` ignoré dans `register()` — champ absent sur `User` | `User.java`, `AuthService.java` | Ajouter `fullName` (ou `firstName`+`lastName`) à l'entité `User` et au `V1` (ou V3 migration) |
-| 🔴 HAUTE | `roomId` incorrect dans le chat — on passe `course.id` au lieu de `chatRoom.id` | `CourseController`, `OfferController`, dashboards Angular | Exposer le `chatRoom.id` dans `CourseResponse` ou via endpoint dédié |
-| 🟡 MOYENNE | `getMyCourses()` et `getMyMissions()` font `findAll()` en mémoire | `CourseService.java` | Utiliser `findByClientIdOrderByCreatedAtDesc()` qui existe déjà + ajouter `findByCourierIdOrderByCreatedAtDesc()` dans `CourseRepository` |
-| 🟡 MOYENNE | Refresh token configuré mais non implémenté | `JwtService.java`, `AuthService.java` | Ajouter `POST /api/auth/refresh` + `generateRefreshToken()` + stocker en Redis |
-| 🟡 MOYENNE | `OfferController` utilise `Map<String,Object>` au lieu d'un DTO | `OfferController.java` | Créer `CreateOfferRequest.java` (amount, details) avec `@Valid` |
-| 🟡 MOYENNE | `CourseResponse` n'expose pas les champs financiers | `CourseResponse.java` | Ajouter courseAmount, currency, commissionAmount, acceptedOfferId |
-| 🟢 BASSE | `emailVerified` non implémenté (TODO dans le code) | `User.java`, `AuthService.java` | Ajouter colonne `email_verified BOOLEAN DEFAULT FALSE` via migration V3 |
-| 🟢 BASSE | OTP simulé par `System.out.println` | `OtpService.java` | Intégrer un vrai service email (SendGrid/Mailgun) ou SMS (Twilio) |
-| 🟢 BASSE | `suggestedBudget` dans `CreateCourseRequest` déclaré mais jamais utilisé | `CourseService.java` | Soit l'utiliser, soit le supprimer |
+| Priorité | Problème | Fichier |
+|----------|----------|---------|
+| 🟡 | `emailVerified` non implémenté sur `User` | `User.java`, migration V4 à créer |
+| 🟡 | Note moyenne coursier non calculée (retourne `null`) | Module `review/` — TICK Sprint 5 |
+| 🟢 | `app.otp.dev-log=true` à passer à `false` en production | `application.properties` |
 
 ### Frontend
 
-| Priorité | Problème | Fichier | Correction suggérée |
-|----------|----------|---------|---------------------|
-| 🔴 HAUTE | Aucun guard Angular — routes protégées accessibles sans token | `app.routes.ts` | Créer `authGuard` + `roleGuard` (CLIENT/COURIER) et les appliquer sur les routes |
-| 🔴 HAUTE | `roomId` incorrect (course.id utilisé à la place de chatRoom.id) | Dashboards client + coursier | Récupérer le vrai `chatRoom.id` depuis l'API |
-| 🟡 MOYENNE | `logout()` ne supprime que `jwt_token` | `auth.service.ts` | Supprimer aussi `user_id` et `user_role` |
-| 🟡 MOYENNE | `OtpComponent` utilise `alert()` au lieu de `ToastService` | `otp.component.ts` | Remplacer `alert()` par `toastService.error/success()` |
-| 🟡 MOYENNE | Pas d'état d'authentification réactif | `auth.service.ts` | Ajouter un `BehaviorSubject<boolean>` ou signal `isLoggedIn` |
-| 🟢 BASSE | Duplication path `''` et `client/create-course` dans les routes | `app.routes.ts` | Nettoyer les doublons |
+| Priorité | Problème | Fichier |
+|----------|----------|---------|
+| 🟡 | `CourierDashboardComponent` : non refondu selon maquette | TICK-022 — Sprint 2 |
+| 🟡 | `ChatComponent` : non refondu (carte d'offre manquante) | TICK-017 — Sprint 2 |
+| 🟢 | Note moyenne dans dashboard client affiche `—` | Sera rempli après module reviews |
 
 ---
 

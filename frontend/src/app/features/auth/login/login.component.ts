@@ -78,116 +78,6 @@ import { LucideArrowLeft, LucideBike, LucideMoon, LucideSun } from '@lucide/angu
   `,
   styles: [`
     :host { display: block; }
-
-    /* Centrage de la carte au milieu de l'écran (la maquette ajoute le flex à .auth-wrapper) */
-    .auth-wrapper {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    /* Ligne du haut : Retour à gauche | FR + Thème à droite */
-    .auth-topbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 16px;
-      gap: 8px;
-    }
-
-    /* Zone cliquable >= 44px */
-    .back-link {
-      min-width: 44px;
-      min-height: 44px;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      color: var(--text-muted, #6d7a71);
-      font-size: 0.88rem;
-      font-weight: 600;
-      text-decoration: none;
-      border-radius: 8px;
-      padding: 0 8px;
-      flex-shrink: 0;
-      transition: color 0.15s, background 0.15s;
-    }
-    .back-link:hover {
-      color: var(--primary, #17634f);
-      background: var(--gray-100, #f0f3ef);
-    }
-
-    .top-controls {
-      display: flex;
-      gap: 6px;
-      align-items: center;
-      flex-shrink: 0;
-    }
-
-    .lang-toggle {
-      font-weight: 700;
-      color: var(--text-muted, #6d7a71);
-      padding: 0 8px;
-      font-size: 0.9rem;
-      min-height: 44px;
-      min-width: 44px;
-      background: none;
-      border: none;
-      cursor: pointer;
-      border-radius: 8px;
-      transition: background 0.15s;
-    }
-    .lang-toggle:hover { background: var(--gray-100, #f0f3ef); }
-
-    /* Logo centré sur sa propre ligne */
-    .auth-logo {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      margin-bottom: 12px;
-      text-align: center;
-    }
-
-    .auth-title {
-      font-size: 1.5rem;
-      font-weight: 700;
-      text-align: center;
-      margin-bottom: 32px;
-    }
-
-    /* Ligne options : "Se souvenir de moi" + "Mot de passe oublié" */
-    .options-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-top: 16px;
-      margin-bottom: 16px;
-      gap: 12px;
-    }
-
-    .forgot-link {
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 0;
-      color: var(--primary, #17634f);
-      font-weight: 700;
-      font-size: 0.875rem;
-      text-decoration: none;
-    }
-    .forgot-link:hover { text-decoration: underline; }
-
-    .auth-footer {
-      text-align: center;
-      margin-top: 24px;
-      font-size: 0.9rem;
-    }
-    .auth-footer a {
-      color: var(--primary, #17634f);
-      font-weight: 700;
-      text-decoration: none;
-    }
-    .auth-footer a:hover { text-decoration: underline; }
   `]
 })
 export class LoginComponent implements OnInit {
@@ -231,7 +121,7 @@ export class LoginComponent implements OnInit {
   }
 
   forgotPassword(): void {
-    this.toast.info('La réinitialisation du mot de passe sera disponible prochainement.');
+    this.router.navigate(['/forgot-password']);
   }
 
   toggleLang(): void {

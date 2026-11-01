@@ -49,7 +49,8 @@ export class AuthService {
           response.userId,
           response.role,
           response.fullName,
-          response.refreshToken
+          response.refreshToken,
+          response.email
         );
       })
     );
@@ -57,6 +58,11 @@ export class AuthService {
 
   verifyOtp(email: string, otp: string): Observable<any> {
     return this.http.post(`${this.apiUrl}/verify-otp`, { email, otp });
+  }
+
+  /** Renvoie un nouveau code OTP pour l'email donné via l'endpoint dédié. */
+  resendOtp(email: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/resend-otp`, { email });
   }
 
   /**
@@ -97,6 +103,7 @@ export class AuthService {
     localStorage.removeItem('user_id');
     localStorage.removeItem('user_role');
     localStorage.removeItem('user_full_name');
+    localStorage.removeItem('user_email');
     this._isLoggedIn.set(false);
   }
 
@@ -105,7 +112,8 @@ export class AuthService {
     userId: number,
     role: string,
     fullName?: string,
-    refreshToken?: string
+    refreshToken?: string,
+    email?: string
   ): void {
     localStorage.setItem('jwt_token', token);
     localStorage.setItem('user_id', String(userId));
@@ -116,6 +124,9 @@ export class AuthService {
     if (refreshToken) {
       localStorage.setItem('refresh_token', refreshToken);
     }
+    if (email) {
+      localStorage.setItem('user_email', email);
+    }
     this._isLoggedIn.set(true);
   }
 
@@ -125,6 +136,11 @@ export class AuthService {
 
   getCurrentUserRole(): string {
     return localStorage.getItem('user_role') || 'INCONNU';
+  }
+
+  /** Retourne l'email de l'utilisateur connecté (ou chaîne vide si absent). */
+  getCurrentUserEmail(): string {
+    return localStorage.getItem('user_email') || '';
   }
 
   /** Retourne le nom complet de l'utilisateur connecté (ou chaîne vide si absent). */

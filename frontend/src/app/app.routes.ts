@@ -2,6 +2,8 @@ import { Routes } from '@angular/router';
 import { RegisterComponent } from './features/auth/register/register.component';
 import { LoginComponent } from './features/auth/login/login.component';
 import { OtpComponent } from './features/auth/otp/otp.component';
+import { ForgotPasswordComponent } from './features/auth/forgot-password/forgot-password.component';
+import { ResetPasswordComponent } from './features/auth/reset-password/reset-password.component';
 import { ClientDashboardComponent } from './features/client/dashboard/dashboard.component';
 import { CreateCourseComponent } from './features/client/create-course/create-course.component';
 import { CourierDashboardComponent } from './features/courier/dashboard/dashboard.component';
@@ -12,9 +14,11 @@ import { roleGuard } from './core/guards/role.guard';
 export const routes: Routes = [
   // Routes publiques
   { path: '', redirectTo: '/login', pathMatch: 'full' },
-  { path: 'login', component: LoginComponent },
-  { path: 'register', component: RegisterComponent },
-  { path: 'verify-otp', component: OtpComponent },
+  { path: 'login',            component: LoginComponent },
+  { path: 'register',         component: RegisterComponent },
+  { path: 'verify-otp',       component: OtpComponent },
+  { path: 'forgot-password',  component: ForgotPasswordComponent },
+  { path: 'reset-password',   component: ResetPasswordComponent },
 
   // Routes CLIENT — token requis + rôle CLIENT
   {

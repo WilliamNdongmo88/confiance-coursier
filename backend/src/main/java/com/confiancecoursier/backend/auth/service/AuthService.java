@@ -136,6 +136,17 @@ public class AuthService {
         // Pour l'instant, on considère que l'utilisateur est vérifié si l'OTP passe.
     }
 
+    /**
+     * Renvoie un nouveau code OTP à l'email donné, si et seulement si
+     * un compte actif existe pour cet email.
+     * Silencieux si l'email est inconnu (évite l'énumération de comptes).
+     */
+    public void resendOtp(String email) {
+        if (userRepository.existsByEmail(email)) {
+            otpService.generateOtp(email);
+        }
+    }
+
     // ── Helpers Redis pour le refresh token ──
 
     private void storeRefreshToken(Long userId, String token) {

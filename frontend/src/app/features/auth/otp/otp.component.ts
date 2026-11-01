@@ -2,126 +2,268 @@ import {
   Component,
   OnInit,
   OnDestroy,
-  ViewChildren,
-  QueryList,
+  ViewChild,
   ElementRef,
-  inject
+  inject,
+  signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../../core/services/auth.service';
+import { ThemeService } from '../../../core/services/theme.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { LucideArrowLeft, LucideBike, LucideMoon, LucideSun } from '@lucide/angular';
 
 @Component({
   selector: 'app-otp',
   standalone: true,
-  imports: [FormsModule, CommonModule, RouterLink],
+  imports: [FormsModule, CommonModule, RouterLink, LucideArrowLeft, LucideBike, LucideMoon, LucideSun],
   template: `
-    <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:var(--bg,#f7f8f5);">
-      <div style="width:100%;max-width:440px;background:#fff;border:1px solid #e5e7eb;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.10);padding:40px;text-align:center;position:relative;">
+    <div class="auth-wrapper">
+      <div class="auth-card" style="text-align:center;position:relative;">
 
-        <!-- Bouton Retour -->
-        <a routerLink="/register"
-           style="position:absolute;top:24px;left:24px;color:#6b7280;font-size:.9rem;font-weight:500;display:flex;align-items:center;gap:4px;text-decoration:none;">
-          ← Retour
+        <!-- Bouton Retour (absolu, haut-gauche) -->
+        <a routerLink="/register" class="back-link" aria-label="Retour à l'inscription">
+          <svg lucideArrowLeft size="16"></svg> Retour
         </a>
 
-        <!-- Logo -->
-        <div style="font-size:1.75rem;font-weight:800;color:#123b32;margin-bottom:8px;margin-top:16px;">
-          🚴 ConfianceCoursier
+        <!-- Contrôles thème / langue (absolu, haut-droite) -->
+        <div class="top-controls">
+          <button class="lang-toggle" type="button" aria-label="Changer de langue" (click)="toggleLang()">
+            {{ lang().toUpperCase() }}
+          </button>
+          <button class="theme-toggle" type="button"
+            [attr.aria-label]="theme.isDarkMode() ? 'Activer le thème clair' : 'Activer le thème sombre'"
+            (click)="theme.toggleTheme()">
+            @if (theme.isDarkMode()) {
+              <svg lucideSun size="18"></svg>
+            } @else {
+              <svg lucideMoon size="18"></svg>
+            }
+          </button>
         </div>
 
-        <h1 style="font-size:1.4rem;font-weight:700;margin-bottom:12px;color:#1a1a1a;">
-          Vérifiez votre téléphone
-        </h1>
-        <p style="color:#6b7280;font-size:.95rem;margin-bottom:4px;">
-          Un code à 6 chiffres a été envoyé à
-        </p>
-        <p style="color:#123b32;font-weight:700;font-size:.95rem;margin-bottom:24px;">
-          {{ maskedEmail }}
-        </p>
+        <!-- Logo -->
+        <div class="auth-logo" style="margin-top:16px;">
+          <svg lucideBike size="22"></svg>
+          <span class="auth-logo-text">ConfianceCoursier</span>
+        </div>
 
-        <!-- 6 inputs OTP -->
-        <form (ngSubmit)="onSubmit()">
-          <div style="display:flex;gap:8px;justify-content:center;margin:0 0 20px;">
-            <input
-              *ngFor="let _ of digits; let i = index"
-              #otpInput
-              type="text"
-              inputmode="numeric"
-              maxlength="1"
-              [value]="digits[i]"
-              (input)="onInput($event, i)"
-              (keydown)="onKeydown($event, i)"
-              (paste)="onPaste($event)"
-              style="width:48px;height:56px;text-align:center;font-size:1.5rem;font-weight:700;border:2px solid #e5e7eb;border-radius:10px;outline:none;background:#f9fafb;color:#1a1a1a;transition:border-color .15s;"
-              [style.border-color]="digits[i] ? '#123b32' : '#e5e7eb'"
-            />
+        <h1 class="auth-title">Vérifiez votre téléphone</h1>
+
+        <p class="text-muted" style="margin-bottom:4px;">
+          Un code à 6 chiffres a été envoyé au
+        </p>
+        <p style="font-weight:700;color:var(--primary);margin-bottom:0;">
+          {{ maskedPhone }}
+        </p>
+        @if (maskedEmail) {
+          <p class="text-muted" style="font-size:.85rem;margin-top:4px;margin-bottom:0;">
+            et à {{ maskedEmail }}
+          </p>
+        }
+
+        <!-- 6 inputs OTP — déclarés individuellement pour éviter tout re-render *ngFor -->
+        <form (ngSubmit)="onSubmit()" style="margin-top:0;">
+          <div class="otp-inputs">
+            <input #d0 type="text" inputmode="numeric" maxlength="1" autocomplete="one-time-code"
+              class="otp-input" aria-label="Chiffre 1"
+              (keydown)="onKeydown($event, 0)" (paste)="onPaste($event)" (input)="onInput($event, 0)" />
+            <input #d1 type="text" inputmode="numeric" maxlength="1"
+              class="otp-input" aria-label="Chiffre 2"
+              (keydown)="onKeydown($event, 1)" (paste)="onPaste($event)" (input)="onInput($event, 1)" />
+            <input #d2 type="text" inputmode="numeric" maxlength="1"
+              class="otp-input" aria-label="Chiffre 3"
+              (keydown)="onKeydown($event, 2)" (paste)="onPaste($event)" (input)="onInput($event, 2)" />
+            <input #d3 type="text" inputmode="numeric" maxlength="1"
+              class="otp-input" aria-label="Chiffre 4"
+              (keydown)="onKeydown($event, 3)" (paste)="onPaste($event)" (input)="onInput($event, 3)" />
+            <input #d4 type="text" inputmode="numeric" maxlength="1"
+              class="otp-input" aria-label="Chiffre 5"
+              (keydown)="onKeydown($event, 4)" (paste)="onPaste($event)" (input)="onInput($event, 4)" />
+            <input #d5 type="text" inputmode="numeric" maxlength="1"
+              class="otp-input" aria-label="Chiffre 6"
+              (keydown)="onKeydown($event, 5)" (paste)="onPaste($event)" (input)="onInput($event, 5)" />
           </div>
 
           <!-- Timer / Renvoyer -->
-          <p style="font-size:.9rem;color:#6b7280;margin-bottom:24px;">
-            <ng-container *ngIf="timeLeft > 0">
+          <p class="resend-timer">
+            @if (timeLeft > 0) {
               ⏱ Renvoyer le code dans <strong>{{ timeLeft }}s</strong>
-            </ng-container>
-            <ng-container *ngIf="timeLeft === 0">
-              <a href="#" (click)="resendCode($event)"
-                 style="color:#17634f;font-weight:600;text-decoration:underline;">
+            } @else {
+              <a href="#" (click)="resendCode($event)" style="color:var(--primary);font-weight:600;">
                 Renvoyer le code
               </a>
-            </ng-container>
+            }
           </p>
 
-          <button
-            type="submit"
-            [disabled]="!isComplete || loading"
-            style="width:100%;padding:14px;background:#17634f;color:#fff;font-weight:700;font-size:1rem;border:none;border-radius:10px;cursor:pointer;transition:opacity .2s;"
-            [style.opacity]="(!isComplete || loading) ? '0.5' : '1'">
-            {{ loading ? 'Vérification…' : 'Vérifier le code' }}
+          <button type="submit" class="btn btn-primary btn-block btn-lg"
+            [disabled]="!isComplete || loading">
+            {{ loading ? 'Vérification…' : 'Vérifier' }}
           </button>
         </form>
 
       </div>
     </div>
-  `
+  `,
+  styles: [`
+    :host { display: block; }
+
+    .otp-inputs {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      margin: 24px 0;
+    }
+
+    .otp-input {
+      width: 48px;
+      height: 56px;
+      text-align: center;
+      font-size: 1.5rem;
+      font-weight: 700;
+      border: 2px solid var(--border);
+      border-radius: var(--radius-md);
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .otp-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-light);
+    }
+
+    .otp-input--filled {
+      border-color: var(--primary);
+    }
+
+    .resend-timer {
+      font-size: .9rem;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+
+    /* Positionnement absolu des contrôles (back-link & top-controls) */
+    .back-link {
+      position: absolute;
+      top: 24px;
+      left: 24px;
+      min-width: 44px;
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      color: var(--text-muted);
+      font-size: .9rem;
+      font-weight: 500;
+      text-decoration: none;
+      border-radius: 8px;
+      padding: 0 8px;
+      transition: color 0.15s, background 0.15s;
+    }
+
+    .back-link:hover {
+      color: var(--primary);
+      background: var(--gray-100, #f3f4f6);
+    }
+
+    .top-controls {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    @media (max-width: 480px) {
+      .otp-input {
+        width: 40px;
+        height: 48px;
+        font-size: 1.25rem;
+      }
+    }
+  `]
 })
 export class OtpComponent implements OnInit, OnDestroy {
-  @ViewChildren('otpInput') otpInputs!: QueryList<ElementRef<HTMLInputElement>>;
+  @ViewChild('d0') i0!: ElementRef<HTMLInputElement>;
+  @ViewChild('d1') i1!: ElementRef<HTMLInputElement>;
+  @ViewChild('d2') i2!: ElementRef<HTMLInputElement>;
+  @ViewChild('d3') i3!: ElementRef<HTMLInputElement>;
+  @ViewChild('d4') i4!: ElementRef<HTMLInputElement>;
+  @ViewChild('d5') i5!: ElementRef<HTMLInputElement>;
 
   email = '';
-  digits: string[] = ['', '', '', '', '', ''];
+  phone = '';
   timeLeft = 60;
   loading = false;
 
   private timerInterval: ReturnType<typeof setInterval> | null = null;
 
-  private route = inject(ActivatedRoute);
-  private router = inject(Router);
-  private authService = inject(AuthService);
-  private toastService = inject(ToastService);
+  readonly theme = inject(ThemeService);
+  readonly lang  = signal<string>(localStorage.getItem('lang') || 'fr');
 
+  private route       = inject(ActivatedRoute);
+  private router      = inject(Router);
+  private authService = inject(AuthService);
+  private toast       = inject(ToastService);
+
+  // ─── Helpers DOM ─────────────────────────────────────────────────────────
+
+  private get inputs(): HTMLInputElement[] {
+    return [this.i0, this.i1, this.i2, this.i3, this.i4, this.i5]
+      .map((r) => r?.nativeElement)
+      .filter(Boolean);
+  }
+
+  private inputAt(i: number): HTMLInputElement | null {
+    return this.inputs[i] ?? null;
+  }
+
+  private focusAt(i: number): void {
+    // setTimeout 0 : laisse le navigateur finir de peindre avant de déplacer le focus
+    setTimeout(() => this.inputAt(i)?.focus(), 0);
+  }
+
+  // ─── Computed ────────────────────────────────────────────────────────────
+
+  /** Téléphone masqué : +237 6XX XXX XXX → +237 6** *** **2 */
+  get maskedPhone(): string {
+    if (!this.phone) return '+237 6XX XXX XXX';
+    const digits = this.phone.replace(/\D/g, '');
+    if (digits.length < 6) return this.phone;
+    const prefix = this.phone.startsWith('+') ? '+' + digits.slice(0, 3) : '';
+    const visible = digits.slice(-2);
+    const masked  = digits.slice(3, -2).replace(/\d/g, 'X');
+    return prefix ? `${prefix} ${masked.slice(0,1)}XX XXX XX${visible}` : `${masked}${visible}`;
+  }
+
+  /** Email masqué affiché en secondaire si disponible */
   get maskedEmail(): string {
     if (!this.email) return '';
     const [local, domain] = this.email.split('@');
-    if (!domain) return this.email;
-    const masked = local.length > 2
-      ? local.slice(0, 2) + '***'
-      : local[0] + '***';
+    if (!domain) return '';
+    const masked = local.length > 2 ? local.slice(0, 2) + '***' : local[0] + '***';
     return `${masked}@${domain}`;
   }
 
   get isComplete(): boolean {
-    return this.digits.every(d => d.length === 1);
+    return this.inputs.length === 6 && this.inputs.every((el) => !!el.value);
   }
 
-  get otpValue(): string {
-    return this.digits.join('');
+  private get otpValue(): string {
+    return this.inputs.map((el) => el.value).join('');
   }
+
+  // ─── Lifecycle ───────────────────────────────────────────────────────────
 
   ngOnInit(): void {
-    this.route.queryParams.subscribe(params => {
+    this.route.queryParams.subscribe((params) => {
       this.email = params['email'] || '';
+      this.phone = params['phone'] || '';
     });
     this.startTimer();
   }
@@ -130,57 +272,109 @@ export class OtpComponent implements OnInit, OnDestroy {
     this.stopTimer();
   }
 
+  // ─── Handlers ────────────────────────────────────────────────────────────
+
   onInput(event: Event, index: number): void {
     const input = event.target as HTMLInputElement;
-    const value = input.value.replace(/\D/g, '').slice(-1); // chiffre uniquement
-    this.digits[index] = value;
-    input.value = value; // synchronise le DOM
+    // Garde uniquement le dernier chiffre saisi (écrase l'ancien si présent)
+    const raw   = input.value.replace(/\D/g, '');
+    const digit = raw.slice(-1);
 
-    if (value && index < 5) {
-      this.focusInput(index + 1);
+    // Remet la valeur nettoyée dans le DOM
+    input.value = digit;
+    input.classList.toggle('otp-input--filled', !!digit);
+
+    // Avance au carré suivant APRÈS la mise à jour du DOM
+    if (digit && index < 5) {
+      this.focusAt(index + 1);
     }
   }
 
   onKeydown(event: KeyboardEvent, index: number): void {
+    const input = event.target as HTMLInputElement;
+
     if (event.key === 'Backspace') {
-      if (this.digits[index]) {
-        this.digits[index] = '';
-        (event.target as HTMLInputElement).value = '';
+      event.preventDefault();
+      if (input.value) {
+        input.value = '';
+        input.classList.remove('otp-input--filled');
       } else if (index > 0) {
-        this.digits[index - 1] = '';
-        this.focusInput(index - 1);
+        const prev = this.inputAt(index - 1);
+        if (prev) {
+          prev.value = '';
+          prev.classList.remove('otp-input--filled');
+          prev.focus();
+        }
       }
     } else if (event.key === 'ArrowLeft' && index > 0) {
-      this.focusInput(index - 1);
+      this.focusAt(index - 1);
     } else if (event.key === 'ArrowRight' && index < 5) {
-      this.focusInput(index + 1);
+      this.focusAt(index + 1);
     }
   }
 
   onPaste(event: ClipboardEvent): void {
     event.preventDefault();
     const text = event.clipboardData?.getData('text') ?? '';
-    const nums = text.replace(/\D/g, '').slice(0, 6).split('');
-    nums.forEach((n, i) => { this.digits[i] = n; });
-    // Focus sur le dernier chiffre collé
-    const lastIndex = Math.min(nums.length, 5);
-    setTimeout(() => this.focusInput(lastIndex), 0);
+    const nums  = text.replace(/\D/g, '').slice(0, 6);
+    nums.split('').forEach((n, i) => {
+      const el = this.inputAt(i);
+      if (el) { el.value = n; el.classList.add('otp-input--filled'); }
+    });
+    // Focus sur le premier carré vide après le collage
+    const nextEmpty = nums.length < 6 ? nums.length : 5;
+    this.focusAt(nextEmpty);
   }
 
-  private focusInput(index: number): void {
-    const inputs = this.otpInputs.toArray();
-    if (inputs[index]) {
-      inputs[index].nativeElement.focus();
-    }
+  resendCode(event: Event): void {
+    event.preventDefault();
+    if (!this.email) return;
+    this.authService.resendOtp(this.email).subscribe({
+      next:  () => this.onResendSuccess(),
+      error: () => this.toast.error('Impossible de renvoyer le code. Réessayez dans quelques instants.'),
+    });
+  }
+
+  onSubmit(): void {
+    if (!this.isComplete) return;
+    this.loading = true;
+
+    this.authService.verifyOtp(this.email, this.otpValue).subscribe({
+      next: () => {
+        this.loading = false;
+        this.toast.success('Téléphone vérifié ! Vous pouvez maintenant vous connecter.');
+        this.router.navigate(['/login']);
+      },
+      error: () => {
+        this.loading = false;
+        this.toast.error('Code OTP invalide ou expiré. Vérifiez et réessayez.');
+        this.clearInputs();
+        this.focusAt(0);
+      },
+    });
+  }
+
+  toggleLang(): void {
+    const next = this.lang() === 'fr' ? 'en' : 'fr';
+    this.lang.set(next);
+    localStorage.setItem('lang', next);
+    document.documentElement.lang = next;
+  }
+
+  // ─── Privé ───────────────────────────────────────────────────────────────
+
+  private clearInputs(): void {
+    this.inputs.forEach((el) => {
+      el.value = '';
+      el.classList.remove('otp-input--filled');
+    });
   }
 
   private startTimer(): void {
     this.timeLeft = 60;
     this.timerInterval = setInterval(() => {
       this.timeLeft--;
-      if (this.timeLeft <= 0) {
-        this.stopTimer();
-      }
+      if (this.timeLeft <= 0) this.stopTimer();
     }, 1000);
   }
 
@@ -191,42 +385,10 @@ export class OtpComponent implements OnInit, OnDestroy {
     }
   }
 
-  resendCode(event: Event): void {
-    event.preventDefault();
-    if (!this.email) return;
-    // Re-déclenche l'inscription (même email) pour envoyer un nouvel OTP
-    this.authService.register({ email: this.email, password: '', fullName: '', phone: '', role: '' })
-      .subscribe({
-        next: () => {
-          this.toastService.success('Nouveau code envoyé à ' + this.email);
-          this.digits = ['', '', '', '', '', ''];
-          this.startTimer();
-        },
-        error: () => {
-          // L'erreur "compte déjà existant" est normale ici — l'OTP est quand même renvoyé
-          this.toastService.info('Nouveau code envoyé à ' + this.email);
-          this.digits = ['', '', '', '', '', ''];
-          this.startTimer();
-        }
-      });
-  }
-
-  onSubmit(): void {
-    if (!this.isComplete) return;
-    this.loading = true;
-
-    this.authService.verifyOtp(this.email, this.otpValue).subscribe({
-      next: () => {
-        this.loading = false;
-        this.toastService.success('Téléphone vérifié ! Vous pouvez maintenant vous connecter.');
-        this.router.navigate(['/login']);
-      },
-      error: () => {
-        this.loading = false;
-        this.toastService.error('Code OTP invalide ou expiré. Vérifiez le code et réessayez.');
-        this.digits = ['', '', '', '', '', ''];
-        setTimeout(() => this.focusInput(0), 0);
-      }
-    });
+  private onResendSuccess(): void {
+    this.toast.info('Nouveau code envoyé à ' + this.email);
+    this.clearInputs();
+    this.startTimer();
+    this.focusAt(0);
   }
 }

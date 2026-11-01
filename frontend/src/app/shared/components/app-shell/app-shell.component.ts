@@ -126,7 +126,10 @@ export class AppShellComponent {
 
   get firstName(): string {
     const full = this.authService.getCurrentUserFullName().trim();
-    return full ? full.split(/\s+/)[0] : 'utilisateur';
+    if (full) return full.split(/\s+/)[0];
+    // Fallback : partie avant @ de l'email
+    const email = this.authService.getCurrentUserEmail().trim();
+    return email ? email.split('@')[0] : 'vous';
   }
 
   get initials(): string {
@@ -137,6 +140,12 @@ export class AppShellComponent {
         .slice(0, 2)
         .map((w) => w.charAt(0).toUpperCase())
         .join('');
+    }
+    // Fallback : 2 premières lettres de la partie avant @ de l'email
+    const email = this.authService.getCurrentUserEmail().trim();
+    if (email) {
+      const local = email.split('@')[0];
+      return local.substring(0, 2).toUpperCase();
     }
     return 'CC';
   }

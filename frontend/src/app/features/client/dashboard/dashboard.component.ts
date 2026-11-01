@@ -1,131 +1,344 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { RouterLink, Router } from '@angular/router';
-import { DatePipe } from '@angular/common';
+import { DatePipe, NgClass, DecimalPipe } from '@angular/common';
 import { CourseService } from '../../../core/services/course.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { ToastService } from '../../../core/services/toast.service';
-import { SpinnerComponent } from '../../../shared/spinner/spinner.component';
 import { AppShellComponent } from '../../../shared/components/app-shell/app-shell.component';
-import { LucidePlus, LucidePencil, LucideTrash2, LucideMessageSquare } from '@lucide/angular';
+import {
+  LucidePlus,
+  LucidePackageOpen,
+  LucideCircleCheckBig,
+  LucideStar,
+  LucideMessageCircle,
+  LucideArrowUpRight,
+  LucideArrowRight,
+  LucideSparkles,
+  LucideMessagesSquare,
+} from '@lucide/angular';
+
+// ─── Helpers ───────────────────────────────────────────────────────────────
+
+/** Classe CSS du badge de statut selon le statut backend */
+function statusBadgeClass(status: string): string {
+  switch (status) {
+    case 'PUBLISHED':     return 'status-badge status-badge--info';
+    case 'ASSIGNED':      return 'status-badge status-badge--warning';
+    case 'IN_PROGRESS':   return 'status-badge status-badge--success';
+    case 'PROOFS_SUBMITTED': return 'status-badge status-badge--purple';
+    case 'COMPLETED':     return 'status-badge status-badge--success';
+    case 'CANCELLED':     return 'status-badge status-badge--danger';
+    default:              return 'status-badge';
+  }
+}
+
+/** Libellé humain du statut */
+function statusLabel(status: string): string {
+  switch (status) {
+    case 'PUBLISHED':        return 'Publiée';
+    case 'ASSIGNED':         return 'À confirmer';
+    case 'IN_PROGRESS':      return 'En préparation';
+    case 'PROOFS_SUBMITTED': return 'Preuves soumises';
+    case 'COMPLETED':        return 'Terminée';
+    case 'CANCELLED':        return 'Annulée';
+    default:                 return status;
+  }
+}
 
 @Component({
   selector: 'app-client-dashboard',
   standalone: true,
-  imports: [RouterLink, DatePipe, SpinnerComponent, AppShellComponent, LucidePlus, LucidePencil, LucideTrash2, LucideMessageSquare],
+  imports: [
+    RouterLink,
+    DatePipe,
+    DecimalPipe,
+    NgClass,
+    AppShellComponent,
+    LucidePlus,
+    LucidePackageOpen,
+    LucideCircleCheckBig,
+    LucideStar,
+    LucideMessageCircle,
+    LucideArrowUpRight,
+    LucideArrowRight,
+    LucideSparkles,
+    LucideMessagesSquare,
+  ],
   template: `
     <app-shell pageTitle="Vue d'ensemble">
-      <!-- En-tête de page -->
+
+      <!-- ── En-tête de page ── -->
       <section class="page-head">
         <div>
-          <h1>Bonjour !</h1>
-          <p>Gérez vos courses depuis votre espace client.</p>
+          <h1>Bonjour {{ firstName }},</h1>
+          <p>Voici le point sur vos courses et vos prochaines étapes.</p>
         </div>
         <a routerLink="/client/create-course" class="primary-action">
           <svg lucidePlus size="14"></svg> Créer une course
         </a>
       </section>
 
-      <!-- Liste des courses -->
-      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h2 class="text-lg font-bold mb-4">Mes courses</h2>
+      <!-- ── Notice ── -->
+      <div class="app-notice">
+        <svg lucideSparkles size="16"></svg>
+        <div>
+          <strong>Votre famille est à portée de main.</strong>
+          <span> Commandez une course pour un proche au Cameroun et suivez sa réalisation depuis votre espace.</span>
+        </div>
+      </div>
 
-        @if (courses.length === 0) {
-          <div class="text-center py-12 text-gray-400">
-            <p>Aucune course pour le moment.</p>
-            <p class="text-sm mt-2">Créez votre première course !</p>
+      <!-- ── Métriques ── -->
+      <section class="metrics-grid" aria-label="Résumé de votre activité">
+
+        <article class="metric-card">
+          <span class="metric-icon"><svg lucidePackageOpen size="20"></svg></span>
+          <div>
+            <span class="metric-label">Courses actives</span>
+            <strong class="metric-value">{{ activeCourses.length.toString().padStart(2, '0') }}</strong>
+            <div class="metric-note">
+              <em>{{ inProgressCount }} en cours</em>
+              @if (inProgressCount !== activeCourses.length) {
+                · {{ activeCourses.length - inProgressCount }} à confirmer
+              }
+            </div>
           </div>
-        } @else {
-          <div class="space-y-3">
-            @for (course of courses; track course.id) {
-              <div class="border border-gray-100 rounded-lg p-4 flex justify-between items-center">
-                <div class="flex-1">
-                  <div class="font-semibold text-[#15241f]">{{ course.description }}</div>
-                  <div class="text-sm text-gray-500 mt-1">
-                    {{ course.zone }} · {{ course.scheduledAt | date:'dd/MM/yyyy HH:mm' }}
-                  </div>
+        </article>
+
+        <article class="metric-card">
+          <span class="metric-icon"><svg lucideCircleCheckBig size="20"></svg></span>
+          <div>
+            <span class="metric-label">Courses terminées</span>
+            <strong class="metric-value">{{ completedCourses.length.toString().padStart(2, '0') }}</strong>
+            <div class="metric-note">Depuis votre inscription</div>
+          </div>
+        </article>
+
+        <article class="metric-card">
+          <span class="metric-icon"><svg lucideStar size="20"></svg></span>
+          <div>
+            <span class="metric-label">Expérience moyenne</span>
+            <strong class="metric-value">
+              @if (averageRating !== null) {
+                {{ averageRating | number:'1.1-1' }}
+                <span style="font-size:13px;color:#839087;font-weight:600">/ 5</span>
+              } @else {
+                <span style="font-size:20px;color:#839087">—</span>
+              }
+            </strong>
+            <div class="metric-note">Évaluation des coursiers</div>
+          </div>
+        </article>
+
+      </section>
+
+      <!-- ── Grille principale ── -->
+      <div class="content-aside-grid">
+
+        <!-- Panel : courses à suivre -->
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Courses à suivre</h2>
+              <p>Les dernières mises à jour de vos commandes</p>
+            </div>
+            <a class="text-link" routerLink="/client/history">
+              Tout l'historique <svg lucideArrowUpRight style="width:12px;vertical-align:-2px"></svg>
+            </a>
+          </div>
+
+          <!-- État chargement -->
+          @if (loading) {
+            <div class="row-item" style="justify-content:center;padding:32px 0;color:#94a199;">
+              Chargement…
+            </div>
+          }
+
+          <!-- Aucune course -->
+          @if (!loading && activeCourses.length === 0) {
+            <div class="row-item" style="justify-content:center;flex-direction:column;gap:8px;padding:32px 0;color:#94a199;text-align:center;">
+              <svg lucidePackageOpen size="32" style="opacity:.35;margin:0 auto"></svg>
+              <p style="margin:0;font-size:14px;">Aucune course active pour le moment.</p>
+              <a routerLink="/client/create-course" class="text-link">Créer votre première course →</a>
+            </div>
+          }
+
+          <!-- Liste des courses actives -->
+          @for (course of activeCourses; track course.id) {
+            <article class="row-item">
+              <span class="row-icon">
+                <svg lucidePackageOpen size="16"></svg>
+              </span>
+
+              <div class="row-body">
+                <div class="row-title">{{ course.description }}</div>
+                <div class="row-meta">
+                  <span>{{ course.zone }}</span>
+                  <span class="row-meta-dot"></span>
+                  <span>{{ course.scheduledAt | date:'dd/MM/yyyy HH:mm' }}</span>
                 </div>
+              </div>
 
-                <div class="flex items-center gap-3">
-                  <span class="px-3 py-1 rounded-full text-xs font-bold"
-                    [class]="course.status === 'PUBLISHED' ? 'bg-green-100 text-green-700' :
-                            course.status === 'ASSIGNED' ? 'bg-blue-100 text-blue-700' :
-                            'bg-gray-100 text-gray-700'">
-                    {{ course.status }}
+              <div class="row-right">
+                <!-- Badge statut -->
+                @if (course.status === 'PROOFS_SUBMITTED') {
+                  <a class="row-action-link"
+                     [routerLink]="['/client/course-detail', course.id]"
+                     [queryParams]="{status: 'submitted'}">
+                    Voir les preuves <svg lucideArrowRight size="12"></svg>
+                  </a>
+                } @else {
+                  <span [ngClass]="getBadgeClass(course.status)">
+                    {{ getStatusLabel(course.status) }}
                   </span>
+                }
 
-                  <!-- Boutons Modifier / Supprimer uniquement si PUBLISHED -->
-                  @if (course.status === 'PUBLISHED') {
-                    <button (click)="editCourse(course.id)"
-                      class="p-2 text-gray-500 hover:text-[#123b32] hover:bg-gray-100 rounded-lg transition-all"
-                      title="Modifier">
-                      <svg lucidePencil size="16"></svg>
-                    </button>
-                    <button (click)="deleteCourse(course.id)"
-                      [disabled]="deletingCourseId === course.id"
-                      class="p-2 text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                      title="Supprimer">
-                      @if (deletingCourseId === course.id) {
-                        <app-spinner size="sm"></app-spinner>
-                      } @else {
-                        <svg lucideTrash2 size="16"></svg>
-                      }
-                    </button>
-                  }
+                <!-- Actions -->
+                <div class="row-actions">
+                  <a [routerLink]="['/client/course-detail', course.id]"
+                     class="btn-row btn-row--ghost">Détails</a>
 
-                  <!-- Bouton Ouvrir le chat si ASSIGNED -->
-                  @if (course.status === 'ASSIGNED') {
-                    <a [routerLink]="['/chat', course.id]"
-                      class="px-4 py-2 bg-[#123b32] text-white rounded-lg font-bold hover:bg-[#1b5144] transition-all flex items-center gap-2 text-sm">
-                      <svg lucideMessageSquare size="16"></svg> Ouvrir le chat
+                  @if (course.chatRoomId) {
+                    <a [routerLink]="['/chat', course.chatRoomId]"
+                       class="btn-row btn-row--green"
+                       aria-label="Chat">
+                      <svg lucideMessageCircle style="width:14px;height:14px"></svg> Chat
                     </a>
                   }
                 </div>
               </div>
-            }
-          </div>
-        }
-      </div>
+            </article>
+          }
+
+        </section>
+
+        <!-- ── Aside ── -->
+        <aside class="card-stack">
+
+          <!-- CTA contextuel selon statut -->
+          @if (proofsSubmittedCourse) {
+            <article class="dark-card">
+              <small>La prochaine étape</small>
+              <h3 style="font-size:17px;line-height:1.25;letter-spacing:-.035em;margin:9px 0">
+                Votre course attend votre validation
+              </h3>
+              <p>Les preuves pour "{{ proofsSubmittedCourse.description }}" sont disponibles. Consultez-les avant de confirmer.</p>
+              <a class="primary-action primary-action--lime"
+                 [routerLink]="['/client/course-detail', proofsSubmittedCourse.id]"
+                 [queryParams]="{status: 'submitted'}">
+                Examiner les preuves <svg lucideArrowRight size="14"></svg>
+              </a>
+            </article>
+          } @else if (activeCourses.length === 0) {
+            <article class="dark-card">
+              <small>Par où commencer ?</small>
+              <h3 style="font-size:17px;line-height:1.25;letter-spacing:-.035em;margin:9px 0">
+                Créez votre première course
+              </h3>
+              <p>Décrivez votre besoin et choisissez un coursier de confiance en quelques clics.</p>
+              <a class="primary-action primary-action--lime" routerLink="/client/create-course">
+                Nouvelle course <svg lucideArrowRight size="14"></svg>
+              </a>
+            </article>
+          } @else {
+            <article class="dark-card">
+              <small>Tout se passe bien</small>
+              <h3 style="font-size:17px;line-height:1.25;letter-spacing:-.035em;margin:9px 0">
+                {{ activeCourses.length }} course{{ activeCourses.length > 1 ? 's' : '' }} en cours
+              </h3>
+              <p>Suivez l'avancement en temps réel et discutez avec votre coursier via le chat.</p>
+              <a class="primary-action primary-action--lime" routerLink="/client/create-course">
+                Ajouter une course <svg lucideArrowRight size="14"></svg>
+              </a>
+            </article>
+          }
+
+          <!-- Aide -->
+          <article class="panel" style="padding:17px">
+            <div style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px;color:#304237;margin-bottom:9px">
+              <svg lucideMessagesSquare style="width:16px;color:#538366"></svg>
+              Besoin d'un coup de main ?
+            </div>
+            <p style="font-size:12px;line-height:1.55;color:#7f8a82;margin:0 0 13px">
+              Notre centre d'aide répond aux questions sur les paiements, les courses et le suivi.
+            </p>
+            <a class="text-link" href="/support">Contacter le support →</a>
+          </article>
+
+        </aside>
+
+      </div><!-- /content-aside-grid -->
+
     </app-shell>
-  `
+  `,
 })
 export class ClientDashboardComponent implements OnInit {
+
   courses: any[] = [];
-  deletingCourseId: number | null = null;
+  loading = true;
 
-  constructor(
-    private courseService: CourseService,
-    private router: Router,
-    private toast: ToastService
-  ) {}
+  private courseService = inject(CourseService);
+  private authService  = inject(AuthService);
+  private router       = inject(Router);
+  private toast        = inject(ToastService);
 
-  ngOnInit() {
+  // ─── Getters ─────────────────────────────────────────────────────────────
+
+  get firstName(): string {
+    const full = this.authService.getCurrentUserFullName().trim();
+    if (full) return full.split(/\s+/)[0];
+    // Fallback sur l'email (partie avant @) si fullName absent
+    const email = this.authService.getCurrentUserEmail().trim();
+    return email ? email.split('@')[0] : 'vous';
+  }
+
+  /** Courses actives = tout sauf COMPLETED et CANCELLED */
+  get activeCourses(): any[] {
+    return this.courses.filter(
+      (c) => c.status !== 'COMPLETED' && c.status !== 'CANCELLED'
+    );
+  }
+
+  get completedCourses(): any[] {
+    return this.courses.filter((c) => c.status === 'COMPLETED');
+  }
+
+  get inProgressCount(): number {
+    return this.courses.filter((c) => c.status === 'IN_PROGRESS').length;
+  }
+
+  /** Première course dont les preuves sont soumises (pour le CTA contextuel) */
+  get proofsSubmittedCourse(): any | null {
+    return this.courses.find((c) => c.status === 'PROOFS_SUBMITTED') ?? null;
+  }
+
+  /** Note moyenne — null jusqu'à l'implémentation du module reviews (TICK-033+) */
+  get averageRating(): number | null {
+    return null;
+  }
+
+  // ─── Helpers exposés au template ─────────────────────────────────────────
+
+  getBadgeClass(status: string): string  { return statusBadgeClass(status); }
+  getStatusLabel(status: string): string { return statusLabel(status); }
+
+  // ─── Lifecycle ───────────────────────────────────────────────────────────
+
+  ngOnInit(): void {
     this.loadCourses();
   }
 
-  loadCourses() {
+  loadCourses(): void {
+    this.loading = true;
     this.courseService.getMyCourses().subscribe({
-      next: (data) => this.courses = data,
-      error: (err) => console.error(err)
-    });
-  }
-
-  editCourse(id: number) {
-    this.router.navigate(['/client/edit-course', id]);
-  }
-
-  deleteCourse(id: number) {
-    if (!confirm('Voulez-vous vraiment supprimer cette course ?')) return;
-
-    this.deletingCourseId = id;
-    this.courseService.deleteCourse(id).subscribe({
-      next: () => {
-        this.deletingCourseId = null;
-        this.toast.success('Course supprimée.');
-        this.loadCourses();
+      next: (data) => {
+        this.courses = data;
+        this.loading = false;
       },
       error: (err) => {
-        this.deletingCourseId = null;
-        this.toast.error(err.error?.message || 'Impossible de supprimer la course.');
-      }
+        this.loading = false;
+        this.toast.error('Impossible de charger vos courses.');
+        console.error(err);
+      },
     });
   }
 }

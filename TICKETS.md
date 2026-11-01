@@ -22,14 +22,14 @@
 
 | Sprint | Thème | Statut |
 |--------|-------|--------|
-| Sprint 0 | Socle & corrections critiques | ⬜ |
-| Sprint 1 | Design system + Auth complète | ⬜ |
-| Sprint 2 | Cycle de vie d'une course | ⬜ |
-| Sprint 3 | KYC + Profil utilisateur | ⬜ |
-| Sprint 4 | Preuves + Paiement Escrow | ⬜ |
-| Sprint 5 | Notation + Litiges + Signalements | ⬜ |
-| Sprint 6 | Admin + Notifications | ⬜ |
-| Sprint 7 | Qualité, sécurité & mise en production | ⬜ |
+| Sprint 0 | Socle & corrections critiques | ✅ Complet |
+| Sprint 1 | Design system + Auth complète | ✅ Complet |
+| Sprint 2 | Cycle de vie d'une course | ⬜ En attente |
+| Sprint 3 | KYC + Profil utilisateur | ⬜ En attente |
+| Sprint 4 | Preuves + Paiement Escrow | ⬜ En attente |
+| Sprint 5 | Notation + Litiges + Signalements | ⬜ En attente |
+| Sprint 6 | Admin + Notifications | ⬜ En attente |
+| Sprint 7 | Qualité, sécurité & mise en production | ⬜ En attente |
 
 ---
 
@@ -317,21 +317,45 @@ Le token expire au bout de 15 minutes → l'utilisateur doit se reconnecter manu
 
 ### TICK-012 🟢 [BE] Intégrer Brevo pour l'envoi réel des emails OTP
 **Statut :** ✅
-**Priorité :** Basse (OTP fonctionne en console pour les tests)
 **Fichiers concernés :**
 - `auth/service/OtpService.java`
 - `pom.xml` (dépendance Brevo SDK ou Spring Mail)
 - `application.properties`
 
 **Travail à faire :**
-- [x] Ajouter la dépendance `spring-boot-starter-mail` dans `pom.xml`
-- [x] Configurer SMTP Brevo dans `application.properties` (smtp-relay.brevo.com:587, STARTTLS, identifiants depuis `.env`)
-- [x] Remplacer `System.out.println` par `JavaMailSender.send()` avec template HTML
+- [x] Configurer Brevo REST API (`POST https://api.brevo.com/v3/smtp/email`, header `api-key`)
+- [x] Remplacer `System.out.println` par envoi email avec template HTML
 - [x] Template email : code OTP mis en avant + « Valable 5 minutes »
 
 **Critères d'acceptance :**
-- L'email OTP est reçu dans la boîte de l'utilisateur
-- Le `System.out.println` est supprimé en production
+- L'email OTP est reçu dans la boîte de l'utilisateur ✅
+- Le `System.out.println` est supprimé en production ✅
+
+---
+
+### TICK-012b [FULL] Correctif — `resendCode` + endpoint `POST /api/auth/resend-otp`
+**Statut :** ✅ (correctif hors-sprint)
+**Problème :** `resendCode()` appelait `register()` avec données vides → 400 avant génération OTP.
+**Fichiers modifiés :**
+- `auth/api/dto/ResendOtpRequest.java` (créé)
+- `AuthService.java` : `resendOtp(email)` ajouté
+- `AuthController.java` : `POST /api/auth/resend-otp`
+- `auth.service.ts` : méthode `resendOtp(email)`
+- `otp.component.ts` : `resendCode()` appelle `resendOtp()`
+
+---
+
+### TICK-012c [FULL] Page "Mot de passe oublié" — flux complet
+**Statut :** ✅ (hors-sprint)
+**Fichiers créés/modifiés :**
+- `auth/api/dto/ForgotPasswordRequest.java`, `ResetPasswordRequest.java` (créés)
+- `auth/service/PasswordResetService.java` (créé) — token UUID Redis TTL 15min + Brevo email
+- `AuthController.java` : `POST /forgot-password` + `POST /reset-password`
+- `application.properties` : `app.frontend.url=http://localhost:4200`
+- `features/auth/forgot-password/forgot-password.component.ts` (créé)
+- `features/auth/reset-password/reset-password.component.ts` (créé)
+- `app.routes.ts` : `/forgot-password` + `/reset-password` (publiques)
+- `login.component.ts` : navigation vers `/forgot-password`
 
 ---
 
@@ -343,7 +367,7 @@ Le token expire au bout de 15 minutes → l'utilisateur doit se reconnecter manu
 ---
 
 ### TICK-013 🔴 [FE] Refondre `ClientDashboardComponent` selon la maquette
-**Statut :** ⬜
+**Statut :** ✅
 **Maquette :** `maquette-v2/client/dashboard.html`
 
 **Travail à faire :**
@@ -1067,12 +1091,14 @@ Le flux d'offre doit passer par le chat (spec fonctionnelle §2.1). Le coursier 
 | TICK-005 | Guards Angular (authGuard + roleGuard) | S0 | FE | 🔴 | ✅ |
 | TICK-006 | OtpComponent — 6 inputs + Timer | S0 | FE | 🔴 | ✅ |
 | TICK-007 | RegisterComponent — rôle + champs conditionnels | S0 | FE | 🟡 | ✅ |
-| TICK-008 | Design system maquette dans Angular | S1 | FE | 🔴 | ⬜ |
-| TICK-009 | Refondre LoginComponent | S1 | FE | 🟡 | ⬜ |
-| TICK-010 | Refresh Token (backend) | S1 | BE | 🟡 | ⬜ |
-| TICK-011 | Refresh Token (frontend interceptor) | S1 | FE | 🟡 | ⬜ |
-| TICK-012 | Intégration Brevo OTP | S1 | BE | 🟢 | ⬜ |
-| TICK-013 | ClientDashboardComponent (maquette) | S2 | FE | 🔴 | ⬜ |
+| TICK-008 | Design system maquette dans Angular | S1 | FE | 🔴 | ✅ |
+| TICK-009 | Refondre LoginComponent | S1 | FE | 🟡 | ✅ |
+| TICK-010 | Refresh Token (backend) | S1 | BE | 🟡 | ✅ |
+| TICK-011 | Refresh Token (frontend interceptor) | S1 | FE | 🟡 | ✅ |
+| TICK-012 | Intégration Brevo OTP | S1 | BE | 🟢 | ✅ |
+| TICK-012b | Correctif resend-otp | hors | FULL | 🔴 | ✅ |
+| TICK-012c | Page mot de passe oublié | hors | FULL | 🟡 | ✅ |
+| TICK-013 | ClientDashboardComponent (maquette) | S2 | FE | 🔴 | ✅ |
 | TICK-014 | CreateCourseComponent — 3 étapes | S2 | FE | 🔴 | ⬜ |
 | TICK-015 | SelectCourierComponent | S2 | FE | 🔴 | ⬜ |
 | TICK-016 | GET /api/users/couriers | S2 | BE | 🔴 | ⬜ |

@@ -2,6 +2,7 @@ package com.confiancecoursier.backend.auth.api;
 
 import com.confiancecoursier.backend.auth.api.dto.*;
 import com.confiancecoursier.backend.auth.service.AuthService;
+import com.confiancecoursier.backend.auth.service.PasswordResetService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -11,9 +12,11 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
+    private final PasswordResetService passwordResetService;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, PasswordResetService passwordResetService) {
         this.authService = authService;
+        this.passwordResetService = passwordResetService;
     }
 
     @PostMapping("/register")
@@ -35,6 +38,16 @@ public class AuthController {
     }
 
     /**
+     * Renvoie un nouveau code OTP à l'email donné.
+     * Répond toujours 200 (même si l'email est inconnu) pour éviter l'énumération.
+     */
+    @PostMapping("/resend-otp")
+    public ResponseEntity<OtpResponse> resendOtp(@Valid @RequestBody ResendOtpRequest request) {
+        authService.resendOtp(request.getEmail());
+        return ResponseEntity.ok(new OtpResponse("Si un compte existe pour cet email, un nouveau code a été envoyé.", true));
+    }
+
+    /**
      * Échange un refresh token valide contre un nouveau couple access/refresh token.
      * Route publique (sous {@code /api/auth/**}).
      */
@@ -52,5 +65,25 @@ public class AuthController {
     public ResponseEntity<Void> logout(@Valid @RequestBody RefreshRequest request) {
         authService.logout(request.getRefreshToken());
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Démarre le flux de réinitialisation : génère un token et envoie l'email.
+     * Répond toujours 200 (même si l'email est inconnu) pour éviter l'énumération.
+     */
+    @PostMapping("/forgot-password")
+    public ResponseEntity<OtpResponse> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        passwordResetService.initiateReset(request.getEmail());
+        return ResponseEntity.ok(new OtpResponse(
+                "Si un compte existe pour cet email, un lien de réinitialisation a été envoyé.", false));
+    }
+
+    /**
+     * Valide le token et met à jour le mot de passe.
+     */
+    @PostMapping("/reset-password")
+    public ResponseEntity<OtpResponse> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        passwordResetService.resetPassword(request.getToken(), request.getNewPassword());
+        return ResponseEntity.ok(new OtpResponse("Mot de passe mis à jour avec succès.", false));
     }
 }

@@ -1,157 +1,256 @@
-import { Component } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../../core/services/auth.service';
+import { ThemeService } from '../../../core/services/theme.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { LucideArrowLeft, LucideBike, LucideMoon, LucideSun, LucideUser } from '@lucide/angular';
 
 @Component({
   selector: 'app-register',
   standalone: true,
-  imports: [FormsModule, RouterLink, CommonModule],
+  imports: [FormsModule, RouterLink, CommonModule, LucideArrowLeft, LucideBike, LucideMoon, LucideSun, LucideUser],
   template: `
-    <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:#f7f8f5;">
-      <div style="width:100%;max-width:520px;background:#fff;border:1px solid #e5e7eb;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.10);padding:40px 40px 32px;">
+    <div class="auth-wrapper">
+      <div class="auth-card" style="max-width:520px;padding-top:20px;">
 
-        <!-- Topbar : Retour | FR+Thème -->
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-          <a routerLink="/login"
-             style="display:inline-flex;align-items:center;gap:6px;color:#6b7280;font-size:.88rem;font-weight:600;text-decoration:none;padding:8px;border-radius:8px;">
-            ← Retour
+        <!-- Ligne 1 : Retour | FR + Thème -->
+        <div class="auth-topbar">
+          <a class="back-link" routerLink="/login" aria-label="Retour à la connexion">
+            <svg lucideArrowLeft size="16"></svg> Retour
           </a>
+          <div class="top-controls">
+            <button class="lang-toggle" type="button" aria-label="Changer de langue" (click)="toggleLang()">
+              {{ lang().toUpperCase() }}
+            </button>
+            <button class="theme-toggle" type="button"
+              [attr.aria-label]="theme.isDarkMode() ? 'Activer le thème clair' : 'Activer le thème sombre'"
+              (click)="theme.toggleTheme()">
+              @if (theme.isDarkMode()) {
+                <svg lucideSun size="18"></svg>
+              } @else {
+                <svg lucideMoon size="18"></svg>
+              }
+            </button>
+          </div>
         </div>
 
-        <!-- Logo -->
-        <div style="font-size:1.3rem;font-weight:800;color:#123b32;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:12px;">
-          🚴 ConfianceCoursier
+        <!-- Logo centré -->
+        <div class="auth-logo">
+          <svg lucideBike size="22"></svg>
+          <span class="auth-logo-text">ConfianceCoursier</span>
         </div>
 
-        <h1 style="font-size:1.5rem;font-weight:700;text-align:center;margin-bottom:24px;color:#1a1a1a;">
-          Créer un compte
-        </h1>
+        <h1 class="auth-title">Créer un compte</h1>
 
         <!-- Sélecteur de rôle -->
-        <p style="text-align:center;font-size:.9rem;color:#6b7280;margin-bottom:12px;">Je suis :</p>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px;">
+        <p class="text-sm text-muted text-center mb-md">Je suis :</p>
+        <div class="role-selector">
 
-          <!-- Carte CLIENT -->
-          <div (click)="role = 'CLIENT'" [style]="role === 'CLIENT' ? selectedCardStyle : cardStyle"
-               style="cursor:pointer;border-radius:14px;padding:20px 16px;text-align:center;transition:all .15s;">
-            <div style="font-size:2rem;margin-bottom:8px;display:flex;justify-content:center;">👤</div>
-            <div style="font-weight:700;font-size:.95rem;color:#1a1a1a;">Client</div>
-            <div style="font-size:.8rem;color:#6b7280;margin-top:4px;">Je commande</div>
+          <div class="role-card" [class.selected]="role === 'CLIENT'" (click)="role = 'CLIENT'">
+            <div class="role-icon"><svg lucideUser size="28"></svg></div>
+            <div class="role-name">Client</div>
+            <div class="text-sm text-muted mt-sm">Je commande</div>
           </div>
 
-          <!-- Carte COURSIER -->
-          <div (click)="role = 'COURIER'" [style]="role === 'COURIER' ? selectedCardStyle : cardStyle"
-               style="cursor:pointer;border-radius:14px;padding:20px 16px;text-align:center;transition:all .15s;">
-            <div style="font-size:2rem;margin-bottom:8px;display:flex;justify-content:center;">🚴</div>
-            <div style="font-weight:700;font-size:.95rem;color:#1a1a1a;">Coursier</div>
-            <div style="font-size:.8rem;color:#6b7280;margin-top:4px;">J'exécute</div>
+          <div class="role-card" [class.selected]="role === 'COURIER'" (click)="role = 'COURIER'">
+            <div class="role-icon"><svg lucideBike size="28"></svg></div>
+            <div class="role-name">Coursier</div>
+            <div class="text-sm text-muted mt-sm">J'exécute</div>
           </div>
+
         </div>
 
         <!-- Formulaire -->
         <form (ngSubmit)="onSubmit()" #registerForm="ngForm">
 
-          <!-- Nom complet -->
-          <div style="margin-bottom:16px;">
-            <label style="display:block;font-size:.875rem;font-weight:600;color:#374151;margin-bottom:6px;">Nom complet</label>
-            <input type="text" [(ngModel)]="fullName" name="fullName" required
-                   style="width:100%;padding:11px 14px;border:1px solid #e5e7eb;border-radius:10px;font-size:.95rem;outline:none;box-sizing:border-box;"
-                   placeholder="Jean Dupont">
+          <div class="form-group">
+            <label class="form-label" for="reg-fullname">Nom complet</label>
+            <input id="reg-fullname" type="text" class="form-input"
+              [(ngModel)]="fullName" name="fullName" required
+              placeholder="Jean Dupont" autocomplete="name">
           </div>
 
-          <!-- Email -->
-          <div style="margin-bottom:16px;">
-            <label style="display:block;font-size:.875rem;font-weight:600;color:#374151;margin-bottom:6px;">Email</label>
-            <input type="email" [(ngModel)]="email" name="email" required
-                   style="width:100%;padding:11px 14px;border:1px solid #e5e7eb;border-radius:10px;font-size:.95rem;outline:none;box-sizing:border-box;"
-                   placeholder="vous@email.com">
+          <div class="form-group">
+            <label class="form-label" for="reg-email">Email</label>
+            <input id="reg-email" type="email" class="form-input"
+              [(ngModel)]="email" name="email" required
+              placeholder="vous@email.com" autocomplete="email">
           </div>
 
-          <!-- Téléphone -->
-          <div style="margin-bottom:16px;">
-            <label style="display:block;font-size:.875rem;font-weight:600;color:#374151;margin-bottom:6px;">Téléphone</label>
-            <input type="tel" [(ngModel)]="phone" name="phone"
-                   style="width:100%;padding:11px 14px;border:1px solid #e5e7eb;border-radius:10px;font-size:.95rem;outline:none;box-sizing:border-box;"
-                   placeholder="+237 6XX XXX XXX">
+          <div class="form-group">
+            <label class="form-label" for="reg-phone">Téléphone</label>
+            <input id="reg-phone" type="tel" class="form-input"
+              [(ngModel)]="phone" name="phone"
+              placeholder="+237 6XX XXX XXX" autocomplete="tel">
           </div>
 
-          <!-- Mot de passe -->
-          <div style="margin-bottom:16px;">
-            <label style="display:block;font-size:.875rem;font-weight:600;color:#374151;margin-bottom:6px;">Mot de passe</label>
-            <input type="password" [(ngModel)]="password" name="password" required minlength="8"
-                   style="width:100%;padding:11px 14px;border:1px solid #e5e7eb;border-radius:10px;font-size:.95rem;outline:none;box-sizing:border-box;"
-                   placeholder="Min 8 caractères">
+          <div class="form-group">
+            <label class="form-label" for="reg-password">Mot de passe</label>
+            <input id="reg-password" type="password" class="form-input"
+              [(ngModel)]="password" name="password" required minlength="8"
+              placeholder="Min 8 caractères" autocomplete="new-password">
           </div>
 
-          <!-- Confirmer le mot de passe -->
-          <div style="margin-bottom:20px;">
-            <label style="display:block;font-size:.875rem;font-weight:600;color:#374151;margin-bottom:6px;">Confirmer le mot de passe</label>
-            <input type="password" [(ngModel)]="confirmPassword" name="confirmPassword" required
-                   style="width:100%;padding:11px 14px;border:1px solid #e5e7eb;border-radius:10px;font-size:.95rem;outline:none;box-sizing:border-box;"
-                   [style.border-color]="confirmPassword && confirmPassword !== password ? '#ef4444' : '#e5e7eb'"
-                   placeholder="••••••••">
-            <p *ngIf="confirmPassword && confirmPassword !== password"
-               style="color:#ef4444;font-size:.8rem;margin-top:4px;">
-              Les mots de passe ne correspondent pas.
-            </p>
+          <div class="form-group">
+            <label class="form-label" for="reg-password-confirm">Confirmer le mot de passe</label>
+            <input id="reg-password-confirm" type="password" class="form-input"
+              [(ngModel)]="confirmPassword" name="confirmPassword" required
+              placeholder="••••••••" autocomplete="new-password"
+              [class.input-error]="confirmPassword && confirmPassword !== password">
+            @if (confirmPassword && confirmPassword !== password) {
+              <p class="form-error">Les mots de passe ne correspondent pas.</p>
+            }
           </div>
 
           <!-- Champs spécifiques COURSIER -->
-          <div *ngIf="role === 'COURIER'">
-            <hr style="border:0;border-top:1px solid #e5e7eb;margin:4px 0 20px;">
-            <p style="font-size:.9rem;font-weight:700;color:#17634f;margin-bottom:16px;">Informations professionnelles</p>
+          @if (role === 'COURIER') {
+            <div>
+              <hr style="border:0;border-top:1px solid var(--border);margin:20px 0;">
+              <p style="font-size:.9rem;font-weight:700;color:var(--primary);margin-bottom:16px;">
+                Informations professionnelles
+              </p>
 
-            <!-- Véhicule -->
-            <div style="margin-bottom:16px;">
-              <label style="display:block;font-size:.875rem;font-weight:600;color:#374151;margin-bottom:6px;">Véhicule</label>
-              <select [(ngModel)]="vehicle" name="vehicle"
-                      style="width:100%;padding:11px 14px;border:1px solid #e5e7eb;border-radius:10px;font-size:.95rem;outline:none;background:#fff;box-sizing:border-box;">
-                <option value="MOTO">Moto</option>
-                <option value="VELO">Vélo</option>
-                <option value="VOITURE">Voiture</option>
-                <option value="PIED">À pied</option>
-              </select>
-            </div>
+              <div class="form-group">
+                <label class="form-label" for="reg-vehicle">Véhicule</label>
+                <select id="reg-vehicle" class="form-select"
+                  [(ngModel)]="vehicle" name="vehicle">
+                  <option value="MOTO">Moto</option>
+                  <option value="VELO">Vélo</option>
+                  <option value="VOITURE">Voiture</option>
+                  <option value="PIED">À pied</option>
+                </select>
+              </div>
 
-            <!-- Zone d'intervention -->
-            <div style="margin-bottom:20px;">
-              <label style="display:block;font-size:.875rem;font-weight:600;color:#374151;margin-bottom:6px;">Zone d'intervention principale</label>
-              <input type="text" [(ngModel)]="interventionZone" name="interventionZone"
-                     style="width:100%;padding:11px 14px;border:1px solid #e5e7eb;border-radius:10px;font-size:.95rem;outline:none;box-sizing:border-box;"
-                     placeholder="Ex: Yaoundé - Mokolo, Bastos">
+              <div class="form-group">
+                <label class="form-label" for="reg-zone">Zone d'intervention principale</label>
+                <input id="reg-zone" type="text" class="form-input"
+                  [(ngModel)]="interventionZone" name="interventionZone"
+                  placeholder="Ex: Yaoundé - Mokolo, Bastos">
+              </div>
             </div>
-          </div>
+          }
 
           <!-- CGU -->
-          <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:20px;">
-            <input type="checkbox" [(ngModel)]="acceptCgu" name="acceptCgu" required
-                   style="margin-top:3px;accent-color:#17634f;">
-            <span style="font-size:.875rem;color:#374151;">
-              J'accepte les <a href="#" style="color:#17634f;font-weight:600;">CGU</a>
-              et la <a href="#" style="color:#17634f;font-weight:600;">politique de confidentialité</a>
-            </span>
-          </div>
+          <label class="form-checkbox mb-md">
+            <input type="checkbox" [(ngModel)]="acceptCgu" name="acceptCgu" required>
+            <span>J'accepte les <a href="#" (click)="$event.preventDefault()">CGU</a>
+              et la <a href="#" (click)="$event.preventDefault()">politique de confidentialité</a></span>
+          </label>
 
           <!-- Bouton submit -->
-          <button type="submit"
-                  [disabled]="isLoading || !acceptCgu || (confirmPassword !== password)"
-                  style="width:100%;padding:14px;background:#17634f;color:#fff;font-weight:700;font-size:1rem;border:none;border-radius:10px;cursor:pointer;transition:opacity .2s;"
-                  [style.opacity]="(isLoading || !acceptCgu || confirmPassword !== password) ? '0.55' : '1'">
-            {{ isLoading ? 'Création en cours…' : 'Créer mon compte' }}
+          <button type="submit" class="btn btn-primary btn-block btn-lg"
+            [disabled]="isLoading || !acceptCgu || (!!confirmPassword && confirmPassword !== password)">
+            @if (isLoading) {
+              Création en cours…
+            } @else {
+              Créer mon compte
+            }
           </button>
+
         </form>
 
-        <p style="text-align:center;font-size:.9rem;color:#4b5563;margin-top:24px;">
-          Déjà un compte ?
-          <a routerLink="/login" style="color:#17634f;font-weight:700;text-decoration:none;">Se connecter</a>
-        </p>
-
+        <div class="auth-footer">Déjà un compte ? <a routerLink="/login">Se connecter</a></div>
       </div>
     </div>
-  `
+  `,
+  styles: [`
+    :host { display: block; }
+
+    /* Styles spécifiques à la page register non couverts par main.css */
+    .role-selector {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .role-card {
+      border: 2px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.15s;
+      background: var(--bg);
+    }
+
+    .role-card:hover {
+      border-color: var(--gray-400, #9ca3af);
+    }
+
+    .role-card.selected {
+      border-color: var(--primary);
+      background: var(--primary-light);
+    }
+
+    .role-card .role-icon {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 8px;
+      color: var(--text-muted);
+      transition: color 0.15s, transform 0.2s;
+    }
+
+    .role-card.selected .role-icon {
+      color: var(--primary);
+      transform: scale(1.1);
+    }
+
+    .role-name {
+      font-weight: 700;
+      font-size: .95rem;
+      color: var(--text);
+    }
+
+    .input-error {
+      border-color: #ef4444 !important;
+    }
+
+    .form-error {
+      color: #ef4444;
+      font-size: .8rem;
+      margin-top: 4px;
+    }
+
+    .form-select {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      font-size: .95rem;
+      background: var(--bg);
+      color: var(--text);
+      outline: none;
+      box-sizing: border-box;
+    }
+
+    /* Dark mode overrides */
+    [data-theme="dark"] .role-card {
+      border-color: #2e4037;
+      background: #1f2c26;
+    }
+
+    [data-theme="dark"] .role-card:hover {
+      border-color: #3e8a6b;
+    }
+
+    [data-theme="dark"] .role-card.selected {
+      border-color: #3e8a6b;
+      background: rgba(62, 138, 107, 0.15);
+    }
+
+    [data-theme="dark"] .role-card.selected .role-icon {
+      color: #d7ed9a;
+    }
+
+    @media (max-width: 480px) {
+      .role-card {
+        padding: 14px 10px;
+      }
+    }
+  `]
 })
 export class RegisterComponent {
   fullName = '';
@@ -165,14 +264,19 @@ export class RegisterComponent {
   acceptCgu = false;
   isLoading = false;
 
-  readonly cardStyle = 'border:2px solid #e5e7eb;background:#f9fafb;';
-  readonly selectedCardStyle = 'border:2px solid #123b32;background:#e8f5ee;';
+  readonly theme = inject(ThemeService);
+  readonly lang = signal<string>(localStorage.getItem('lang') || 'fr');
 
-  constructor(
-    private authService: AuthService,
-    private router: Router,
-    private toast: ToastService
-  ) {}
+  private authService = inject(AuthService);
+  private router      = inject(Router);
+  private toast       = inject(ToastService);
+
+  toggleLang(): void {
+    const next = this.lang() === 'fr' ? 'en' : 'fr';
+    this.lang.set(next);
+    localStorage.setItem('lang', next);
+    document.documentElement.lang = next;
+  }
 
   onSubmit(): void {
     if (this.password !== this.confirmPassword) {
@@ -191,18 +295,19 @@ export class RegisterComponent {
       email: this.email,
       phone: this.phone,
       password: this.password,
-      role: this.role
+      role: this.role,
     }).subscribe({
       next: () => {
         this.isLoading = false;
         this.toast.success('Compte créé ! Vérifiez votre téléphone pour l\'OTP.');
-        this.router.navigate(['/verify-otp'], { queryParams: { email: this.email } });
+        this.router.navigate(['/verify-otp'], {
+          queryParams: { email: this.email, phone: this.phone }
+        });
       },
       error: (err) => {
         this.isLoading = false;
-        const message = err.error?.message || 'Une erreur est survenue lors de l\'inscription.';
-        this.toast.error(message);
-      }
+        this.toast.error(err.error?.message || 'Une erreur est survenue lors de l\'inscription.');
+      },
     });
   }
 }
