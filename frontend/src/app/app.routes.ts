@@ -8,6 +8,7 @@ import { ClientDashboardComponent } from './features/client/dashboard/dashboard.
 import { CreateCourseComponent } from './features/client/create-course/create-course.component';
 import { SelectCourierComponent } from './features/client/select-courier/select-courier.component';
 import { PayComponent } from './features/client/pay/pay.component';
+import { CourseDetailComponent } from './features/client/course-detail/course-detail.component';
 import { CourierDashboardComponent } from './features/courier/dashboard/dashboard.component';
 import { ChatComponent } from './features/chat/chat.component';
 import { authGuard } from './core/guards/auth.guard';
@@ -50,6 +51,12 @@ export const routes: Routes = [
   {
     path: 'client/pay/:roomId',
     component: PayComponent,
+    canActivate: [authGuard, roleGuard],
+    data: { role: 'CLIENT' }
+  },
+  {
+    path: 'client/course-detail/:courseId',
+    component: CourseDetailComponent,
     canActivate: [authGuard, roleGuard],
     data: { role: 'CLIENT' }
   },

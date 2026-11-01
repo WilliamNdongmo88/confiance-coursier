@@ -1,6 +1,6 @@
 # AGENT CONTEXT — confiance-coursier
 > Fichier de continuité pour tout agent IA qui reprend ce projet.
-> Mis à jour au : 2026-11-01 (session 28)
+> Mis à jour au : 2026-11-01 (session 29)
 > Dernier agent : Kiro CLI
 
 ---
@@ -524,7 +524,28 @@ app.frontend.url=http://localhost:4200
 - **`app.routes.ts`** : ajout de la route `client/select-courier/:courseId` avec `authGuard + roleGuard(CLIENT)`
 - **Build** : `ng build --configuration development` → **exit 0**
 
-### Session 28 — TICK-020 + TICK-019 : Paiement Escrow (backend + frontend)
+### Session 29 — TICK-021 + TICK-022 : CourseDetail + CourierDashboard
+- **TICK-021 [FE]** :
+  - **`features/client/course-detail/course-detail.component.ts`** : créé, fidèle à `maquette-v2/client/course-detail.html`
+    - Timeline visuelle 5 étapes : PUBLISHED → ASSIGNED → IN_PROGRESS → PROOFS_SUBMITTED → COMPLETED avec états done/active/pending via `buildTimeline(status, paidAt, createdAt)`
+    - Bloc "Preuves soumises" (bouton → `/client/validate/:id`) si `status=PROOFS_SUBMITTED`
+    - Bloc "En attente de preuves" sinon
+    - Finances (tarif, commission, total) si `course.totalAmount` présent
+    - Bouton Chat → `/chat/{chatRoomId}` si disponible
+    - Action box litige (bouton disabled, Sprint 5)
+  - **`app.routes.ts`** : route `client/course-detail/:courseId` ajoutée avec guards
+  - **Build** → exit 0, zéro warning
+- **TICK-022 [FE]** :
+  - **`features/courier/dashboard/dashboard.component.ts`** : refonte complète fidèle à `maquette-v2/courier/dashboard.html`
+    - En-tête "Bonjour [prénom]," + badge Disponible
+    - Alerte KYC bloquante (lien → `/courier/kyc`)
+    - 3 métriques : revenus (—), courses terminées (depuis API), note (—)
+    - Panel "Mes missions" : liste des missions actives avec statut, bouton Preuves si IN_PROGRESS, bouton Chat si chatRoomId
+    - Panel "Nouvelles demandes" : courses PUBLISHED avec bouton "Voir la demande"
+    - Modal demande : zone, créneau, description, boutons "Plus tard / Accepter" → `createOffer()` → navigue `/chat/{chatRoomId}`
+    - Aside : dark-card gains + barre progression profil confiance + encart règles
+  - **Build** → exit 0, zéro warning
+- **Sprint 2 marqué ✅ Complet**
 - **TICK-020 [BE]** :
   - **`payment/domain/EscrowEntry.java`** : `@Entity escrow_ledger` — `courseId, entryType (HOLD/RELEASE/REFUND), amount, provider, providerRef, status`
   - **`payment/repository/EscrowRepository.java`** : `JpaRepository<EscrowEntry, Long>`

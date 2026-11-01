@@ -24,7 +24,7 @@
 |--------|-------|--------|
 | Sprint 0 | Socle & corrections critiques | ✅ Complet |
 | Sprint 1 | Design system + Auth complète | ✅ Complet |
-| Sprint 2 | Cycle de vie d'une course | ⬜ En attente |
+| Sprint 2 | Cycle de vie d'une course | ✅ Complet |
 | Sprint 3 | KYC + Profil utilisateur | ⬜ En attente |
 | Sprint 4 | Preuves + Paiement Escrow | ⬜ En attente |
 | Sprint 5 | Notation + Litiges + Signalements | ⬜ En attente |
@@ -525,7 +525,7 @@ Le flux d'offre doit passer par le chat (spec fonctionnelle §2.1). Le coursier 
 ---
 
 ### TICK-021 🟡 [FE] Créer `CourseDetailComponent` — Suivi timeline
-**Statut :** ⬜
+**Statut :** ✅
 **Maquette :** `maquette-v2/client/course-detail.html`
 **Route :** `/client/course-detail/:courseId`
 
@@ -544,7 +544,7 @@ Le flux d'offre doit passer par le chat (spec fonctionnelle §2.1). Le coursier 
 ---
 
 ### TICK-022 🟡 [FE] Refondre `CourierDashboardComponent` selon la maquette
-**Statut :** ⬜
+**Statut :** ✅
 **Maquette :** `maquette-v2/courier/dashboard.html`
 
 **Travail à faire :**
@@ -1106,8 +1106,8 @@ Le flux d'offre doit passer par le chat (spec fonctionnelle §2.1). Le coursier 
 | TICK-018 | Messages d'offre dans le Chat (backend) | S2 | BE | 🔴 | ✅ |
 | TICK-019 | PayComponent — double déclaration | S2 | FE | 🔴 | ✅ |
 | TICK-020 | POST /api/payment/initiate (simulé) | S2 | BE | 🟡 | ✅ |
-| TICK-021 | CourseDetailComponent — timeline | S2 | FE | 🟡 | ⬜ |
-| TICK-022 | CourierDashboardComponent (maquette) | S2 | FE | 🟡 | ⬜ |
+| TICK-021 | CourseDetailComponent — timeline | S2 | FE | 🟡 | ✅ |
+| TICK-022 | CourierDashboardComponent (maquette) | S2 | FE | 🟡 | ✅ |
 | TICK-023 | Entité + Service KYC (backend) | S3 | BE | 🔴 | ⬜ |
 | TICK-024 | MinIO pour les fichiers KYC | S3 | BE | 🔴 | ⬜ |
 | TICK-025 | KycComponent (coursier) | S3 | FE | 🔴 | ⬜ |
