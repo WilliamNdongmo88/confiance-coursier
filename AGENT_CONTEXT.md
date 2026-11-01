@@ -1,6 +1,6 @@
 # AGENT CONTEXT — confiance-coursier
 > Fichier de continuité pour tout agent IA qui reprend ce projet.
-> Mis à jour au : 2026-11-01 (session 26)
+> Mis à jour au : 2026-11-01 (session 27)
 > Dernier agent : Kiro CLI
 
 ---
@@ -524,7 +524,26 @@ app.frontend.url=http://localhost:4200
 - **`app.routes.ts`** : ajout de la route `client/select-courier/:courseId` avec `authGuard + roleGuard(CLIENT)`
 - **Build** : `ng build --configuration development` → **exit 0**
 
-### Session 26 — TICK-016 + TICK-015 : Endpoint coursiers + SelectCourierComponent
+### Session 27 — TICK-018 + TICK-017 : Messages d'offre Chat (backend + frontend)
+- **TICK-018 [BE]** :
+  - **`V4__add_message_type.sql`** : `ALTER TABLE chat_messages ADD COLUMN message_type VARCHAR(20) NOT NULL DEFAULT 'TEXT', ADD COLUMN offer_amount DECIMAL(12,2)`
+  - **`ChatMessage.java`** : ajout champs `messageType` (défaut "TEXT") + `offerAmount` (BigDecimal nullable)
+  - **`ChatMessageDto.java`** : ajout `messageType` (défaut "TEXT") + `offerAmount` (BigDecimal nullable)
+  - **`ChatController.java`** : validation OFFER (offerAmount > 0 obligatoire, sinon ignoré) ; `messageType` normalisé en uppercase ; `offerAmount` stocké seulement pour les OFFER
+  - **Build backend** : `mvnw test-compile` → **exit 0**
+- **TICK-017 [FE]** :
+  - **`features/chat/chat.component.ts`** : refonte complète fidèle aux maquettes `client/chat.html` + `courier/chat.html`
+    - Layout pleine hauteur viewport (`:host { height: 100vh }` + flex column) — pas d'AppShell
+    - Header : avatar initiales correspondant, nom, badge "Vérifié", boutons Retour / Détails / Signaler
+    - Bandeau traçabilité jaune fixe sous le header
+    - Bulles de message : incoming (blanc, bordure) / outgoing (vert forêt)
+    - **Carte d'offre** (messageType=OFFER) : tarif, ligne de total, note "🔒 coût des achats ajouté au paiement", bouton "Accepter et payer" → `/client/pay/{roomId}?amount=X` (côté CLIENT uniquement) ; "En attente" côté COURIER
+    - **Panel "Proposer un tarif"** (signal `showOfferPanel`) : input montant + bouton "Envoyer l'offre" → `chatService.sendOffer()` — visible côté COURIER uniquement
+    - Bouton "Offre" dans la barre de saisie (côté COURIER) pour ouvrir le panel
+    - Scroll automatique en bas à chaque nouveau message (`AfterViewChecked` + `shouldScrollToBottom`)
+    - Dark mode supporté
+  - **`core/services/chat.service.ts`** : ajout `sendOffer(roomId, senderId, offerAmount, content)` publiant sur STOMP avec `messageType: 'OFFER'`
+  - **Build frontend** : `ng build --configuration development` → **exit 0** (zéro warning)
 - **TICK-016 [BE]** :
   - **`user/repository/UserRepository.java`** : ajout `findByRoleAndStatusOrderByTrustScoreDesc(String role, String status)`
   - **`user/api/dto/CourierSummaryResponse.java`** : créé — `id, fullName, initials, averageRating, completedCourses, zone, kycVerified` ; `fromUser()` calcule les initiales, replie `trustScore` en `averageRating`, `city` en `zone` ; `completedCourses=0` et `kycVerified=false` en attendant les sprints KYC et Review

@@ -63,10 +63,21 @@ export class ChatService {
     if (this.stompClient && this.stompClient.connected) {
       this.stompClient.publish({
         destination: '/app/chat.send',
-        body: JSON.stringify({ roomId, senderId, content })
+        body: JSON.stringify({ roomId, senderId, content, messageType: 'TEXT' })
       });
     } else {
       console.error('❌ Impossible d\'envoyer : WebSocket non connecté');
+    }
+  }
+
+  sendOffer(roomId: number, senderId: number, offerAmount: number, content: string): void {
+    if (this.stompClient && this.stompClient.connected) {
+      this.stompClient.publish({
+        destination: '/app/chat.send',
+        body: JSON.stringify({ roomId, senderId, content, messageType: 'OFFER', offerAmount })
+      });
+    } else {
+      console.error('❌ Impossible d\'envoyer l\'offre : WebSocket non connecté');
     }
   }
 

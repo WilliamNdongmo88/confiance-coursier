@@ -35,6 +35,12 @@ public class ChatMessage {
     @Column(name = "is_read")
     private Boolean isRead = false;
 
+    @Column(name = "message_type", nullable = false)
+    private String messageType = "TEXT"; // TEXT | OFFER | SYSTEM
+
+    @Column(name = "offer_amount", precision = 12, scale = 2)
+    private java.math.BigDecimal offerAmount;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 

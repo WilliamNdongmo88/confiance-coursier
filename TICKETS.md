@@ -441,7 +441,7 @@ Le token expire au bout de 15 minutes → l'utilisateur doit se reconnecter manu
 ---
 
 ### TICK-017 🔴 [FE] Refondre `ChatComponent` — Carte d'offre intégrée
-**Statut :** ⬜
+**Statut :** ✅
 **Maquette :** `maquette-v2/client/chat.html` + `maquette-v2/courier/chat.html`
 **Dépend de :** TICK-004 (chatRoomId correct)
 
@@ -464,7 +464,7 @@ Le flux d'offre doit passer par le chat (spec fonctionnelle §2.1). Le coursier 
 ---
 
 ### TICK-018 🔴 [BE] Gestion des messages d'offre dans le Chat
-**Statut :** ⬜
+**Statut :** ✅
 **Dépend de :** TICK-017
 
 **Travail à faire :**
@@ -1102,8 +1102,8 @@ Le flux d'offre doit passer par le chat (spec fonctionnelle §2.1). Le coursier 
 | TICK-014 | CreateCourseComponent — 3 étapes | S2 | FE | 🔴 | ✅ |
 | TICK-015 | SelectCourierComponent | S2 | FE | 🔴 | ✅ |
 | TICK-016 | GET /api/users/couriers | S2 | BE | 🔴 | ✅ |
-| TICK-017 | ChatComponent — carte d'offre | S2 | FE | 🔴 | ⬜ |
-| TICK-018 | Messages d'offre dans le Chat (backend) | S2 | BE | 🔴 | ⬜ |
+| TICK-017 | ChatComponent — carte d'offre | S2 | FE | 🔴 | ✅ |
+| TICK-018 | Messages d'offre dans le Chat (backend) | S2 | BE | 🔴 | ✅ |
 | TICK-019 | PayComponent — double déclaration | S2 | FE | 🔴 | ⬜ |
 | TICK-020 | POST /api/payment/initiate (simulé) | S2 | BE | 🟡 | ⬜ |
 | TICK-021 | CourseDetailComponent — timeline | S2 | FE | 🟡 | ⬜ |

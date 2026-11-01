@@ -769,3 +769,10 @@ body { background: var(--bg); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+/* ── Page Chat : layout plein écran (masque la sidebar fixe globale) ── */
+body.chat-page .app-sidebar {
+    display: none !important;
+}
+body.chat-page .app-main {
+    margin-left: 0 !important;
+}
