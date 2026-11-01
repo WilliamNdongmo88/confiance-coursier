@@ -482,7 +482,7 @@ Le flux d'offre doit passer par le chat (spec fonctionnelle §2.1). Le coursier 
 ---
 
 ### TICK-019 🔴 [FE] Créer `PayComponent` — Double déclaration + Escrow
-**Statut :** ⬜
+**Statut :** ✅
 **Maquette :** `maquette-v2/client/pay.html`
 **Route :** `/client/pay/:courseId`
 
@@ -507,7 +507,7 @@ Le flux d'offre doit passer par le chat (spec fonctionnelle §2.1). Le coursier 
 ---
 
 ### TICK-020 🟡 [BE] Endpoint `POST /api/payment/initiate` (simulé)
-**Statut :** ⬜
+**Statut :** ✅
 **Dépend de :** TICK-019
 
 **Travail à faire :**
@@ -1104,8 +1104,8 @@ Le flux d'offre doit passer par le chat (spec fonctionnelle §2.1). Le coursier 
 | TICK-016 | GET /api/users/couriers | S2 | BE | 🔴 | ✅ |
 | TICK-017 | ChatComponent — carte d'offre | S2 | FE | 🔴 | ✅ |
 | TICK-018 | Messages d'offre dans le Chat (backend) | S2 | BE | 🔴 | ✅ |
-| TICK-019 | PayComponent — double déclaration | S2 | FE | 🔴 | ⬜ |
-| TICK-020 | POST /api/payment/initiate (simulé) | S2 | BE | 🟡 | ⬜ |
+| TICK-019 | PayComponent — double déclaration | S2 | FE | 🔴 | ✅ |
+| TICK-020 | POST /api/payment/initiate (simulé) | S2 | BE | 🟡 | ✅ |
 | TICK-021 | CourseDetailComponent — timeline | S2 | FE | 🟡 | ⬜ |
 | TICK-022 | CourierDashboardComponent (maquette) | S2 | FE | 🟡 | ⬜ |
 | TICK-023 | Entité + Service KYC (backend) | S3 | BE | 🔴 | ⬜ |

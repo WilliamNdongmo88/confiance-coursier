@@ -1,6 +1,6 @@
 # AGENT CONTEXT — confiance-coursier
 > Fichier de continuité pour tout agent IA qui reprend ce projet.
-> Mis à jour au : 2026-11-01 (session 27)
+> Mis à jour au : 2026-11-01 (session 28)
 > Dernier agent : Kiro CLI
 
 ---
@@ -524,7 +524,25 @@ app.frontend.url=http://localhost:4200
 - **`app.routes.ts`** : ajout de la route `client/select-courier/:courseId` avec `authGuard + roleGuard(CLIENT)`
 - **Build** : `ng build --configuration development` → **exit 0**
 
-### Session 27 — TICK-018 + TICK-017 : Messages d'offre Chat (backend + frontend)
+### Session 28 — TICK-020 + TICK-019 : Paiement Escrow (backend + frontend)
+- **TICK-020 [BE]** :
+  - **`payment/domain/EscrowEntry.java`** : `@Entity escrow_ledger` — `courseId, entryType (HOLD/RELEASE/REFUND), amount, provider, providerRef, status`
+  - **`payment/repository/EscrowRepository.java`** : `JpaRepository<EscrowEntry, Long>`
+  - **`payment/api/dto/PaymentInitiateRequest.java`** : `courseId, tarifCoursier, fraisReels, paymentMethod` — tous validés `@Valid`
+  - **`payment/api/dto/PaymentInitiateResponse.java`** : `paymentRef, totalAmount, status, courseId`
+  - **`payment/service/PaymentService.java`** : calcul côté serveur (base = fraisReels + tarifCoursier, fraisService = base × 5%, total = base + fraisService) ; met `course.status = IN_PROGRESS`, `escrowStatus = HELD`, enregistre dans `escrow_ledger` avec ref UUID ; paiement simulé (log seulement)
+  - **`payment/api/PaymentController.java`** : `POST /api/payment/initiate` — extrait `clientId` depuis `Principal`, délègue à `PaymentService`
+  - **Build backend** : `mvnw test-compile` → **exit 0**
+- **TICK-019 [FE]** :
+  - **`core/services/payment.service.ts`** : créé — `initiate(req)` → `POST /api/payment/initiate`
+  - **`features/client/pay/pay.component.ts`** : créé, fidèle à `maquette-v2/client/pay.html`
+    - Récapitulatif : frais réels (input), tarif coursier (read-only depuis queryParam `amount`), frais de service (5%), total calculé dynamiquement
+    - Encart vigilance (warning jaune) + note Escrow (vert)
+    - 3 options paiement : Stripe (violet), MTN (jaune), Orange (orange) — radio sélectionnable
+    - Bouton "Payer N XAF" désactivé tant que fraisReels ≤ 0 ou tarifCoursier = 0
+    - Après succès → navigate `/client/course-detail/{courseId}`
+  - **`app.routes.ts`** : route `client/pay/:roomId` ajoutée avec `authGuard + roleGuard(CLIENT)`
+  - **Build frontend** : `ng build --configuration development` → **exit 0** (zéro warning)
 - **TICK-018 [BE]** :
   - **`V4__add_message_type.sql`** : `ALTER TABLE chat_messages ADD COLUMN message_type VARCHAR(20) NOT NULL DEFAULT 'TEXT', ADD COLUMN offer_amount DECIMAL(12,2)`
   - **`ChatMessage.java`** : ajout champs `messageType` (défaut "TEXT") + `offerAmount` (BigDecimal nullable)
