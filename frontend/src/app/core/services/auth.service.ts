@@ -18,6 +18,7 @@ export interface LoginRequest {
 
 export interface AuthResponse {
   token: string;
+  refreshToken: string;
   email: string;
   fullName: string;
   role: string;
@@ -43,7 +44,13 @@ export class AuthService {
   login(data: LoginRequest): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.apiUrl}/login`, data).pipe(
       tap((response) => {
-        this.saveToken(response.token, response.userId, response.role, response.fullName);
+        this.saveToken(
+          response.token,
+          response.userId,
+          response.role,
+          response.fullName,
+          response.refreshToken
+        );
       })
     );
   }
@@ -52,25 +59,62 @@ export class AuthService {
     return this.http.post(`${this.apiUrl}/verify-otp`, { email, otp });
   }
 
+  /**
+   * Échange un refresh token contre un nouveau couple access/refresh token.
+   * Utilisé par l'intercepteur HTTP pour rejouer les requêtes 401.
+   */
+  refreshAccessToken(refreshToken: string | null): Observable<AuthResponse> {
+    return this.http.post<AuthResponse>(`${this.apiUrl}/refresh`, { refreshToken });
+  }
+
   getToken(): string | null {
     return localStorage.getItem('jwt_token');
   }
 
-  /** Efface toutes les clés d'authentification et met à jour le signal */
+  getRefreshToken(): string | null {
+    return localStorage.getItem('refresh_token');
+  }
+
+  /**
+   * Déconnexion : invalide le refresh token côté serveur (best-effort) puis
+   * vide tout le localStorage. L'appel HTTP est fire-and-forget (ne bloque pas
+   * la navigation) et ignore les erreurs (le token local est déjà effacé).
+   */
   logout(): void {
+    const refreshToken = this.getRefreshToken();
+    this.clearStorage();
+    if (refreshToken) {
+      this.http.post(`${this.apiUrl}/logout`, { refreshToken }).subscribe({
+        error: () => { /* token déjà effacé localement — on ignore */ }
+      });
+    }
+  }
+
+  /** Efface toutes les clés d'authentification et met à jour le signal. */
+  private clearStorage(): void {
     localStorage.removeItem('jwt_token');
+    localStorage.removeItem('refresh_token');
     localStorage.removeItem('user_id');
     localStorage.removeItem('user_role');
     localStorage.removeItem('user_full_name');
     this._isLoggedIn.set(false);
   }
 
-  saveToken(token: string, userId: number, role: string, fullName?: string): void {
+  saveToken(
+    token: string,
+    userId: number,
+    role: string,
+    fullName?: string,
+    refreshToken?: string
+  ): void {
     localStorage.setItem('jwt_token', token);
     localStorage.setItem('user_id', String(userId));
     localStorage.setItem('user_role', role);
     if (fullName) {
       localStorage.setItem('user_full_name', fullName);
+    }
+    if (refreshToken) {
+      localStorage.setItem('refresh_token', refreshToken);
     }
     this._isLoggedIn.set(true);
   }

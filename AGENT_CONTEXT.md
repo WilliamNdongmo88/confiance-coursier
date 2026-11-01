@@ -358,6 +358,21 @@ spring.data.redis.port=6379
   - Instance de test (8081) stoppée + logs temporaires supprimés après vérification
 - **Note tests** : `AuthControllerTest` (@SpringBootTest) échoue actuellement à cause d'un problème **préexistant** sans lien avec ce ticket — `@BeforeEach userRepository.deleteAll()` casse sur une FK (`courses_client_id_fkey`) car la base dev contient un user référencé par des courses. Aucun test automatique ajouté (règle « pas de tests auto sauf demande »)
 
+### Session 17 — TICK-011 : Refresh Token côté Angular
+- **`core/services/auth.service.ts`** :
+  - `AuthResponse` enrichi de `refreshToken`
+  - `login()` persiste désormais `refresh_token` en localStorage (via `saveToken` qui accepte un 5ᵉ param `refreshToken`)
+  - ajout `getRefreshToken()` + `refreshAccessToken(refreshToken)` → `POST /api/auth/refresh`
+  - `logout()` capture le refresh token, vide tout le localStorage (clé `refresh_token` incluse) via `clearStorage()`, puis **fire-and-forget** `POST /api/auth/logout` (erreurs ignorées — ne bloque pas la navigation)
+- **`core/interceptors/auth.interceptor.ts`** : refonte complète
+  - Ajoute `Authorization: Bearer` aux requêtes `/api/` (sauf `/api/auth/*`)
+  - Sur 401 d'une route protégée : `handle401` → si pas de refresh token → logout + redirect `/login` ; sinon `refreshOnce` puis **rejoue la requête originale** avec le nouveau token
+  - **Requêtes parallèles** : `refreshOnce` cache l'Observable de refresh (`refreshInProgress$`) multidiffusé via `share()` → un seul `POST /api/auth/refresh` quel que soit le nombre de 401 simultanées
+  - Échec du refresh → déconnexion + redirection `/login` (une seule fois grâce au `share()`)
+  - Endpoints `/api/auth/*` exclus du mécanisme pour éviter toute boucle
+- Build vérifié : `.\node_modules\.bin\ng build --configuration development` → **exit 0**
+- **Note vérif runtime** : le comportement de l'intercepteur (401 → refresh → replay, et parallélisme) ne peut être exercé que dans le runtime navigateur Angular ; vérifié par compilation + logique conforme au pattern standard. L'endpoint `/api/auth/refresh` et `/api/auth/logout` ont été validés end-to-end côté backend lors de TICK-010.
+
 ---
 
 ## 8. PROBLÈMES CONNUS À CORRIGER (backlog technique)

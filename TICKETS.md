@@ -297,17 +297,17 @@ Le token expire au bout de 15 minutes → l'utilisateur doit se reconnecter manu
 ---
 
 ### TICK-011 🟡 [FE] Implémenter le Refresh Token côté Angular
-**Statut :** ⬜
+**Statut :** ✅
 **Dépend de :** TICK-010
 **Fichiers concernés :**
 - `core/interceptors/auth.interceptor.ts`
 - `core/services/auth.service.ts`
 
 **Travail à faire :**
-- [ ] Stocker `refreshToken` dans `localStorage` au login
-- [ ] Dans `auth.interceptor.ts` : intercepter les réponses HTTP 401 → appeler `POST /api/auth/refresh` → rejouer la requête originale
-- [ ] Si refresh échoue → logout automatique + redirect `/login`
-- [ ] `logout()` : appeler `POST /api/auth/logout` + vider tout le localStorage
+- [x] Stocker `refreshToken` dans `localStorage` au login
+- [x] Dans `auth.interceptor.ts` : intercepter les réponses HTTP 401 → appeler `POST /api/auth/refresh` → rejouer la requête originale
+- [x] Si refresh échoue → logout automatique + redirect `/login`
+- [x] `logout()` : appeler `POST /api/auth/logout` + vider tout le localStorage
 
 **Critères d'acceptance :**
 - Une requête qui reçoit 401 est automatiquement rejouée après refresh
