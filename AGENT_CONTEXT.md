@@ -1,6 +1,6 @@
 # AGENT CONTEXT — confiance-coursier
 > Fichier de continuité pour tout agent IA qui reprend ce projet.
-> Mis à jour au : 2026-11-01 (session 24)
+> Mis à jour au : 2026-11-01 (session 25)
 > Dernier agent : Kiro CLI
 
 ---
@@ -508,6 +508,21 @@ app.frontend.url=http://localhost:4200
   - `app.routes.ts` : routes `/forgot-password` et `/reset-password` ajoutées (publiques)
   - `login.component.ts` : `forgotPassword()` navigue vers `/forgot-password` (plus de toast "prochainement")
 - **Build backend** : `mvnw package -DskipTests` → exit 0 ; **Frontend** : `ng build` → exit 0
+
+### Session 25 — TICK-014 : Refondre `CreateCourseComponent` — Formulaire 3 étapes
+- **`features/client/create-course/create-course.component.ts`** : refonte complète fidèle à `maquette-v2/client/create-course.html`
+  - Indicateur 3 étapes visuelles (`.steps-indicator` / `.step-dot` / `.step-dot.active`)
+  - Sélecteur de type de course (4 cartes `.type-card` cliquables : Achat, Livraison, Retrait, Autre) avec icônes Lucide individuels (`*ngIf` — pas de `ngSwitch` pour compatibilité standalone)
+  - Champs : `description` (textarea), `city` (select Yaoundé/Douala/Bafoussam/Autre), `neighborhood` (input), `dateVal` (date), `timeVal` (time) — 2 colonnes grille
+  - Cases preuves : vidéo précochée + désactivée, photos + reçus cochés par défaut
+  - `buildZone()` recombine `city + " - " + neighborhood` → champ `zone` du backend
+  - `buildScheduledAt()` recombine `dateVal + "T" + timeVal + ":00"` → `LocalDateTime` ISO
+  - Après création réussie → navigate `/client/select-courier/{courseId}` (pas dashboard)
+  - Mode édition : déparse `zone` → `city + neighborhood`, `scheduledAt` → `date + time`
+  - `isFormValid()` gate le bouton Submit
+- **`features/client/select-courier/select-courier.component.ts`** : créé (placeholder TICK-015) — affiche un écran "en cours d'implémentation" avec le courseId
+- **`app.routes.ts`** : ajout de la route `client/select-courier/:courseId` avec `authGuard + roleGuard(CLIENT)`
+- **Build** : `ng build --configuration development` → **exit 0**
 
 ---
 

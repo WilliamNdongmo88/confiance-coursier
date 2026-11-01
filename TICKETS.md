@@ -386,7 +386,7 @@ Le token expire au bout de 15 minutes → l'utilisateur doit se reconnecter manu
 ---
 
 ### TICK-014 🔴 [FE] Refondre `CreateCourseComponent` — Formulaire 3 étapes
-**Statut :** ⬜
+**Statut :** ✅
 **Maquette :** `maquette-v2/client/create-course.html`
 
 **Travail à faire :**
@@ -1099,7 +1099,7 @@ Le flux d'offre doit passer par le chat (spec fonctionnelle §2.1). Le coursier 
 | TICK-012b | Correctif resend-otp | hors | FULL | 🔴 | ✅ |
 | TICK-012c | Page mot de passe oublié | hors | FULL | 🟡 | ✅ |
 | TICK-013 | ClientDashboardComponent (maquette) | S2 | FE | 🔴 | ✅ |
-| TICK-014 | CreateCourseComponent — 3 étapes | S2 | FE | 🔴 | ⬜ |
+| TICK-014 | CreateCourseComponent — 3 étapes | S2 | FE | 🔴 | ✅ |
 | TICK-015 | SelectCourierComponent | S2 | FE | 🔴 | ⬜ |
 | TICK-016 | GET /api/users/couriers | S2 | BE | 🔴 | ⬜ |
 | TICK-017 | ChatComponent — carte d'offre | S2 | FE | 🔴 | ⬜ |

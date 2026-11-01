@@ -49,7 +49,7 @@ import { LucideMenu, LucideMoon, LucideSun } from '@lucide/angular';
       }
 
       <!-- Zone principale -->
-      <main class="app-main">
+      <main class="app-main" [class.app-main--narrow]="narrow">
         <!-- Topbar -->
         <header class="app-topbar">
           <button
@@ -102,6 +102,9 @@ import { LucideMenu, LucideMoon, LucideSun } from '@lucide/angular';
 export class AppShellComponent {
   /** Titre de la page affiché dans le fil d'Ariane (2ème segment). */
   @Input() pageTitle = '';
+
+  /** Si true, applique app-main--narrow (max-width 820px, centré) — pour les formulaires/tunnels. */
+  @Input() narrow = false;
 
   /** État d'ouverture de la sidebar (mobile). */
   readonly sidebarOpen = signal(false);
