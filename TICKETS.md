@@ -251,16 +251,16 @@ Tous les composants Angular actuels utilisent des styles inline basiques sans co
 ---
 
 ### TICK-009 🟡 [FE] Refondre `LoginComponent` selon la maquette
-**Statut :** ⬜
+**Statut :** ✅
 **Priorité :** Important
 **Maquette :** `maquette-v2/login.html`
 
 **Travail à faire :**
-- [ ] Topbar avec bouton Retour (→ `index.html`) + toggle FR/Thème
-- [ ] Logo centré sur sa propre ligne
-- [ ] Case "Se souvenir de moi" + lien "Mot de passe oublié ?"
-- [ ] Après login réussi : redirect selon rôle (`/client/dashboard` ou `/courier/dashboard`)
-- [ ] Gérer l'état de chargement (spinner sur le bouton)
+- [x] Topbar avec bouton Retour (→ `index.html`) + toggle FR/Thème
+- [x] Logo centré sur sa propre ligne
+- [x] Case "Se souvenir de moi" + lien "Mot de passe oublié ?"
+- [x] Après login réussi : redirect selon rôle (`/client/dashboard` ou `/courier/dashboard`)
+- [x] Gérer l'état de chargement (spinner sur le bouton)
 
 **Critères d'acceptance :**
 - L'UI correspond fidèlement à `login.html`

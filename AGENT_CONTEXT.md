@@ -324,6 +324,20 @@ spring.data.redis.port=6379
 - **⚠ Chat** : laissé tel quel — son enrobage dans l'app-shell (layout pleine hauteur) est l'objet de **TICK-017** (refonte ChatComponent avec carte d'offre intégrée)
 - Build vérifié : `.\node_modules\.bin\ng build --configuration development` → **exit 0** (styles.css 82 kB, design CSS bien bundlé — vérifié via le marqueur `/* src/assets/css/main.css */` dans `dist/frontend/browser/styles.css`)
 
+### Session 15 — TICK-009 : Refondre LoginComponent selon la maquette
+- **`features/auth/login/login.component.ts`** : refonte complète fidèle à `maquette-v2/login.html`
+  - Topbar : bouton « Retour » (`routerLink="/"`) + toggle FR/EN (signal `lang`, persisté dans `localStorage('lang')`, applique `document.documentElement.lang`) + toggle thème (via `ThemeService`, icône moon/sun)
+  - Logo centré sur sa propre ligne (`.auth-logo`)
+  - Titre « Se connecter » (`.auth-title`)
+  - Formulaire : email + mot de passe + ligne options (« Se souvenir de moi » checkbox + « Mot de passe oublié ? » → toast info)
+  - Bouton `btn btn-primary btn-block btn-lg` avec spinner pendant `isLoading`
+  - Footer : « Pas encore de compte ? S'inscrire » → `/register`
+  - Styles spécifiques à la page dans le tableau `styles` du composant (auth-wrapper flex, auth-topbar, back-link ≥44px, top-controls, lang-toggle, options-row, forgot-link) — les classes de base viennent des CSS globaux
+  - **Correction** : suppression du `saveToken()` redondant dans `onSubmit()` (déjà fait via `tap()` dans `AuthService.login()`, qui inclut désormais `fullName`)
+  - **Redirect par rôle** après login : COURIER → `/courier/dashboard`, ADMIN → `/client/dashboard` (fallback, route admin au Sprint 6), sinon `/client/dashboard`
+  - **Auto-redirect si déjà connecté** : `ngOnInit` vérifie `authService.isLoggedIn()` et redirige vers le dashboard du rôle courant
+- Build vérifié : `.\node_modules\.bin\ng build --configuration development` → **exit 0**
+
 ---
 
 ## 8. PROBLÈMES CONNUS À CORRIGER (backlog technique)
