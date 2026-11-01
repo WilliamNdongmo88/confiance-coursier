@@ -373,6 +373,28 @@ spring.data.redis.port=6379
 - Build vérifié : `.\node_modules\.bin\ng build --configuration development` → **exit 0**
 - **Note vérif runtime** : le comportement de l'intercepteur (401 → refresh → replay, et parallélisme) ne peut être exercé que dans le runtime navigateur Angular ; vérifié par compilation + logique conforme au pattern standard. L'endpoint `/api/auth/refresh` et `/api/auth/logout` ont été validés end-to-end côté backend lors de TICK-010.
 
+### Session 18 — TICK-012 : Intégrer Brevo pour l'envoi réel des emails OTP
+- **`pom.xml`** : ajout `spring-boot-starter-mail`
+- **`backend/.env`** (nouveau, **gitignoré**) : `BREVO_API_KEY`, `BREVO_SENDER_EMAIL`, `BREVO_APP_NAME` — clé réelle (validée HTTP 200 sur `GET /v3/account`)
+- **`.gitignore`** (backend + racine) : `.env` ajouté pour ne jamais committer les secrets
+- **`BackendApplication.java`** : ajout d'un chargeur `.env` maison — lit `.env` (cwd puis parents), expose les variables en `System.setProperty` pour que Spring résolve `${BREVO_*}`
+- **`application.properties`** : SMTP Brevo (`smtp-relay.brevo.com:587`, STARTTLS) + props OTP
+- **`auth/service/OtpService.java`** : refonte — `JavaMailSender` injecté, envoi HTML best-effort, `app.otp.dev-log` journalise le code en DEV
+- **Build** : `test-compile` → exit 0
+- **Vérif runtime** : envoi tenté → `Authentication failed` (SMTP Brevo exige l'email de connexion comme username, pas l'email expéditeur — cause racine identifiée en fin de session)
+
+### Session 19 — Correction TICK-012 : passage SMTP → REST API Brevo
+- **Cause racine** : SMTP Brevo exige l'email de **connexion du compte Brevo** comme username, pas l'email expéditeur. La clé API est valide (HTTP 200 confirmé sur `GET /v3/account`). La solution robuste : utiliser l'API REST Brevo (`POST https://api.brevo.com/v3/smtp/email`) qui n'utilise que la clé (`header api-key`), sans username.
+- **`pom.xml`** : suppression de `spring-boot-starter-mail` (inutile avec REST API)
+- **`application.properties`** : remplacement config SMTP par `brevo.api.url` + `brevo.api.key` ; `app.otp.sender` → `app.otp.sender-email`
+- **`auth/service/OtpService.java`** : refonte complète
+  - `JavaMailSender` → `RestClient.create()` (disponible sans dépendance supplémentaire via `spring-boot-starter-webmvc`)
+  - `sendOtpEmail()` appelle `POST https://api.brevo.com/v3/smtp/email` avec header `api-key: <BREVO_API_KEY>` et JSON body (`sender`, `to`, `subject`, `htmlContent`)
+  - Guard : si clé vide → warn + return (ne bloque pas le boot sans `.env`)
+  - Erreur HTTP Brevo → loggée avec status + body (diagnosticable)
+- **Build** : `mvnw package -DskipTests` → exit 0
+- **Vérif runtime** (port 8082) : inscription → **`Email OTP envoyé via Brevo API`** ✅ — plus aucune erreur "Authentication failed"
+
 ---
 
 ## 8. PROBLÈMES CONNUS À CORRIGER (backlog technique)

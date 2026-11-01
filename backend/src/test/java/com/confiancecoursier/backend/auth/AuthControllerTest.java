@@ -18,8 +18,15 @@ import org.springframework.transaction.annotation.Transactional;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import org.springframework.test.context.TestPropertySource;
+
 @SpringBootTest
 @AutoConfigureMockMvc
+@TestPropertySource(properties = {
+        // Évite tout appel SMTP réel pendant les tests
+        "app.otp.email-enabled=false",
+        "app.otp.dev-log=false"
+})
 @Transactional // Annule les modifications en base après chaque test
 class AuthControllerTest {
 

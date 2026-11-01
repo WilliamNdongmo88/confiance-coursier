@@ -316,7 +316,7 @@ Le token expire au bout de 15 minutes → l'utilisateur doit se reconnecter manu
 ---
 
 ### TICK-012 🟢 [BE] Intégrer Brevo pour l'envoi réel des emails OTP
-**Statut :** ⬜
+**Statut :** ✅
 **Priorité :** Basse (OTP fonctionne en console pour les tests)
 **Fichiers concernés :**
 - `auth/service/OtpService.java`
@@ -324,10 +324,10 @@ Le token expire au bout de 15 minutes → l'utilisateur doit se reconnecter manu
 - `application.properties`
 
 **Travail à faire :**
-- [ ] Ajouter la dépendance `spring-boot-starter-mail` dans `pom.xml`
-- [ ] Configurer SMTP Brevo dans `application.properties`
-- [ ] Remplacer `System.out.println` par `JavaMailSender.send()` avec template HTML
-- [ ] Template email : "Votre code OTP ConfianceCoursier : **123456**. Valable 5 minutes."
+- [x] Ajouter la dépendance `spring-boot-starter-mail` dans `pom.xml`
+- [x] Configurer SMTP Brevo dans `application.properties` (smtp-relay.brevo.com:587, STARTTLS, identifiants depuis `.env`)
+- [x] Remplacer `System.out.println` par `JavaMailSender.send()` avec template HTML
+- [x] Template email : code OTP mis en avant + « Valable 5 minutes »
 
 **Critères d'acceptance :**
 - L'email OTP est reçu dans la boîte de l'utilisateur
