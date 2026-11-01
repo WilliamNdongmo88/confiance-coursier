@@ -1,6 +1,6 @@
 # AGENT CONTEXT — confiance-coursier
 > Fichier de continuité pour tout agent IA qui reprend ce projet.
-> Mis à jour au : 2026-11-01 (session 25)
+> Mis à jour au : 2026-11-01 (session 26)
 > Dernier agent : Kiro CLI
 
 ---
@@ -523,6 +523,24 @@ app.frontend.url=http://localhost:4200
 - **`features/client/select-courier/select-courier.component.ts`** : créé (placeholder TICK-015) — affiche un écran "en cours d'implémentation" avec le courseId
 - **`app.routes.ts`** : ajout de la route `client/select-courier/:courseId` avec `authGuard + roleGuard(CLIENT)`
 - **Build** : `ng build --configuration development` → **exit 0**
+
+### Session 26 — TICK-016 + TICK-015 : Endpoint coursiers + SelectCourierComponent
+- **TICK-016 [BE]** :
+  - **`user/repository/UserRepository.java`** : ajout `findByRoleAndStatusOrderByTrustScoreDesc(String role, String status)`
+  - **`user/api/dto/CourierSummaryResponse.java`** : créé — `id, fullName, initials, averageRating, completedCourses, zone, kycVerified` ; `fromUser()` calcule les initiales, replie `trustScore` en `averageRating`, `city` en `zone` ; `completedCourses=0` et `kycVerified=false` en attendant les sprints KYC et Review
+  - **`user/api/UserController.java`** : créé — `GET /api/users/couriers` retourne la liste des COURIER ACTIVE triée par trustScore desc ; accessible à tout utilisateur authentifié (couvert par `anyRequest().authenticated()`)
+  - **Build backend** : `mvnw test-compile` → **exit 0**
+- **TICK-015 [FE]** :
+  - **`features/client/select-courier/select-courier.component.ts`** : refonte complète du placeholder, fidèle à `maquette-v2/client/select-courier.html`
+    - Indicateur 3 étapes (1=done, 2=active, 3=vide)
+    - Titre de section "Recommandés pour vous" avec icône sparkles
+    - Carte coursier (`.courier-card`) : avatar initiales coloré, nom + badge Vérifié (si `kycVerified`), stats (note étoile, nb courses, zone), bouton "Choisir et discuter"
+    - Spinner de chargement initial + spinner inline sur le bouton pendant `createOffer`
+    - Clic "Choisir et discuter" → `createOffer(courseId, 0.01, ...)` → navigue `/chat/{chatRoomId}`
+    - État vide avec bouton "Actualiser"
+    - Responsive : sur mobile les cartes passent en colonne
+  - **`core/services/course.service.ts`** : ajout interface `CourierSummary` + méthode `getAvailableCouriers()`
+  - **Build frontend** : `ng build --configuration development` → **exit 0** (zéro warning)
 
 ---
 

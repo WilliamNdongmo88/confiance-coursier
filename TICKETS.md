@@ -404,7 +404,7 @@ Le token expire au bout de 15 minutes → l'utilisateur doit se reconnecter manu
 ---
 
 ### TICK-015 🔴 [FE] Créer `SelectCourierComponent`
-**Statut :** ⬜
+**Statut :** ✅
 **Maquette :** `maquette-v2/client/select-courier.html`
 **Route :** `/client/select-courier/:courseId`
 
@@ -425,7 +425,7 @@ Le token expire au bout de 15 minutes → l'utilisateur doit se reconnecter manu
 ---
 
 ### TICK-016 🔴 [BE] Endpoint GET coursiers disponibles
-**Statut :** ⬜
+**Statut :** ✅
 **Dépend de :** TICK-015
 
 **Travail à faire :**
@@ -1100,8 +1100,8 @@ Le flux d'offre doit passer par le chat (spec fonctionnelle §2.1). Le coursier 
 | TICK-012c | Page mot de passe oublié | hors | FULL | 🟡 | ✅ |
 | TICK-013 | ClientDashboardComponent (maquette) | S2 | FE | 🔴 | ✅ |
 | TICK-014 | CreateCourseComponent — 3 étapes | S2 | FE | 🔴 | ✅ |
-| TICK-015 | SelectCourierComponent | S2 | FE | 🔴 | ⬜ |
-| TICK-016 | GET /api/users/couriers | S2 | BE | 🔴 | ⬜ |
+| TICK-015 | SelectCourierComponent | S2 | FE | 🔴 | ✅ |
+| TICK-016 | GET /api/users/couriers | S2 | BE | 🔴 | ✅ |
 | TICK-017 | ChatComponent — carte d'offre | S2 | FE | 🔴 | ⬜ |
 | TICK-018 | Messages d'offre dans le Chat (backend) | S2 | BE | 🔴 | ⬜ |
 | TICK-019 | PayComponent — double déclaration | S2 | FE | 🔴 | ⬜ |

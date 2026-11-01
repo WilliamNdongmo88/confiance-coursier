@@ -8,6 +8,16 @@ export interface CreateCourseRequest {
   scheduledAt: string;
 }
 
+export interface CourierSummary {
+  id: number;
+  fullName: string;
+  initials: string;
+  averageRating: number | null;
+  completedCourses: number;
+  zone: string;
+  kycVerified: boolean;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -48,5 +58,9 @@ export class CourseService {
 
   getMyMissions(): Observable<any[]> {
     return this.http.get<any[]>(`${this.apiUrl}/my-missions`);
+  }
+
+  getAvailableCouriers(): Observable<CourierSummary[]> {
+    return this.http.get<CourierSummary[]>('/api/users/couriers');
   }
 }
