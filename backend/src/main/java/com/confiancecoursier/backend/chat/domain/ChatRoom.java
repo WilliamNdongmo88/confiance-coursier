@@ -27,6 +27,7 @@ public class ChatRoom {
     private Long courierId;
 
     @Column(name = "is_archived")
+    @Builder.Default
     private Boolean isArchived = false;
 
     @Column(name = "created_at", updatable = false)

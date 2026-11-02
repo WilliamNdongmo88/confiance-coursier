@@ -48,6 +48,7 @@ public class Course {
     @Column(name = "total_amount")
     private BigDecimal totalAmount;
 
+    @Builder.Default
     private String currency = "XAF";
 
     @Column(name = "escrow_status")

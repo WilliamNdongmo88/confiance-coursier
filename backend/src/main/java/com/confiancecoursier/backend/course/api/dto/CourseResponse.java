@@ -17,6 +17,7 @@ public class CourseResponse {
     private LocalDateTime scheduledAt;
     private LocalDateTime createdAt;
     private BigDecimal courseAmount;
+    private BigDecimal totalAmount;
     private String currency;
     private Long acceptedOfferId;
     /** Identifiant du salon de chat associé à cette course (nullable si aucune offre encore) */
@@ -39,6 +40,7 @@ public class CourseResponse {
         dto.setScheduledAt(course.getScheduledAt());
         dto.setCreatedAt(course.getCreatedAt());
         dto.setCourseAmount(course.getCourseAmount());
+        dto.setTotalAmount(course.getTotalAmount());
         dto.setCurrency(course.getCurrency());
         dto.setAcceptedOfferId(course.getAcceptedOfferId());
         dto.setChatRoomId(chatRoomId);

@@ -90,12 +90,22 @@ public class CourseService {
         courseRepository.delete(course);
     }
 
-    public CourseResponse getCourseById(Long courseId, Long clientId) {
+    /**
+     * Retourne le détail d'une course.
+     * Accessible par :
+     *  - le client propriétaire (clientId)
+     *  - le coursier assigné (courierId)
+     * Les coursiers non assignés peuvent lire les courses PUBLISHED via getPublishedCourses().
+     */
+    public CourseResponse getCourseById(Long courseId, Long requesterId) {
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new BusinessException("Course non trouvée."));
 
-        if (!course.getClientId().equals(clientId)) {
-            throw new BusinessException("Vous n'êtes pas le propriétaire de cette course.");
+        boolean isOwner   = course.getClientId().equals(requesterId);
+        boolean isCourier = course.getCourierId() != null && course.getCourierId().equals(requesterId);
+
+        if (!isOwner && !isCourier) {
+            throw new BusinessException("Vous n'avez pas accès à cette course.");
         }
 
         return CourseResponse.fromEntity(course, resolveChatRoomId(course));
@@ -126,8 +136,11 @@ public class CourseService {
                     .map(r -> r.getId())
                     .orElse(null);
         }
+        // Pas encore de coursier assigné : on prend la première room disponible (s'il y en a une)
         return chatRoomRepository
                 .findByCourseId(course.getId())
+                .stream()
+                .findFirst()
                 .map(r -> r.getId())
                 .orElse(null);
     }

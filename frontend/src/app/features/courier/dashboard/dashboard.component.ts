@@ -43,6 +43,66 @@ import {
     LucideCheck,
   ],
   styles: [`
+    /* ── Bannière KYC ── */
+    .kyc-banner {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: linear-gradient(135deg, #78350f 0%, #92400e 100%);
+      border: 1px solid #b45309;
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin-bottom: 18px;
+      box-shadow: 0 4px 16px rgba(120, 53, 15, .25);
+    }
+    .kyc-banner__icon-wrap {
+      display: grid;
+      place-items: center;
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: rgba(255,255,255,.15);
+      color: #fde68a;
+      flex-shrink: 0;
+    }
+    .kyc-banner__body {
+      flex: 1;
+      min-width: 0;
+    }
+    .kyc-banner__title {
+      display: block;
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: -.01em;
+      margin-bottom: 2px;
+    }
+    .kyc-banner__desc {
+      margin: 0;
+      font-size: 12px;
+      color: #fde68a;
+      line-height: 1.4;
+    }
+    .kyc-banner__cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #fde68a;
+      color: #78350f;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 8px 14px;
+      border-radius: 8px;
+      text-decoration: none;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: background .15s, transform .1s;
+    }
+    .kyc-banner__cta:hover {
+      background: #fef3c7;
+      transform: translateY(-1px);
+    }
+
     /* ── Disponibilité ── */
     .availability {
       display: inline-flex;
@@ -172,17 +232,17 @@ import {
       </section>
 
       <!-- Alerte KYC -->
-      <div class="app-alert app-alert--warning" style="margin-bottom:18px">
-        <span class="app-alert-icon">
-          <svg lucideShieldAlert size="17"></svg>
-        </span>
-        <div class="app-alert-body">
-          <strong>Finalisez la vérification de votre identité</strong>
-          <p>Le KYC doit être validé pour accepter de nouvelles missions.</p>
+      <div class="kyc-banner">
+        <div class="kyc-banner__icon-wrap">
+          <svg lucideShieldAlert size="20"></svg>
         </div>
-        <a class="app-alert-action" routerLink="/courier/kyc">
+        <div class="kyc-banner__body">
+          <strong class="kyc-banner__title">Votre identité doit être vérifiée</strong>
+          <p class="kyc-banner__desc">Le KYC doit être validé pour accepter de nouvelles missions.</p>
+        </div>
+        <a class="kyc-banner__cta" routerLink="/courier/kyc">
           Compléter le dossier
-          <svg lucideArrowRight size="12" style="vertical-align:-2px;margin-left:3px"></svg>
+          <svg lucideArrowRight size="13"></svg>
         </a>
       </div>
 

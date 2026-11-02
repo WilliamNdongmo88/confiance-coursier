@@ -30,6 +30,7 @@ public class CourseOffer {
     private String details;
 
     @Column(nullable = false)
+    @Builder.Default
     private String status = "PENDING"; // PENDING, ACCEPTED, REJECTED
 
     @Column(name = "created_at", updatable = false)

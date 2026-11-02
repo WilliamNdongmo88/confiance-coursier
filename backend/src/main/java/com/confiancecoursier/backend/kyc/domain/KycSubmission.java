@@ -39,6 +39,7 @@ public class KycSubmission {
 
     /** Statut : PENDING, APPROVED, REJECTED */
     @Column(nullable = false)
+    @Builder.Default
     private String status = "PENDING";
 
     /** ID de l'admin qui a traité la demande */

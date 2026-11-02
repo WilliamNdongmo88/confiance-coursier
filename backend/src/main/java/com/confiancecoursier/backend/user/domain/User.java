@@ -36,15 +36,18 @@ public class User {
     private String city;
 
     @Column(nullable = false)
+    @Builder.Default
     private String status = "ACTIVE"; // ACTIVE, SUSPENDED, BLOCKED
 
     @Column(name = "trust_score")
+    @Builder.Default
     private BigDecimal trustScore = BigDecimal.ZERO;
 
     private String badge;
 
     /** Statut KYC du coursier : NONE, PENDING, APPROVED, REJECTED */
     @Column(name = "kyc_status", nullable = false)
+    @Builder.Default
     private String kycStatus = "NONE";
 
     @Column(name = "created_at", updatable = false)
