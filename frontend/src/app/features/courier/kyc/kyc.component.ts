@@ -129,6 +129,19 @@ interface KycStatus {
       background: #f0f9f5;
     }
 
+    .upload-zone.has-error {
+      border-color: #dc2626;
+      background: #fef2f2;
+    }
+
+    /* ── Message d'erreur fichier ── */
+    .file-error {
+      font-size: .78rem;
+      color: #dc2626;
+      margin: 5px 0 0;
+      line-height: 1.4;
+    }
+
     /* ── Grille 2 colonnes ── */
     .kyc-grid {
       display: grid;
@@ -359,13 +372,14 @@ interface KycStatus {
         <!-- Recto -->
         <div>
           <p class="form-label">Recto du document</p>
-          <div class="upload-zone" [ngClass]="{'has-file': !!frontFile()}"
+          <div class="upload-zone" [ngClass]="{'has-file': !!frontFile(), 'has-error': !!frontFileError()}"
                (click)="frontInput.click()" (keyup.enter)="frontInput.click()" tabindex="0">
-            <input #frontInput type="file" accept="image/*,.pdf"
+            <input #frontInput type="file" accept="image/jpeg,image/png,image/webp,application/pdf"
                    style="display:none" (change)="onFrontChange($event)">
             <ng-container *ngIf="!frontFile(); else frontDone">
               <svg lucideCamera size="28" style="color:#8a9490; margin-bottom:6px; display:block; margin-inline:auto;"></svg>
               <p class="text-sm text-muted" style="margin:0;">Photo du recto</p>
+              <p class="text-sm text-muted" style="margin:3px 0 0; font-size:.72rem;">JPG, PNG, PDF · max 10 Mo</p>
             </ng-container>
             <ng-template #frontDone>
               <svg lucideCheck size="24" style="color:#17634f; margin-bottom:4px; display:block; margin-inline:auto;"></svg>
@@ -373,18 +387,20 @@ interface KycStatus {
               <p class="text-sm text-muted" style="margin:2px 0 0;">{{ formatSize(frontFile()!.size) }}</p>
             </ng-template>
           </div>
+          <p *ngIf="frontFileError()" class="file-error">⚠ {{ frontFileError() }}</p>
         </div>
 
         <!-- Verso -->
         <div>
           <p class="form-label">Verso du document</p>
-          <div class="upload-zone" [ngClass]="{'has-file': !!backFile()}"
+          <div class="upload-zone" [ngClass]="{'has-file': !!backFile(), 'has-error': !!backFileError()}"
                (click)="backInput.click()" (keyup.enter)="backInput.click()" tabindex="0">
-            <input #backInput type="file" accept="image/*,.pdf"
+            <input #backInput type="file" accept="image/jpeg,image/png,image/webp,application/pdf"
                    style="display:none" (change)="onBackChange($event)">
             <ng-container *ngIf="!backFile(); else backDone">
               <svg lucideCamera size="28" style="color:#8a9490; margin-bottom:6px; display:block; margin-inline:auto;"></svg>
               <p class="text-sm text-muted" style="margin:0;">Photo du verso</p>
+              <p class="text-sm text-muted" style="margin:3px 0 0; font-size:.72rem;">JPG, PNG, PDF · max 10 Mo</p>
             </ng-container>
             <ng-template #backDone>
               <svg lucideCheck size="24" style="color:#17634f; margin-bottom:4px; display:block; margin-inline:auto;"></svg>
@@ -392,6 +408,7 @@ interface KycStatus {
               <p class="text-sm text-muted" style="margin:2px 0 0;">{{ formatSize(backFile()!.size) }}</p>
             </ng-template>
           </div>
+          <p *ngIf="backFileError()" class="file-error">⚠ {{ backFileError() }}</p>
         </div>
       </div>
     </div>
@@ -405,15 +422,16 @@ interface KycStatus {
       <p class="text-sm text-muted" style="margin-bottom: 14px;">
         Prenez un selfie en tenant votre pièce d'identité bien visible à côté de votre visage.
       </p>
-      <div class="upload-zone" [ngClass]="{'has-file': !!selfieFile()}"
+      <div class="upload-zone" [ngClass]="{'has-file': !!selfieFile(), 'has-error': !!selfieFileError()}"
            (click)="selfieInput.click()" (keyup.enter)="selfieInput.click()" tabindex="0"
            style="max-width: 320px; margin: auto;">
-        <input #selfieInput type="file" accept="image/*"
+        <input #selfieInput type="file" accept="image/jpeg,image/png,image/webp"
                style="display:none" (change)="onSelfieChange($event)">
         <ng-container *ngIf="!selfieFile(); else selfieDone">
           <svg lucideUser size="36" style="color:#8a9490; margin-bottom:8px; display:block; margin-inline:auto;"></svg>
           <p class="text-sm" style="font-weight:600; color:#123b32; margin:0;">Prendre le selfie</p>
           <p class="text-sm text-muted" style="margin-top:3px;">Ou importer une photo existante</p>
+          <p class="text-sm text-muted" style="margin-top:2px; font-size:.72rem;">JPG, PNG, WebP · max 10 Mo</p>
         </ng-container>
         <ng-template #selfieDone>
           <svg lucideCheckCircle size="36" style="color:#17634f; margin-bottom:8px; display:block; margin-inline:auto;"></svg>
@@ -421,6 +439,7 @@ interface KycStatus {
           <p class="text-sm text-muted" style="margin-top:3px;">{{ formatSize(selfieFile()!.size) }}</p>
         </ng-template>
       </div>
+      <p *ngIf="selfieFileError()" class="file-error" style="text-align:center; margin-top:8px;">⚠ {{ selfieFileError() }}</p>
     </div>
 
     <!-- ── ÉTAPE 4 : Coordonnées de paiement ── -->
@@ -493,6 +512,17 @@ export class KycComponent implements OnInit {
   backFile   = signal<File | null>(null);
   selfieFile = signal<File | null>(null);
 
+  // Erreurs de validation par fichier
+  frontFileError  = signal<string | null>(null);
+  backFileError   = signal<string | null>(null);
+  selfieFileError = signal<string | null>(null);
+
+  /** Taille max autorisée par fichier : 10 MB (aligné sur le backend) */
+  private readonly MAX_FILE_SIZE = 10 * 1024 * 1024;
+
+  /** Types MIME acceptés */
+  private readonly ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+
   // ── État UI ───────────────────────────────────────────────────────────────
   kycStatus      = signal<KycStatus | null>(null);
   isLoading      = signal<boolean>(false);
@@ -549,21 +579,47 @@ export class KycComponent implements OnInit {
 
   onFrontChange(event: Event): void {
     const f = this.pickFile(event);
-    if (f) this.frontFile.set(f);
+    if (f) {
+      const err = this.validateFile(f);
+      this.frontFileError.set(err);
+      this.frontFile.set(err ? null : f);
+    }
   }
 
   onBackChange(event: Event): void {
     const f = this.pickFile(event);
-    if (f) this.backFile.set(f);
+    if (f) {
+      const err = this.validateFile(f);
+      this.backFileError.set(err);
+      this.backFile.set(err ? null : f);
+    }
   }
 
   onSelfieChange(event: Event): void {
     const f = this.pickFile(event);
-    if (f) this.selfieFile.set(f);
+    if (f) {
+      const err = this.validateFile(f);
+      this.selfieFileError.set(err);
+      this.selfieFile.set(err ? null : f);
+    }
   }
 
   private pickFile(event: Event): File | null {
     return (event.target as HTMLInputElement).files?.[0] ?? null;
+  }
+
+  /**
+   * Valide un fichier : taille et type MIME.
+   * Retourne un message d'erreur ou null si valide.
+   */
+  private validateFile(file: File): string | null {
+    if (file.size > this.MAX_FILE_SIZE) {
+      return `Fichier trop lourd (${this.formatSize(file.size)}). Maximum autorisé : 10 Mo.`;
+    }
+    if (this.ACCEPTED_TYPES.length > 0 && !this.ACCEPTED_TYPES.includes(file.type)) {
+      return `Format non supporté (${file.type || 'inconnu'}). Utilisez JPG, PNG, WebP ou PDF.`;
+    }
+    return null;
   }
 
   // ── Validation ────────────────────────────────────────────────────────────
@@ -576,7 +632,10 @@ export class KycComponent implements OnInit {
       this.frontFile() &&
       this.backFile() &&
       this.selfieFile() &&
-      this.payoutNumber.trim()
+      this.payoutNumber.trim() &&
+      !this.frontFileError() &&
+      !this.backFileError() &&
+      !this.selfieFileError()
     );
   }
 
