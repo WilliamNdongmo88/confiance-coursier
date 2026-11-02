@@ -55,8 +55,10 @@ public class FileStorageService {
     public String uploadFile(MultipartFile file, String bucket, String keyPrefix) {
         ensureBucketExists(bucket);
 
-        String extension = extractExtension(file.getOriginalFilename());
-        String fileKey = keyPrefix + "/" + UUID.randomUUID() + extension;
+        String originalName = sanitizeFilename(file.getOriginalFilename());
+        // Format : <prefix>/<uuid>_<nom-original>
+        // Le UUID garantit l'unicité même si deux fichiers ont le même nom.
+        String fileKey = keyPrefix + "/" + UUID.randomUUID() + "_" + originalName;
 
         try {
             minioClient.putObject(
@@ -125,6 +127,33 @@ public class FileStorageService {
             return "";
         }
         return "." + filename.substring(filename.lastIndexOf('.') + 1).toLowerCase();
+    }
+
+    /**
+     * Nettoie un nom de fichier pour un stockage sûr :
+     * <ul>
+     *   <li>Remplace les espaces et caractères spéciaux par {@code _}</li>
+     *   <li>Supprime les séquences de traversée de chemin ({@code ../})</li>
+     *   <li>Limite à 100 caractères</li>
+     *   <li>Fallback sur {@code "fichier"} si le nom est vide après nettoyage</li>
+     * </ul>
+     */
+    private String sanitizeFilename(String filename) {
+        if (filename == null || filename.isBlank()) {
+            return "fichier";
+        }
+        // Garder seulement le nom de base (pas de chemin)
+        String name = filename.replaceAll(".*/", "").replaceAll(".*\\\\", "");
+        // Remplacer les caractères non alphanumériques (sauf . - _) par _
+        name = name.replaceAll("[^a-zA-Z0-9._\\-]", "_");
+        // Supprimer les points en début de nom (fichiers cachés Unix)
+        name = name.replaceAll("^\\.+", "");
+        // Limiter la longueur
+        if (name.length() > 100) {
+            String ext = extractExtension(name);
+            name = name.substring(0, 100 - ext.length()) + ext;
+        }
+        return name.isBlank() ? "fichier" : name;
     }
 
     /** Résout le Content-Type du fichier. Fallback sur {@code application/octet-stream}. */
