@@ -10,6 +10,8 @@ import { SelectCourierComponent } from './features/client/select-courier/select-
 import { PayComponent } from './features/client/pay/pay.component';
 import { CourseDetailComponent } from './features/client/course-detail/course-detail.component';
 import { CourierDashboardComponent } from './features/courier/dashboard/dashboard.component';
+import { KycComponent } from './features/courier/kyc/kyc.component';
+import { ProfileComponent } from './features/shared/profile/profile.component';
 import { ChatComponent } from './features/chat/chat.component';
 import { authGuard } from './core/guards/auth.guard';
 import { roleGuard } from './core/guards/role.guard';
@@ -60,11 +62,29 @@ export const routes: Routes = [
     canActivate: [authGuard, roleGuard],
     data: { role: 'CLIENT' }
   },
+  {
+    path: 'client/profile',
+    component: ProfileComponent,
+    canActivate: [authGuard, roleGuard],
+    data: { role: 'CLIENT' }
+  },
 
   // Routes COURSIER — token requis + rôle COURIER
   {
     path: 'courier/dashboard',
     component: CourierDashboardComponent,
+    canActivate: [authGuard, roleGuard],
+    data: { role: 'COURIER' }
+  },
+  {
+    path: 'courier/kyc',
+    component: KycComponent,
+    canActivate: [authGuard, roleGuard],
+    data: { role: 'COURIER' }
+  },
+  {
+    path: 'courier/profile',
+    component: ProfileComponent,
     canActivate: [authGuard, roleGuard],
     data: { role: 'COURIER' }
   },

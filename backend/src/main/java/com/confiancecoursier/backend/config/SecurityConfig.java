@@ -1,6 +1,7 @@
 package com.confiancecoursier.backend.config;
 
 import com.confiancecoursier.backend.auth.service.JwtAuthenticationFilter;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -39,6 +40,15 @@ public class SecurityConfig {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                // ── Renvoie 401 (et non 403) quand l'utilisateur n'est pas authentifié ──
+                // Spring Security 6 + JWT stateless retourne 403 par défaut sur les routes
+                // protégées si aucun AuthenticationEntryPoint n'est configuré.
+                // Ce point d'entrée garantit que l'intercepteur Angular reçoit bien un 401
+                // et peut déclencher le mécanisme de refresh token.
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint((request, response, authException) ->
+                                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Non authentifié"))
+                )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/health").permitAll()

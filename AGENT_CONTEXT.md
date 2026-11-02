@@ -1,6 +1,6 @@
 # AGENT CONTEXT — confiance-coursier
 > Fichier de continuité pour tout agent IA qui reprend ce projet.
-> Mis à jour au : 2026-11-01 (session 29)
+> Mis à jour au : 2026-11-02 (session 33)
 > Dernier agent : Kiro CLI
 
 ---
@@ -601,8 +601,6 @@ app.frontend.url=http://localhost:4200
   - **Build frontend** : `ng build --configuration development` → **exit 0** (zéro warning)
 
 ### Session 30 — TICK-023 [BE] : Module KYC — entité, service, controller, migration
-
-- **`db/migration/V5__add_kyc_status_to_users.sql`** : `ALTER TABLE users ADD COLUMN kyc_status VARCHAR(20) NOT NULL DEFAULT 'NONE'` + 3 index (`idx_kyc_submissions_status`, `idx_kyc_submissions_user_id`, `idx_users_kyc_status`)
 - **`user/domain/User.java`** : ajout champ `private String kycStatus = "NONE"` avec `@Column(name = "kyc_status", nullable = false)`
 - **`kyc/domain/KycSubmission.java`** : entité complète `@Entity kyc_submissions` — `userId, documentType, frontFileKey, backFileKey, selfieFileKey, status (PENDING), reviewedBy, reviewedAt, rejectionReason, createdAt`
 - **`kyc/repository/KycRepository.java`** : `findByUserId`, `findTopByUserIdOrderByCreatedAtDesc`, `findByStatus`
@@ -612,6 +610,59 @@ app.frontend.url=http://localhost:4200
 - **`kyc/api/KycController.java`** : `POST /api/kyc/submit` (multipart/form-data : documentType, frontFile, backFile, selfieFile) ; `GET /api/kyc/my-status` ; clés fichiers temporaires (stockage réel MinIO → TICK-024)
 - **`course/service/OfferService.java`** : injection `UserRepository` ; vérification `courier.getKycStatus() == "APPROVED"` avant toute offre — lève `BusinessException` si non approuvé
 - **Build** : `mvnw compile` → **exit 0** (JDK 21 ms-21.0.13.0.2)
+
+### Session 31 — TICK-024 [BE] : Intégration MinIO pour les fichiers KYC
+
+- **`pom.xml`** : ajout dépendance `io.minio:minio:8.5.11`
+- **`application.properties`** : ajout config MinIO — `minio.url`, `minio.access-key`, `minio.secret-key`, `minio.bucket-kyc=kyc-documents`, `minio.bucket-proofs=delivery-proofs`
+- **`config/MinioConfig.java`** : créé — bean `MinioClient` configuré depuis `@Value` properties
+- **`shared/util/FileStorageService.java`** : créé — service Spring avec 2 méthodes publiques :
+  - `uploadFile(MultipartFile, bucket, keyPrefix)` → génère une clé UUID, crée le bucket si absent (idempotent), uploade via `PutObjectArgs`, retourne la clé `keyPrefix/uuid.ext`
+  - `getPresignedUrl(fileKey, bucket)` → génère URL GET présignée valable 1h via `GetPresignedObjectUrlArgs`
+  - `ensureBucketExists(bucket)` → vérification + création automatique du bucket (privée)
+  - `FileStorageService.FileStorageException` → `RuntimeException` interne (→ HTTP 503)
+- **`shared/exception/GlobalExceptionHandler.java`** : ajout handler `FileStorageException` → HTTP 503 Service Unavailable
+- **`kyc/api/KycController.java`** : injecte `FileStorageService` ; `submit()` appelle `uploadFile()` × 3 (recto, verso, selfie) avant de déléguer à `KycService` ; les clés retournées par MinIO (UUID) remplacent les noms temporaires de TICK-023
+- **Build** : `mvnw compile` → **exit 0**
+
+### Session 32 — TICK-025 [FE] : KycComponent (coursier)
+- **`features/courier/kyc/kyc.component.ts`** : créé — composant Angular standalone fidèle à `maquette-v2/courier/kyc.html`
+  - Indicateur 4 étapes visuelles : Identité / Documents / Selfie / Paiement — classe CSS `done/active` calculée via computed `currentStep()`
+  - Carte de statut si KYC déjà PENDING (en attente) ou APPROVED (validé) — formulaire masqué dans ce cas
+  - Alerte rouge si REJECTED avec la raison de rejet
+  - Étape 1 : Prénom, Nom, Date de naissance, Nationalité — pré-remplis depuis `auth.getCurrentUserFullName()`
+  - Étape 2 : sélecteur CNI/PASSPORT + 2 zones upload cliquables (recto, verso) avec prévisualisation nom/taille du fichier sélectionné
+  - Étape 3 : zone upload selfie centrée + prévisualisation
+  - Étape 4 : méthode de reversement (MTN/Orange/Virement) + numéro
+  - Barre de progression upload (`HttpEventType.UploadProgress`)
+  - `isFormValid()` gate le bouton Submit (tous les champs et fichiers requis)
+  - Après succès → toast + redirect `/courier/dashboard` après 1,8 s
+  - Erreur backend → toast avec le message retourné
+  - Dark mode supporté (zones upload, steps)
+- **`app.routes.ts`** : route `/courier/kyc` ajoutée avec `authGuard + roleGuard(COURIER)`
+- **Build** : `ng build --configuration development` → **exit 0** (zéro warning)
+
+### Session 33 — TICK-026 [BE] + TICK-027 [FE] : Profil utilisateur
+
+- **TICK-026 [BE]** :
+  - **`user/api/dto/UserProfileResponse.java`** : créé — `id, email, fullName, phone, role, country, city, status, trustScore, badge, kycStatus, initials, createdAt, updatedAt` ; factory `fromUser(User)` calcule les initiales avec fallback email
+  - **`user/api/dto/UpdateProfileRequest.java`** : créé — `fullName, phone, country, city` tous `@Size` validés ; email/rôle/statut/trustScore intentionnellement absents
+  - **`user/api/UserController.java`** : ajout `GET /api/users/me` → `UserProfileResponse.fromUser(user)` ; `PUT /api/users/me` → mise à jour partielle (champs null = inchangés) ; `resolveUser(principal)` privé factorisé
+  - **Build backend** : `mvnw compile` → **exit 0**
+- **TICK-027 [FE]** :
+  - **`features/shared/profile/profile.component.ts`** : créé — composant réutilisable CLIENT + COURSIER
+    - `GET /api/users/me` au `ngOnInit` → initialise les champs du formulaire
+    - Avatar rond avec initiales calculées par le backend
+    - Badge KYC (APPROVED/PENDING/REJECTED/NONE) affiché uniquement pour les coursiers
+    - Email en lecture seule avec info-bulle
+    - Section KYC avec lien vers `/courier/kyc` (coursier uniquement)
+    - Champ "Ville" : select (client) ou input libre (coursier)
+    - Bouton "Changer le mot de passe" → `/forgot-password`
+    - `PUT /api/users/me` à la sauvegarde ; met aussi à jour `user_full_name` en localStorage pour la topbar
+    - Spinner inline sur le bouton Enregistrer
+  - **`app.routes.ts`** : routes `/client/profile` et `/courier/profile` ajoutées avec guards respectifs
+  - **Build frontend** : `ng build --configuration development` → **exit 0** (zéro warning)
+  - **Sprint 3 marqué ✅ Complet**
 
 ### Backend
 

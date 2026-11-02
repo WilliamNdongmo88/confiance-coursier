@@ -1,5 +1,6 @@
 package com.confiancecoursier.backend.shared.exception;
 
+import com.confiancecoursier.backend.shared.util.FileStorageService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -50,6 +51,17 @@ public class GlobalExceptionHandler {
                 LocalDateTime.now()
         );
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+    }
+
+    // Gère les erreurs de stockage de fichiers (MinIO)
+    @ExceptionHandler(FileStorageService.FileStorageException.class)
+    public ResponseEntity<ErrorResponse> handleFileStorageException(FileStorageService.FileStorageException ex) {
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.SERVICE_UNAVAILABLE.value(),
+                ex.getMessage(),
+                LocalDateTime.now()
+        );
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(error);
     }
 
     // Gère toutes les autres erreurs imprévues

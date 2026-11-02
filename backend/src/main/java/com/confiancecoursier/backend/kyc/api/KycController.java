@@ -2,10 +2,13 @@ package com.confiancecoursier.backend.kyc.api;
 
 import com.confiancecoursier.backend.kyc.api.dto.KycStatusResponse;
 import com.confiancecoursier.backend.kyc.service.KycService;
+import com.confiancecoursier.backend.shared.exception.BusinessException;
+import com.confiancecoursier.backend.shared.util.FileStorageService;
 import com.confiancecoursier.backend.user.domain.User;
 import com.confiancecoursier.backend.user.repository.UserRepository;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -19,8 +22,7 @@ import java.util.Map;
  *  - POST /api/kyc/submit   → COURIER uniquement (vérifié dans KycService)
  *  - GET  /api/kyc/my-status → tout utilisateur authentifié
  *
- * Les fichiers sont acceptés en multipart/form-data.
- * Stockage MinIO réel : TICK-024. Pour l'instant, les clés sont construites depuis les noms de fichiers originaux.
+ * Les fichiers sont uploadés vers MinIO via {@link FileStorageService}.
  */
 @RestController
 @RequestMapping("/api/kyc")
@@ -29,10 +31,17 @@ public class KycController {
 
     private final KycService kycService;
     private final UserRepository userRepository;
+    private final FileStorageService fileStorageService;
 
-    public KycController(KycService kycService, UserRepository userRepository) {
+    @Value("${minio.bucket-kyc}")
+    private String kycBucket;
+
+    public KycController(KycService kycService,
+                         UserRepository userRepository,
+                         FileStorageService fileStorageService) {
         this.kycService = kycService;
         this.userRepository = userRepository;
+        this.fileStorageService = fileStorageService;
     }
 
     /**
@@ -42,6 +51,9 @@ public class KycController {
      *   - frontFile    : fichier recto
      *   - backFile     : fichier verso
      *   - selfieFile   : selfie
+     *
+     * Les fichiers sont uploadés vers MinIO (bucket {@code kyc-documents}).
+     * Les clés retournées par MinIO sont stockées dans {@code kyc_submissions}.
      */
     @PostMapping(value = "/submit", consumes = "multipart/form-data")
     public ResponseEntity<Map<String, Object>> submit(
@@ -57,12 +69,12 @@ public class KycController {
             Principal principal
     ) {
         Long userId = resolveUserId(principal);
+        String keyPrefix = "kyc/" + userId;
 
-        // TICK-024 : ici on appellera FileStorageService.uploadFile() pour stocker dans MinIO.
-        // Pour l'instant, on stocke les noms originaux comme clés temporaires.
-        String frontKey  = "kyc/" + userId + "/front_"  + frontFile.getOriginalFilename();
-        String backKey   = "kyc/" + userId + "/back_"   + backFile.getOriginalFilename();
-        String selfieKey = "kyc/" + userId + "/selfie_" + selfieFile.getOriginalFilename();
+        // Upload des 3 fichiers vers MinIO — les clés résultantes sont des UUID uniques
+        String frontKey  = fileStorageService.uploadFile(frontFile,  kycBucket, keyPrefix);
+        String backKey   = fileStorageService.uploadFile(backFile,   kycBucket, keyPrefix);
+        String selfieKey = fileStorageService.uploadFile(selfieFile, kycBucket, keyPrefix);
 
         var submission = kycService.submitKyc(userId, documentType, frontKey, backKey, selfieKey);
 
@@ -87,7 +99,7 @@ public class KycController {
 
     private Long resolveUserId(Principal principal) {
         User user = userRepository.findByEmail(principal.getName())
-                .orElseThrow(() -> new com.confiancecoursier.backend.shared.exception.BusinessException("Utilisateur non trouvé."));
+                .orElseThrow(() -> new BusinessException("Utilisateur non trouvé."));
         return user.getId();
     }
 }

@@ -25,7 +25,7 @@
 | Sprint 0 | Socle & corrections critiques | ✅ Complet |
 | Sprint 1 | Design system + Auth complète | ✅ Complet |
 | Sprint 2 | Cycle de vie d'une course | ✅ Complet |
-| Sprint 3 | KYC + Profil utilisateur | ⬜ En attente |
+| Sprint 3 | KYC + Profil utilisateur | ✅ Complet |
 | Sprint 4 | Preuves + Paiement Escrow | ⬜ En attente |
 | Sprint 5 | Notation + Litiges + Signalements | ⬜ En attente |
 | Sprint 6 | Admin + Notifications | ⬜ En attente |
@@ -597,7 +597,7 @@ Le flux d'offre doit passer par le chat (spec fonctionnelle §2.1). Le coursier 
 ---
 
 ### TICK-024 🔴 [BE] Intégrer MinIO pour le stockage des fichiers KYC
-**Statut :** ⬜
+**Statut :** ✅
 **Dépend de :** TICK-023
 
 **Travail à faire :**
@@ -615,7 +615,7 @@ Le flux d'offre doit passer par le chat (spec fonctionnelle §2.1). Le coursier 
 ---
 
 ### TICK-025 🔴 [FE] Créer `KycComponent` (Coursier)
-**Statut :** ⬜
+**Statut :** ✅
 **Maquette :** `maquette-v2/courier/kyc.html`
 **Route :** `/courier/kyc`
 
@@ -636,7 +636,7 @@ Le flux d'offre doit passer par le chat (spec fonctionnelle §2.1). Le coursier 
 ---
 
 ### TICK-026 🟡 [BE] Endpoints profil utilisateur
-**Statut :** ⬜
+**Statut :** ✅
 
 **Travail à faire :**
 - [ ] `GET /api/users/me` → retourne le profil complet de l'utilisateur connecté
@@ -651,7 +651,7 @@ Le flux d'offre doit passer par le chat (spec fonctionnelle §2.1). Le coursier 
 ---
 
 ### TICK-027 🟡 [FE] Créer `ProfileComponent` (Client + Coursier)
-**Statut :** ⬜
+**Statut :** ✅
 **Maquette :** `maquette-v2/client/profile.html` + `maquette-v2/courier/profile.html`
 
 **Travail à faire :**
@@ -1108,11 +1108,11 @@ Le flux d'offre doit passer par le chat (spec fonctionnelle §2.1). Le coursier 
 | TICK-020 | POST /api/payment/initiate (simulé) | S2 | BE | 🟡 | ✅ |
 | TICK-021 | CourseDetailComponent — timeline | S2 | FE | 🟡 | ✅ |
 | TICK-022 | CourierDashboardComponent (maquette) | S2 | FE | 🟡 | ✅ |
-| TICK-023 | Entité + Service KYC (backend) | S3 | BE | 🔴 | ⬜ |
-| TICK-024 | MinIO pour les fichiers KYC | S3 | BE | 🔴 | ⬜ |
-| TICK-025 | KycComponent (coursier) | S3 | FE | 🔴 | ⬜ |
-| TICK-026 | Endpoints profil utilisateur | S3 | BE | 🟡 | ⬜ |
-| TICK-027 | ProfileComponent | S3 | FE | 🟡 | ⬜ |
+| TICK-023 | Entité + Service KYC (backend) | S3 | BE | 🔴 | ✅ |
+| TICK-024 | MinIO pour les fichiers KYC | S3 | BE | 🔴 | ✅ |
+| TICK-025 | KycComponent (coursier) | S3 | FE | 🔴 | ✅ |
+| TICK-026 | Endpoints profil utilisateur | S3 | BE | 🟡 | ✅ |
+| TICK-027 | ProfileComponent | S3 | FE | 🟡 | ✅ |
 | TICK-028 | Module Preuves (backend) | S4 | BE | 🔴 | ⬜ |
 | TICK-029 | ProofsComponent (coursier) | S4 | FE | 🔴 | ⬜ |
 | TICK-030 | ValidateComponent (client) | S4 | FE | 🔴 | ⬜ |
