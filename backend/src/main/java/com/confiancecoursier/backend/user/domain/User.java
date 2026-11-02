@@ -43,6 +43,10 @@ public class User {
 
     private String badge;
 
+    /** Statut KYC du coursier : NONE, PENDING, APPROVED, REJECTED */
+    @Column(name = "kyc_status", nullable = false)
+    private String kycStatus = "NONE";
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 

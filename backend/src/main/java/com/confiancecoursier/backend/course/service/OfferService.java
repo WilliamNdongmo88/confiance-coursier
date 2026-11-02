@@ -8,6 +8,8 @@ import com.confiancecoursier.backend.course.domain.CourseOffer;
 import com.confiancecoursier.backend.course.repository.CourseOfferRepository;
 import com.confiancecoursier.backend.course.repository.CourseRepository;
 import com.confiancecoursier.backend.shared.exception.BusinessException;
+import com.confiancecoursier.backend.user.domain.User;
+import com.confiancecoursier.backend.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,17 +22,27 @@ public class OfferService {
     private final CourseOfferRepository offerRepository;
     private final CourseRepository courseRepository;
     private final ChatRoomRepository chatRoomRepository;
+    private final UserRepository userRepository;
 
     public OfferService(CourseOfferRepository offerRepository,
                         CourseRepository courseRepository,
-                        ChatRoomRepository chatRoomRepository) {
+                        ChatRoomRepository chatRoomRepository,
+                        UserRepository userRepository) {
         this.offerRepository = offerRepository;
         this.courseRepository = courseRepository;
         this.chatRoomRepository = chatRoomRepository;
+        this.userRepository = userRepository;
     }
 
     @Transactional
     public CreateOfferResponse createOffer(Long courseId, Long courierId, BigDecimal amount, String details) {
+        // 0. Vérifier que le coursier a un KYC validé
+        User courier = userRepository.findById(courierId)
+                .orElseThrow(() -> new BusinessException("Coursier non trouvé."));
+        if (!"APPROVED".equals(courier.getKycStatus())) {
+            throw new BusinessException("Votre identité doit être vérifiée (KYC) avant de pouvoir proposer une offre.");
+        }
+
         // 1. Vérifier que la course existe et est PUBLISHED
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new BusinessException("Course non trouvée."));

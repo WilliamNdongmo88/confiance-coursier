@@ -600,9 +600,18 @@ app.frontend.url=http://localhost:4200
   - **`core/services/course.service.ts`** : ajout interface `CourierSummary` + méthode `getAvailableCouriers()`
   - **Build frontend** : `ng build --configuration development` → **exit 0** (zéro warning)
 
----
+### Session 30 — TICK-023 [BE] : Module KYC — entité, service, controller, migration
 
-## 8. PROBLÈMES CONNUS RÉSIDUELS
+- **`db/migration/V5__add_kyc_status_to_users.sql`** : `ALTER TABLE users ADD COLUMN kyc_status VARCHAR(20) NOT NULL DEFAULT 'NONE'` + 3 index (`idx_kyc_submissions_status`, `idx_kyc_submissions_user_id`, `idx_users_kyc_status`)
+- **`user/domain/User.java`** : ajout champ `private String kycStatus = "NONE"` avec `@Column(name = "kyc_status", nullable = false)`
+- **`kyc/domain/KycSubmission.java`** : entité complète `@Entity kyc_submissions` — `userId, documentType, frontFileKey, backFileKey, selfieFileKey, status (PENDING), reviewedBy, reviewedAt, rejectionReason, createdAt`
+- **`kyc/repository/KycRepository.java`** : `findByUserId`, `findTopByUserIdOrderByCreatedAtDesc`, `findByStatus`
+- **`kyc/api/dto/KycSubmitRequest.java`** : record `documentType` avec validation `@Pattern(CNI|PASSPORT)`
+- **`kyc/api/dto/KycStatusResponse.java`** : record avec factory `from(KycSubmission)` + `none()`
+- **`kyc/service/KycService.java`** : `submitKyc()` — vérifie rôle COURIER + bloque si PENDING/APPROVED déjà présent + sauvegarde soumission + met `user.kycStatus = PENDING` ; `getMyStatus()` — retourne dernière soumission ou `NONE`
+- **`kyc/api/KycController.java`** : `POST /api/kyc/submit` (multipart/form-data : documentType, frontFile, backFile, selfieFile) ; `GET /api/kyc/my-status` ; clés fichiers temporaires (stockage réel MinIO → TICK-024)
+- **`course/service/OfferService.java`** : injection `UserRepository` ; vérification `courier.getKycStatus() == "APPROVED"` avant toute offre — lève `BusinessException` si non approuvé
+- **Build** : `mvnw compile` → **exit 0** (JDK 21 ms-21.0.13.0.2)
 
 ### Backend
 

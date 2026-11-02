@@ -569,7 +569,7 @@ Le flux d'offre doit passer par le chat (spec fonctionnelle §2.1). Le coursier 
 ---
 
 ### TICK-023 🔴 [BE] Implémenter l'entité et le service KYC
-**Statut :** ⬜
+**Statut :** ✅
 **Fichiers concernés :**
 - `kyc/domain/KycSubmission.java` (à remplir — actuellement vide)
 - `kyc/repository/KycRepository.java` (à créer)
