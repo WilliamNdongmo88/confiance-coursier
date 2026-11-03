@@ -12,6 +12,8 @@ import { CourseDetailComponent } from './features/client/course-detail/course-de
 import { CourierDashboardComponent } from './features/courier/dashboard/dashboard.component';
 import { KycComponent } from './features/courier/kyc/kyc.component';
 import { ProfileComponent } from './features/shared/profile/profile.component';
+import { DisputeFormComponent } from './features/shared/dispute-form/dispute-form.component';
+import { ReportUserComponent } from './features/shared/report-user/report-user.component';
 import { RateComponent } from './features/shared/rate/rate.component';
 import { ValidateComponent } from './features/client/validate/validate.component';
 import { ProofsComponent } from './features/courier/proofs/proofs.component';
@@ -92,6 +94,24 @@ export const routes: Routes = [
     data: { role: 'COURIER' }
   },
 
+  // Routes partagées CLIENT + COURIER (authGuard uniquement)
+  {
+    path: 'client/dispute-form/:courseId',
+    component: DisputeFormComponent,
+    canActivate: [authGuard, roleGuard],
+    data: { role: 'CLIENT' }
+  },
+  {
+    path: 'courier/dispute-form/:courseId',
+    component: DisputeFormComponent,
+    canActivate: [authGuard, roleGuard],
+    data: { role: 'COURIER' }
+  },
+  {
+    path: 'report-user/:userId',
+    component: ReportUserComponent,
+    canActivate: [authGuard]
+  },
   {
     path: 'client/rate/:courseId',
     component: RateComponent,

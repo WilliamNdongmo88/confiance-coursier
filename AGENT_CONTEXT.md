@@ -722,6 +722,38 @@ app.frontend.url=http://localhost:4200
 
 ---
 
+### Session 39 — TICK-034/035/036/037 : Sprint 5 complet — Litiges + Signalements
+
+#### TICK-034 [BE] — Module Litiges (Dispute)
+- **`dispute/domain/Dispute.java`** : entité `disputes` — `courseId, openedBy, motifCode, description, status(OPEN), decision, decidedBy, decidedAt`
+- **`dispute/repository/DisputeRepository.java`** : `findByCourseId`, `findByStatus`, `findByCourseIdAndStatus` (anti-doublon)
+- **`dispute/api/dto/OpenDisputeRequest.java`** : record `motifCode (@Pattern L-[CF][1-6]) + description (@Size 20-2000)`
+- **`dispute/api/dto/DisputeResponse.java`** : record + factory `from(Dispute)`
+- **`dispute/service/DisputeService.java`** : `openDispute()` — vérifie participant + un seul OPEN par course + passe course en DISPUTED + escrowStatus=DISPUTED ; `resolveDispute()` (admin) — applique décision + remet COMPLETED + escrow RELEASED/REFUNDED
+- **`dispute/api/DisputeController.java`** : `POST /api/disputes?courseId=` + `GET /api/disputes/{id}` + `POST /api/disputes/{id}/resolve`
+
+#### TICK-036 [BE] — Module Signalements (Report)
+- **`report/domain/Report.java`** : entité `reports` — `reporterId, targetId, motif, description, status(OPEN), decision`
+- **`report/repository/ReportRepository.java`** : `findByStatus`, `findByTargetIdAndCreatedAtAfter` (fenêtre 30j)
+- **`report/api/dto/SubmitReportRequest.java`** : record validé `targetId, motif (@Pattern), description`
+- **`report/service/ReportService.java`** : `submitReport()` — anti-auto-signalement + `checkAndSuspendIfNeeded()` (≥3 signalements en 30j → SUSPENDED) ; `processReport()` admin — SUSPENSION/AVERTISSEMENT/REJET
+- **`report/api/ReportController.java`** : `POST /api/reports` + `POST /api/reports/{id}/process`
+- **Build backend** : `mvnw compile` → **exit 0**
+
+#### TICK-035 [FE] — DisputeFormComponent
+- **`features/shared/dispute-form/dispute-form.component.ts`** : fidèle à `maquette-v2/client/dispute-form.html`
+  - Alerte warning bloquante + sélecteur de motifs groupés (côté Client L-C1..L-C6 / côté Coursier L-F1..L-F4) + textarea description (min 20 chars)
+  - `POST /api/disputes?courseId=...` → toast + redirect dashboard
+  - Routes : `/client/dispute-form/:courseId` + `/courier/dispute-form/:courseId`
+
+#### TICK-037 [FE] — ReportUserComponent
+- **`features/shared/report-user/report-user.component.ts`** : fidèle à `maquette-v2/client/report-user.html`
+  - Utilisateur signalé en lecture seule (depuis `:userId` dans l'URL) + sélecteur 5 motifs + textarea
+  - `POST /api/reports` → toast + redirect dashboard
+  - Route `/report-user/:userId` avec `authGuard` (accessible aux deux rôles)
+- **Build frontend** : `ng build --configuration development` → **exit 0** (zéro warning)
+- **Sprint 5 marqué ✅ Complet**
+
 ### Session 38 — TICK-032 [BE] + TICK-033 [FE] : Module Notation
 
 #### TICK-032 [BE] — Module Notation (Review)
