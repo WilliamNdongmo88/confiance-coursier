@@ -722,7 +722,58 @@ app.frontend.url=http://localhost:4200
 
 ---
 
-### Session 36 — TICK-028 [BE] : Module Preuves de livraison (implémentation réelle)
+### Session 37 — TICK-030 [FE] + TICK-031 [BE] : Validation des preuves
+
+#### TICK-031 [BE] — Endpoint validation + libération escrow + scheduler
+
+- **`payment/service/PaymentService.java`** : ajout `validateCourse(courseId, clientId)` — vérifie ownership + statut PROOFS_SUBMITTED → appelle `applyValidation()` ; ajout `autoValidateExpiredCourses()` — filtre les PROOFS_SUBMITTED dont autoValidateAt ≤ now ; `applyValidation()` privé : COMPLETED + RELEASED + entrée escrow RELEASE CONFIRMED (simulée)
+- **`payment/api/ValidationController.java`** : créé — `POST /api/courses/{courseId}/validate` → 200 avec message
+- **`payment/service/ValidationScheduler.java`** : créé — `@Scheduled(cron="0 0 * * * *")` toutes les heures → appelle `autoValidateExpiredCourses()`
+- **`BackendApplication.java`** : ajout `@EnableScheduling`
+- **`payment/repository/EscrowRepository.java`** : ajout `findByCourseId(Long)`
+- **Build backend** : `mvnw compile` → **exit 0**
+
+#### TICK-030 [FE] — ValidateComponent (client)
+
+- **`features/client/validate/validate.component.ts`** : créé — fidèle à `maquette-v2/client/validate.html`
+  - `GET /api/courses/{courseId}/proofs` → grille de preuves (photo miniature, vidéo avec overlay play, reçu image ou icône PDF)
+  - Clic sur une preuve → `window.open(presignedUrl, '_blank')` (viewer natif du navigateur)
+  - Countdown auto-validation 72h mis à jour toutes les minutes
+  - Bouton "Valider la course" → `POST /api/courses/{courseId}/validate` → toast + redirect `/client/dashboard` (puis `/client/rate/:courseId` quand TICK-033 sera disponible)
+  - Bouton "Signaler un problème" → navigue `/client/dispute-form/:courseId` (TICK-035)
+  - Spinner pendant la validation, bouton désactivé pour éviter double-clic
+- **`app.routes.ts`** : route `/client/validate/:courseId` ajoutée avec `authGuard + roleGuard(CLIENT)`
+- **Build frontend** : `ng build --configuration development` → **exit 0** (zéro warning)
+- **Sprint 4 marqué ✅ Complet**
+
+### Session 36 — TICK-028 [BE] + TICK-029 [FE] : Preuves de livraison
+
+#### TICK-028 [BE] — Module Preuves (implémentation réelle)
+
+- **`proof/domain/Proof.java`** : entité JPA `proofs` — champs `courseId, courierId, proofType, fileKey, fileHash (SHA-256), fileSize, mimeType, latitude/longitude (@Column NUMERIC(10,7)), capturedAt, uploadedAt (@PrePersist)`
+  - Bug corrigé : `Double` Java mappe vers `float(53)` en Hibernate mais la table V2 déclare `DECIMAL(10,7)` (NUMERIC). Solution : `@Column(columnDefinition = "NUMERIC(10,7)")` sur lat/long → résout l'erreur Hibernate `wrong column type` au démarrage.
+- **`proof/repository/ProofRepository.java`** : `findByCourseIdOrderByUploadedAtAsc`, `findByCourseIdAndFileHash`, `countByCourseId`
+- **`proof/api/dto/ProofResponse.java`** : record + factory `from(Proof, String presignedUrl)`
+- **`proof/service/ProofService.java`** : `submitProof()` — vérif coursier assigné + statut + limite 10 + SHA-256 anti-doublon + upload MinIO + transition IN_PROGRESS → PROOFS_SUBMITTED + `autoValidateAt = +72h` ; `getProofs()` accessible client ET coursier
+- **`proof/api/ProofController.java`** : `POST /api/courses/{courseId}/proofs` (multipart, `@Validated` + `@Pattern`) + `GET /api/courses/{courseId}/proofs`
+- **Build backend** : `mvnw package -DskipTests` → **exit 0** ; démarrage Hibernate validation → **OK**
+
+#### TICK-029 [FE] — ProofsComponent (coursier)
+
+- **`features/courier/proofs/proofs.component.ts`** : créé — fidèle à `maquette-v2/courier/proofs.html`
+  - 3 zones upload cliquables : Vidéo (optionnel, MP4/MOV/WebM ≤ 50 Mo), Photos (min 1, max 10, JPG/PNG/WebP ≤ 10 Mo), Reçus (optionnel, JPG/PNG/PDF ≤ 10 Mo)
+  - Validation côté client avant tout envoi réseau (type MIME + taille) avec message d'erreur sous la zone
+  - Liste des fichiers sélectionnés avec nom, taille, bouton supprimer, état uploadé (vert) ou échec (rouge)
+  - Upload séquentiel fichier par fichier avec `submitProof()` → `POST /api/courses/{courseId}/proofs`
+  - Barre de progression globale (% calculé sur nb fichiers traités / total)
+  - Champ "Message au client" optionnel (textarea, affiché en commentaire)
+  - Après succès total → toast + redirect `/courier/dashboard` après 1,8s
+  - Après succès partiel → toast d'erreur avec nb d'échecs (fichiers en erreur restent visibles)
+- **`core/services/course.service.ts`** : ajout `submitProof(courseId, file, proofType)` → HttpEvent avec `reportProgress:true` + `getProofs(courseId)`
+- **`app.routes.ts`** : route `/courier/proofs/:courseId` ajoutée avec `authGuard + roleGuard(COURIER)`
+- **Build frontend** : `ng build --configuration development` → **exit 0** (zéro warning)
+
+### Session 35 — TICK-028 [BE] : Module Preuves de livraison
 
 #### Fichiers créés
 

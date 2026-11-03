@@ -12,6 +12,8 @@ import { CourseDetailComponent } from './features/client/course-detail/course-de
 import { CourierDashboardComponent } from './features/courier/dashboard/dashboard.component';
 import { KycComponent } from './features/courier/kyc/kyc.component';
 import { ProfileComponent } from './features/shared/profile/profile.component';
+import { ValidateComponent } from './features/client/validate/validate.component';
+import { ProofsComponent } from './features/courier/proofs/proofs.component';
 import { ChatComponent } from './features/chat/chat.component';
 import { authGuard } from './core/guards/auth.guard';
 import { roleGuard } from './core/guards/role.guard';
@@ -85,6 +87,19 @@ export const routes: Routes = [
   {
     path: 'courier/profile',
     component: ProfileComponent,
+    canActivate: [authGuard, roleGuard],
+    data: { role: 'COURIER' }
+  },
+
+  {
+    path: 'client/validate/:courseId',
+    component: ValidateComponent,
+    canActivate: [authGuard, roleGuard],
+    data: { role: 'CLIENT' }
+  },
+  {
+    path: 'courier/proofs/:courseId',
+    component: ProofsComponent,
     canActivate: [authGuard, roleGuard],
     data: { role: 'COURIER' }
   },

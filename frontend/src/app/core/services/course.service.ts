@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpEvent } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 export interface CreateCourseRequest {
@@ -62,5 +62,24 @@ export class CourseService {
 
   getAvailableCouriers(): Observable<CourierSummary[]> {
     return this.http.get<CourierSummary[]>('/api/users/couriers');
+  }
+
+  /**
+   * Soumet une preuve (photo, vidéo ou reçu) pour une course.
+   * Retourne un Observable d'événements HTTP pour la barre de progression.
+   */
+  submitProof(courseId: number, file: File, proofType: 'PHOTO' | 'VIDEO' | 'RECEIPT'): Observable<HttpEvent<any>> {
+    const form = new FormData();
+    form.append('file', file);
+    form.append('proofType', proofType);
+    return this.http.post(`${this.apiUrl}/${courseId}/proofs`, form, {
+      reportProgress: true,
+      observe: 'events'
+    });
+  }
+
+  /** Récupère la liste des preuves d'une course. */
+  getProofs(courseId: number): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/${courseId}/proofs`);
   }
 }
