@@ -664,20 +664,79 @@ app.frontend.url=http://localhost:4200
   - **Build frontend** : `ng build --configuration development` → **exit 0** (zéro warning)
   - **Sprint 3 marqué ✅ Complet**
 
+### Session 34 — Correctifs, améliorations UX et audit du cycle courses
+
+#### Vérification du flux de récupération des courses client
+- **Analyse complète** du cycle `GET /api/courses/my-courses` → dashboard client :
+  - Backend : `getCurrentUserId()` extrait l'email du JWT → lookup BDD → `findByClientIdOrderByCreatedAtDesc(clientId)` → `resolveChatRoomId()` → `CourseResponse[]`
+  - Frontend : `CourseService.getMyCourses()` → `loadCourses()` → `activeCourses` / `completedCourses` / `proofsSubmittedCourse` (getters calculés) → rendu `@for`
+- **Bug corrigé** : `ChatRoomRepository.findByCourseId()` retournait `Optional<ChatRoom>` (singulier) mais plusieurs rooms peuvent exister pour une même course (une par offre coursier). Levait `IncorrectResultSizeDataAccessException` dès qu'une course avait 2+ offres.
+  - **`chat/repository/ChatRoomRepository.java`** : `Optional<ChatRoom> findByCourseId()` → `List<ChatRoom> findByCourseId()` + import `java.util.List`
+  - **`course/service/CourseService.java`** : `resolveChatRoomId()` adapté → `.stream().findFirst().map(r -> r.getId()).orElse(null)`
+  - **Build backend** : `mvnw clean package -DskipTests` → **exit 0**
+
+#### Redesign de la bannière KYC (dashboard coursier)
+- **`features/courier/dashboard/dashboard.component.ts`** :
+  - Remplacement des classes globales `app-alert app-alert--warning` par un bloc `.kyc-banner` autonome avec styles scopés dans le composant
+  - Nouveau design : fond dégradé brun-ambré (`#78350f → #92400e`), icône dans carré semi-transparent, titre blanc gras, description jaune paille (`#fde68a`), bouton CTA jaune paille avec hover élévation
+
+#### Redesign complet du système de notifications toast
+- **`shared/toast/toast.component.ts`** : réécriture complète
+  - Suppression du `div` plat `bg-red-600` Tailwind
+  - Nouveau design : fond sombre profond (`#1c0a0a` error / `#071a0e` success / `#070e1c` info), bordure colorée fine, icône SVG inline par type (checkmark / cercle-info / cercle-exclamation), texte pastel lisible, ombre portée double couche
+  - Barre de progression de 3px en bas (animation 4s `scaleX 1→0`) — indicateur visuel de durée de vie
+  - Animation d'entrée fluide `translateY + scale`
+  - Utilisé automatiquement par toute l'application (composant singleton dans `app.ts`)
+
+#### Correction bug profil — colonne `country VARCHAR(2)`
+- **Diagnostic** : `PUT /api/users/me` retournait 500 quand `country` valait `"Cameroun"` — PostgreSQL rejetait la valeur (colonne `VARCHAR(2)` de la migration V1, trop courte pour les noms complets)
+- **`db/migration/V6__fix_country_column_size.sql`** : créé — `ALTER TABLE users ALTER COLUMN country TYPE VARCHAR(100)`
+- **Flyway** : migration V6 appliquée et vérifiée (`success = t`)
+- **Build + restart** : `mvnw clean package -DskipTests` → exit 0 → backend redémarré → tests `PUT /api/users/me` avec `country="Cameroun"` / `"France"` / `"Belgique"` → **200 OK** ✅
+
+#### Correction bug KYC — "Failed to fetch" sur gros fichiers
+- **Diagnostic** : Spring Boot utilise 1 MB par fichier / 10 MB par requête par défaut. Quand le total des 3 fichiers dépassait 10 MB, Tomcat coupait la connexion TCP sans réponse → `Failed to fetch` côté navigateur, aucun log côté backend.
+- **`application.properties`** : ajout `spring.servlet.multipart.max-file-size=10MB` et `spring.servlet.multipart.max-request-size=35MB`
+- **`features/courier/kyc/kyc.component.ts`** : validation côté frontend avant tout envoi réseau
+  - Signaux `frontFileError`, `backFileError`, `selfieFileError`
+  - `validateFile(file)` : taille > 10 Mo → message explicite ; type MIME invalide → message explicite
+  - `.has-error` : zone upload passe en rouge avec bordure `#dc2626`
+  - `.file-error` : message texte rouge sous la zone
+  - Attribut `accept` HTML précisé : `image/jpeg,image/png,image/webp,application/pdf`
+  - Indication `JPG, PNG, PDF · max 10 Mo` affichée dans chaque zone
+  - `isFormValid()` bloque si une erreur fichier est présente
+- **Build frontend** : `ng build --configuration development` → **exit 0**
+- **Build backend + restart** : `mvnw clean package -DskipTests` → exit 0 → test 12 MB total → **200 OK** ✅
+
+#### Noms de fichiers originaux dans MinIO
+- **`shared/util/FileStorageService.java`** :
+  - `uploadFile()` : clé passée de `<uuid>.<ext>` à `<uuid>_<nom-original-nettoyé>`
+  - Nouvelle méthode privée `sanitizeFilename(filename)` :
+    - Extrait le nom de base (supprime les séparateurs de chemin)
+    - Remplace les caractères non alphanumériques (sauf `.`, `-`, `_`) par `_`
+    - Supprime les points en début de nom (fichiers cachés Unix)
+    - Limite à 100 caractères
+    - Fallback `"fichier"` si vide après nettoyage
+  - Exemples : `"CNI recto Fotso Thierry.jpg"` → `kyc/8/<uuid>_CNI_recto_Fotso_Thierry.jpg`
+- **Build** : `mvnw clean package -DskipTests` → **exit 0**
+
+---
+
 ### Backend
 
 | Priorité | Problème | Fichier |
 |----------|----------|---------|
-| 🟡 | `emailVerified` non implémenté sur `User` | `User.java`, migration V4 à créer |
+| 🟡 | `emailVerified` non implémenté sur `User` | `User.java`, migration à créer |
 | 🟡 | Note moyenne coursier non calculée (retourne `null`) | Module `review/` — TICK Sprint 5 |
+| 🟡 | `OfferService` vérifie `kycStatus == "APPROVED"` avec `==` Java (comparaison de références) | `OfferService.java` |
 | 🟢 | `app.otp.dev-log=true` à passer à `false` en production | `application.properties` |
+| 🟢 | Pas d'autorisation sur WebSocket (n'importe qui peut envoyer dans n'importe quelle room) | `ChatController.java` |
+| 🟢 | `GET /api/chat/rooms/{id}/messages` ne vérifie pas que le demandeur est participant | `ChatRestController.java` |
 
 ### Frontend
 
 | Priorité | Problème | Fichier |
 |----------|----------|---------|
-| 🟡 | `CourierDashboardComponent` : non refondu selon maquette | TICK-022 — Sprint 2 |
-| 🟡 | `ChatComponent` : non refondu (carte d'offre manquante) | TICK-017 — Sprint 2 |
 | 🟢 | Note moyenne dans dashboard client affiche `—` | Sera rempli après module reviews |
 
 ---

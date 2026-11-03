@@ -1,13 +1,13 @@
 # RAPPORT D'AUDIT — ConfianceCoursier
-> Généré le : 2026-11-02
-> Sprint en cours : Sprint 3 (KYC + Profil) — **✅ Complet**
-> Prochaine étape : Sprint 4 (Preuves + Paiement Escrow)
+> Généré le : 2026-11-02 (mis à jour session 34)
+> Sprint en cours : Sprint 4 (Preuves + Paiement Escrow) — ⬜ À démarrer
+> Dernière session : correctifs multi-domaines + historisation
 
 ---
 
 ## 1. RÉSUMÉ EXÉCUTIF
 
-Le projet ConfianceCoursier est une plateforme de mise en relation entre clients et coursiers au Cameroun. À ce stade, **3 sprints sur 7 sont terminés** (S0, S1, S2, S3), couvrant le socle technique, l'authentification complète, le cycle de vie d'une course et la vérification d'identité.
+Le projet ConfianceCoursier est une plateforme de mise en relation entre clients et coursiers au Cameroun. À ce stade, **3 sprints sur 7 sont terminés** (S0, S1, S2, S3), couvrant le socle technique, l'authentification complète, le cycle de vie d'une course et la vérification d'identité. La session 34 a apporté des correctifs critiques et des améliorations UX.
 
 | Sprint | Thème | Tickets | Statut |
 |--------|-------|---------|--------|
@@ -15,12 +15,13 @@ Le projet ConfianceCoursier est une plateforme de mise en relation entre clients
 | Sprint 1 | Design system + Auth complète | TICK-008 à TICK-012c | ✅ Complet |
 | Sprint 2 | Cycle de vie d'une course | TICK-013 à TICK-022 | ✅ Complet |
 | Sprint 3 | KYC + Profil utilisateur | TICK-023 à TICK-027 | ✅ Complet |
+| Session 34 | Correctifs + améliorations UX | hors tickets | ✅ Appliqué |
 | Sprint 4 | Preuves + Paiement Escrow | TICK-028 à TICK-031 | ⬜ À faire |
 | Sprint 5 | Notation + Litiges + Signalements | TICK-032 à TICK-037 | ⬜ À faire |
 | Sprint 6 | Admin + Notifications | TICK-038 à TICK-042 | ⬜ À faire |
 | Sprint 7 | Qualité, sécurité & mise en production | TICK-043 à TICK-050 | ⬜ À faire |
 
-**Avancement global : 27 tickets terminés sur 50 (54 %)**
+**Avancement global : 27 tickets + correctifs session 34 (≈ 56 %)**
 
 ---
 
@@ -160,7 +161,7 @@ Le projet ConfianceCoursier est une plateforme de mise en relation entre clients
 
 ---
 
-### 4.5 Package `kyc` — ✅ Complet (stockage réel MinIO)
+### 4.5 Package `kyc` — ✅ Complet (stockage réel MinIO + validation fichiers)
 
 #### Endpoints
 | Méthode | URL | Description |
@@ -168,10 +169,14 @@ Le projet ConfianceCoursier est une plateforme de mise en relation entre clients
 | POST | `/api/kyc/submit` | Upload recto/verso/selfie vers MinIO + soumission PENDING |
 | GET | `/api/kyc/my-status` | Statut KYC du coursier connecté |
 
+#### Limites multipart configurées (session 34)
+```properties
+spring.servlet.multipart.max-file-size=10MB
+spring.servlet.multipart.max-request-size=35MB
+```
+
 #### ⚠️ Lacunes identifiées
 - **Aucun endpoint admin pour approuver/rejeter** — les KYC restent PENDING indéfiniment (TICK-038)
-- Validation du type MIME des fichiers uploadés non implémentée (n'importe quel fichier accepté)
-- Validation de la taille des fichiers non implémentée
 - Les clés MinIO sont stockées mais `getPresignedUrl()` n'est jamais appelé pour afficher les documents à l'admin
 
 ---
@@ -211,10 +216,20 @@ Le projet ConfianceCoursier est une plateforme de mise en relation entre clients
 
 | Fichier | Rôle |
 |---------|------|
-| `FileStorageService.java` | Upload MinIO + URL présignée 1h, création bucket idempotente |
+| `FileStorageService.java` | Upload MinIO + URL présignée 1h, création bucket idempotente, noms de fichiers originaux préservés (`<uuid>_<nom-sanitisé>`) |
 | `BusinessException.java` | RuntimeException → HTTP 400 |
 | `ErrorResponse.java` | Corps standard des erreurs |
 | `GlobalExceptionHandler.java` | Gère Business (400), Validation (400), Auth (401), FileStorage (503), Generic (500) |
+
+#### Migrations Flyway — état complet
+| Migration | Fichier | Contenu |
+|-----------|---------|---------|
+| V1 | `V1__init_schema.sql` | Tables `users`, `kyc_submissions` |
+| V2 | `V2__create_all_tables.sql` | 11 autres tables |
+| V3 | `V3__add_fullname_to_users.sql` | ADD COLUMN `full_name VARCHAR(255)` |
+| V4 | `V4__add_message_type.sql` | ADD COLUMNS `message_type`, `offer_amount` sur `chat_messages` |
+| V5 | `V5__add_kyc_status_to_users.sql` | ADD COLUMN `kyc_status VARCHAR(20)` + 3 index |
+| V6 | `V6__fix_country_column_size.sql` | `ALTER COLUMN country TYPE VARCHAR(100)` (était VARCHAR(2)) |
 
 ---
 
@@ -261,8 +276,8 @@ Le projet ConfianceCoursier est une plateforme de mise en relation entre clients
 
 | Composant | Route | Description |
 |-----------|-------|-------------|
-| `CourierDashboardComponent` | `/courier/dashboard` | Alerte KYC, métriques, missions actives, nouvelles demandes (modal), bouton Chat/Preuves |
-| `KycComponent` | `/courier/kyc` | Formulaire KYC 4 étapes, zones upload avec prévisualisation, barre de progression, statut PENDING/APPROVED affiché |
+| `CourierDashboardComponent` | `/courier/dashboard` | Bannière KYC redesignée (dégradé ambré, lisible), métriques, missions actives, nouvelles demandes (modal), bouton Chat/Preuves |
+| `KycComponent` | `/courier/kyc` | Formulaire KYC 4 étapes, zones upload avec validation taille/type (max 10 Mo, JPG/PNG/PDF), messages d'erreur inline, barre de progression, statut PENDING/APPROVED affiché |
 
 ---
 
@@ -291,7 +306,7 @@ Le projet ConfianceCoursier est une plateforme de mise en relation entre clients
 | `ChatService` | WebSocket STOMP + `GET /api/chat/rooms/{id}/messages` | connect(), sendMessage(), sendOffer(), historique, déconnexion |
 | `PaymentService` | `POST /api/payment/initiate` | initiate() |
 | `ThemeService` | — | Signal isDarkMode, toggleTheme(), persistance localStorage, data-theme sur `<html>` |
-| `ToastService` | — | Signal-based toast stack, success/error/info/warning |
+| `ToastService` | — | Signal-based toast stack, success/error/info — design unifié dans tout l'app (fond sombre, icônes SVG, barre de progression) |
 | `ApiService` | `GET /api/health` | healthCheck() |
 
 ---
@@ -353,7 +368,7 @@ Le projet ConfianceCoursier est une plateforme de mise en relation entre clients
 
 ## 7. CONFIGURATION ET INFRASTRUCTURE
 
-### application.properties
+### application.properties — état actuel
 | Paramètre | Valeur | État |
 |-----------|--------|------|
 | `server.port` | 8080 | ✅ |
@@ -368,6 +383,8 @@ Le projet ConfianceCoursier est une plateforme de mise en relation entre clients
 | `app.otp.*` | TTL 5 min, dev-log=true | ✅ (⚠️ dev-log à false en prod) |
 | `app.frontend.url` | http://localhost:4200 | ✅ |
 | `minio.*` | localhost:9000, credentials minioadmin | ✅ |
+| `spring.servlet.multipart.max-file-size` | **10MB** (ajouté session 34) | ✅ |
+| `spring.servlet.multipart.max-request-size` | **35MB** (ajouté session 34) | ✅ |
 
 ### Infrastructure Docker (`docker-compose.yml`)
 | Service | Image | Port | État |
@@ -386,38 +403,37 @@ Le projet ConfianceCoursier est une plateforme de mise en relation entre clients
 
 ### 🔴 Critiques (à corriger avant mise en production)
 
-| # | Anomalie | Localisation | Impact |
-|---|----------|--------------|--------|
-| 1 | **Pas d'autorisation sur WebSocket** | `ChatController.java` | N'importe qui peut envoyer/recevoir des messages dans n'importe quelle room |
-| 2 | **`GET /api/chat/rooms/{id}/messages`** ne vérifie pas que le demandeur est participant | `ChatRestController.java` | Exposition de l'historique de chat à des tiers |
-| 3 | **Secrets en dur** dans `application.properties` (minio credentials, brevo url) | `application.properties` | Risque de commit de secrets (même si `.env` est gitignoré) |
-| 4 | **`app.otp.dev-log=true`** journalise les codes OTP dans les logs | `application.properties` | Exposition des OTP en production |
-| 5 | **KYC jamais approuvé** (aucun endpoint admin existant) | `kyc/`, `admin/` | Les coursiers sont bloqués — ils peuvent soumettre mais jamais passer APPROVED |
-| 6 | **`OfferService` vérifie `kycStatus == "APPROVED"`** avec `==` Java (comparaison de références) | `OfferService.java` | Bug latent : peut ne jamais passer si les chaînes ne sont pas internées |
+| # | Anomalie | Localisation | Impact | Session |
+|---|----------|--------------|--------|---------|
+| 1 | **Pas d'autorisation sur WebSocket** | `ChatController.java` | N'importe qui peut envoyer/recevoir des messages dans n'importe quelle room | — |
+| 2 | **`GET /api/chat/rooms/{id}/messages`** ne vérifie pas la participation | `ChatRestController.java` | Exposition de l'historique de chat à des tiers | — |
+| 3 | **Secrets en dur** dans `application.properties` (minio credentials) | `application.properties` | Risque de commit de secrets | — |
+| 4 | **`app.otp.dev-log=true`** journalise les codes OTP dans les logs | `application.properties` | Exposition des OTP en production | — |
+| 5 | **KYC jamais approuvé** (aucun endpoint admin existant) | `kyc/`, `admin/` | Les coursiers sont bloqués | — |
+| 6 | **`OfferService` vérifie `kycStatus == "APPROVED"`** avec `==` Java | `OfferService.java` | Bug latent : peut ne jamais passer si les chaînes ne sont pas internées | — |
 
 ### 🟡 Importants (à corriger avant lancement public)
 
-| # | Anomalie | Localisation | Impact |
-|---|----------|--------------|--------|
-| 7 | **emailVerified** jamais mis à jour après OTP | `AuthService.verifyOtp()` | Un utilisateur dont l'email n'est pas vérifié peut se connecter |
-| 8 | **Double déclaration incorrecte** : `client/pay/:roomId` reçoit un `roomId` mais `PaymentService` attend un `courseId` | `PayComponent`, `PaymentController` | Risque de confusion entre IDs si roomId ≠ courseId |
-| 9 | **Filtrage coursiers non vérifié** : `GET /api/users/couriers` retourne tous les ACTIVE, pas que les APPROVED | `UserController.java` | Des coursiers sans KYC apparaissent dans la liste |
-| 10 | **Pas de pagination** sur `getMyCourses`, `getMyMissions`, `getPublishedCourses` | `CourseService.java` | Problème de performance avec beaucoup de courses |
-| 11 | **Image MinIO non standard** (`pgsty/silo:latest`) dans docker-compose | `docker-compose.yml` | Comportement imprévisible — remplacer par `minio/minio:latest` |
-| 12 | **Package `users/` doublon** | Racine `backend/` | Confusion, à supprimer |
-| 13 | **`getCourseById()` côté coursier** non accessible (ownership check côté client uniquement) | `CourseService.getCourseById()` | Le coursier ne peut pas consulter le détail d'une course qui lui est assignée |
-| 14 | **`trustScore`** utilisé comme proxy pour `averageRating` (toujours 0) | `CourierSummaryResponse` | Tous les coursiers affichent 0 étoile |
+| # | Anomalie | Localisation | Impact | Session |
+|---|----------|--------------|--------|---------|
+| 7 | **emailVerified** jamais mis à jour après OTP | `AuthService.verifyOtp()` | Utilisateur sans email vérifié peut se connecter | — |
+| 8 | **Double déclaration** : `client/pay/:roomId` reçoit `roomId` mais `PaymentService` attend `courseId` | `PayComponent`, `PaymentController` | Confusion entre IDs | — |
+| 9 | **Filtrage coursiers non vérifié** : retourne tous ACTIVE, pas que APPROVED | `UserController.java` | Coursiers sans KYC dans la liste | — |
+| 10 | **Pas de pagination** sur `getMyCourses`, `getMyMissions`, `getPublishedCourses` | `CourseService.java` | Performance dégradée | — |
+| 11 | **Image MinIO non standard** (`pgsty/silo:latest`) dans docker-compose | `docker-compose.yml` | Comportement imprévisible | — |
+| 12 | **Package `users/` doublon** vide | Backend racine | Confusion | — |
 
-### 🟢 Améliorations (Sprint 7)
+### ✅ Anomalies corrigées en session 34
 
-| # | Anomalie | Impact |
-|---|----------|--------|
-| 15 | Aucune validation de type MIME ni de taille pour les uploads KYC | Sécurité |
-| 16 | Aucun rate limiting sur `/api/auth/**` | Bruteforce possible |
-| 17 | `JwtAuthenticationFilter` avale silencieusement les exceptions JWT (pas de log) | Debugging difficile |
-| 18 | Aucun profil Spring `dev`/`prod` séparé | Risque de config inadaptée en production |
-| 19 | Aucun test d'intégration fonctionnel (le seul test existant a une FK cassée) | Pas de filet de sécurité |
-| 20 | WebSocket STOMP sans authentification JWT (le token n'est pas vérifié à la connexion) | Sécurité |
+| # | Anomalie | Correction |
+|---|----------|------------|
+| C1 | `ChatRoomRepository.findByCourseId()` retournait `Optional` → `IncorrectResultSizeDataAccessException` avec 2+ offres | Changé en `List<ChatRoom>` + `.stream().findFirst()` |
+| C2 | `country VARCHAR(2)` en BDD → 500 sur `PUT /api/users/me` avec un nom de pays complet | Migration V6 : `ALTER COLUMN country TYPE VARCHAR(100)` |
+| C3 | `Failed to fetch` sur soumission KYC avec fichiers > 1 MB | `max-file-size=10MB` + `max-request-size=35MB` dans `application.properties` |
+| C4 | Aucune validation fichier côté frontend (taille/type) | `validateFile()` dans `KycComponent` + messages d'erreur inline |
+| C5 | Noms de fichiers MinIO = UUID brut (impossible à identifier) | `sanitizeFilename()` dans `FileStorageService` → `<uuid>_<nom-original>` |
+| C6 | Bannière KYC illisible (classes globales trop pâles) | Redesign `.kyc-banner` scopé dans `CourierDashboardComponent` |
+| C7 | Toast notifications : fond rouge plat, pas d'icône, texte illisible | `ToastComponent` entièrement réécrit (fond sombre, icônes SVG, barre de progression) |
 
 ---
 
