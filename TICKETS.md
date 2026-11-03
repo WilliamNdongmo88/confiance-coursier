@@ -963,7 +963,7 @@ Le flux d'offre doit passer par le chat (spec fonctionnelle §2.1). Le coursier 
 ---
 
 ### TICK-041 🟡 [FE] Créer `HistoryComponent` (Client + Coursier)
-**Statut :** ⬜
+**Statut :** ✅
 **Maquette :** `maquette-v2/client/history.html` + `maquette-v2/courier/history.html`
 
 **Travail à faire :**
@@ -1126,7 +1126,7 @@ Le flux d'offre doit passer par le chat (spec fonctionnelle §2.1). Le coursier 
 | TICK-038 | Module Admin (backend) | S6 | BE | 🔴 | ✅ |
 | TICK-039 | Composants Admin (frontend) | S6 | FE | 🔴 | ✅ |
 | TICK-040 | Module Notifications Brevo | S6 | BE | 🟡 | ✅ |
-| TICK-041 | HistoryComponent | S6 | FE | 🟡 | ⬜ |
+| TICK-041 | HistoryComponent | S6 | FE | 🟡 | ✅ |
 | TICK-042 | EarningsComponent (coursier) | S6 | FE | 🟡 | ⬜ |
 | TICK-043 | MapStruct | S7 | BE | 🟢 | ⬜ |
 | TICK-044 | SpringDoc OpenAPI | S7 | BE | 🟢 | ⬜ |

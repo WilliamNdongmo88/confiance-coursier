@@ -18,6 +18,7 @@ import { RateComponent } from './features/shared/rate/rate.component';
 import { ValidateComponent } from './features/client/validate/validate.component';
 import { ProofsComponent } from './features/courier/proofs/proofs.component';
 import { ChatComponent } from './features/chat/chat.component';
+import { HistoryComponent } from './features/shared/history/history.component';
 import { AdminDashboardComponent } from './features/admin/dashboard/dashboard.component';
 import { AdminKycComponent } from './features/admin/kyc/kyc.component';
 import { AdminDisputesComponent } from './features/admin/disputes/disputes.component';
@@ -79,6 +80,12 @@ export const routes: Routes = [
     canActivate: [authGuard, roleGuard],
     data: { role: 'CLIENT' }
   },
+  {
+    path: 'client/history',
+    component: HistoryComponent,
+    canActivate: [authGuard, roleGuard],
+    data: { role: 'CLIENT' }
+  },
 
   // Routes COURSIER — token requis + rôle COURIER
   {
@@ -96,6 +103,12 @@ export const routes: Routes = [
   {
     path: 'courier/profile',
     component: ProfileComponent,
+    canActivate: [authGuard, roleGuard],
+    data: { role: 'COURIER' }
+  },
+  {
+    path: 'courier/history',
+    component: HistoryComponent,
     canActivate: [authGuard, roleGuard],
     data: { role: 'COURIER' }
   },

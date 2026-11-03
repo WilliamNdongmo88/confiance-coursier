@@ -1,6 +1,6 @@
 # AGENT CONTEXT — confiance-coursier
 > Fichier de continuité pour tout agent IA qui reprend ce projet.
-> Mis à jour au : 2026-11-03 (session 42)
+> Mis à jour au : 2026-11-03 (session 43)
 > Dernier agent : Kiro CLI
 
 ---
@@ -1028,6 +1028,30 @@ Reprise d'un travail commencé en session précédente (log dans `text2.txt`). L
 - ✅ `NotificationService` appelé depuis `KycService`, `ProofService`, `OfferService`, `PaymentService`, `ReviewService`, `DisputeService`, `ReportService`
 - ✅ Les emails sont en FR (templates HTML en français)
 - ✅ Build compile sans erreur
+
+### Session 43 — TICK-041 [FE] : HistoryComponent (Client + Coursier)
+
+#### Fichiers créés
+- **`features/shared/history/history.component.ts`** : composant réutilisable CLIENT + COURSIER, fidèle aux maquettes `client/history.html` et `courier/history.html`
+  - Détection du rôle depuis `localStorage('user_role')` — appelle `getMyCourses()` (client) ou `getMyMissions()` (coursier)
+  - **Vue client** : `row-items` avec icône, titre (description — zone), date, montant, badge statut, lien "Voir détail" → `/client/course-detail/:id`
+  - **Vue coursier** : tableau desktop (Date, Description, Net perçu, Statut, Chat) + cartes mobiles responsive — net perçu = `courseAmount × 0.80` (20% commission par défaut)
+  - **Filtres** : dropdown statut (Tous/COMPLETED/IN_PROGRESS/PROOFS_SUBMITTED/ASSIGNED/PUBLISHED/CANCELLED/DISPUTED) + tri date (plus récentes/anciennes) via signals
+  - `filteredCourses` computed : filtre par statut + tri par date
+  - États : chargement, liste vide
+  - Dark mode supporté via design system global
+  - Styles scopés : table responsive (desktop) + cartes (mobile ≤ 640px)
+
+#### Fichiers modifiés
+- **`app.routes.ts`** : routes `/client/history` et `/courier/history` ajoutées avec `authGuard + roleGuard` respectifs + import `HistoryComponent`
+
+#### Notes
+- Les sidebars (`sidebar-client` et `sidebar-courier`) pointaient déjà vers `/client/history` et `/courier/history` — les liens sont maintenant fonctionnels
+- Le nom du coursier/client n'est pas affiché (non retourné par l'API CourseResponse) — remplacé par zone + date dans les metas
+- La note client dans la vue coursier n'est pas affichée (nécessiterait des appels API supplémentaires par course) — affiché "—" ou omis
+
+#### Build
+- `ng build --configuration development` → **exit 0** (zéro warning)
 
 ---
 
