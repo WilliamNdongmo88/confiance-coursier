@@ -1,6 +1,6 @@
 # AGENT CONTEXT — confiance-coursier
 > Fichier de continuité pour tout agent IA qui reprend ce projet.
-> Mis à jour au : 2026-11-03 (session 43)
+> Mis à jour au : 2026-11-03 (session 44)
 > Dernier agent : Kiro CLI
 
 ---
@@ -1052,6 +1052,32 @@ Reprise d'un travail commencé en session précédente (log dans `text2.txt`). L
 
 #### Build
 - `ng build --configuration development` → **exit 0** (zéro warning)
+
+### Session 44 — TICK-042 [FE] : EarningsComponent (Coursier)
+
+#### Fichiers créés
+- **`features/courier/earnings/earnings.component.ts`** : composant coursier fidèle à `maquette-v2/courier/earnings.html`
+  - Appelle `getMyMissions()`, filtre les courses COMPLETED avec `courseAmount > 0`, calcule pour chaque : brut (`courseAmount`), frais (brut × 20%), net (brut - frais)
+  - **3 métriques** : revenus ce mois (net), frais de service (20%), courses ce mois (comptage)
+  - **Total depuis inscription** : brut total, commissions déduites, net total
+  - **Tableau transactions** desktop (Date, Course, Brut, Frais, Net, Statut "Versé") + cartes mobiles responsive
+  - Calcul du mois courant via `getMonth() + getFullYear()`
+  - Tri décroissant par date
+  - États : chargement, liste vide avec lien vers dashboard
+  - Taux de commission coursier 20% (constant `COURIER_COMMISSION_RATE`, configurable admin côté backend)
+
+#### Fichiers modifiés
+- **`app.routes.ts`** : route `/courier/earnings` ajoutée avec `authGuard + roleGuard(COURIER)` + import `EarningsComponent`
+
+#### Notes
+- La sidebar coursier pointait déjà vers `/courier/earnings` — le lien "Mes gains" est maintenant fonctionnel
+- Le ticket mentionnait "Créer `GET /api/users/me/earnings`" mais le ticket est labellisé [FE] — les données sont calculées côté frontend à partir de `getMyMissions()` (les courses COMPLETED avec `courseAmount` contiennent toute l'info nécessaire)
+- Le taux de commission est codé en dur à 20% (défaut) — une amélioration future pourrait récupérer le taux réel depuis l'API admin
+
+#### Build
+- `ng build --configuration development` → **exit 0** (zéro warning)
+
+**Sprint 6 marqué ✅ Complet** (TICK-038 à TICK-042 tous terminés)
 
 ---
 

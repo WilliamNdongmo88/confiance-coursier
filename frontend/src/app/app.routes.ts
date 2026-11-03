@@ -19,6 +19,7 @@ import { ValidateComponent } from './features/client/validate/validate.component
 import { ProofsComponent } from './features/courier/proofs/proofs.component';
 import { ChatComponent } from './features/chat/chat.component';
 import { HistoryComponent } from './features/shared/history/history.component';
+import { EarningsComponent } from './features/courier/earnings/earnings.component';
 import { AdminDashboardComponent } from './features/admin/dashboard/dashboard.component';
 import { AdminKycComponent } from './features/admin/kyc/kyc.component';
 import { AdminDisputesComponent } from './features/admin/disputes/disputes.component';
@@ -109,6 +110,12 @@ export const routes: Routes = [
   {
     path: 'courier/history',
     component: HistoryComponent,
+    canActivate: [authGuard, roleGuard],
+    data: { role: 'COURIER' }
+  },
+  {
+    path: 'courier/earnings',
+    component: EarningsComponent,
     canActivate: [authGuard, roleGuard],
     data: { role: 'COURIER' }
   },

@@ -28,7 +28,7 @@
 | Sprint 3 | KYC + Profil utilisateur | ✅ Complet |
 | Sprint 4 | Preuves + Paiement Escrow | ✅ Complet |
 | Sprint 5 | Notation + Litiges + Signalements | ✅ Complet |
-| Sprint 6 | Admin + Notifications | ⬜ En attente |
+| Sprint 6 | Admin + Notifications | ✅ Complet |
 | Sprint 7 | Qualité, sécurité & mise en production | ⬜ En attente |
 
 ---
@@ -975,7 +975,7 @@ Le flux d'offre doit passer par le chat (spec fonctionnelle §2.1). Le coursier 
 ---
 
 ### TICK-042 🟡 [FE] Créer `EarningsComponent` (Coursier)
-**Statut :** ⬜
+**Statut :** ✅
 **Maquette :** `maquette-v2/courier/earnings.html`
 
 **Travail à faire :**
@@ -1127,7 +1127,7 @@ Le flux d'offre doit passer par le chat (spec fonctionnelle §2.1). Le coursier 
 | TICK-039 | Composants Admin (frontend) | S6 | FE | 🔴 | ✅ |
 | TICK-040 | Module Notifications Brevo | S6 | BE | 🟡 | ✅ |
 | TICK-041 | HistoryComponent | S6 | FE | 🟡 | ✅ |
-| TICK-042 | EarningsComponent (coursier) | S6 | FE | 🟡 | ⬜ |
+| TICK-042 | EarningsComponent (coursier) | S6 | FE | 🟡 | ✅ |
 | TICK-043 | MapStruct | S7 | BE | 🟢 | ⬜ |
 | TICK-044 | SpringDoc OpenAPI | S7 | BE | 🟢 | ⬜ |
 | TICK-045 | Hardening sécurité | S7 | BE | 🟢 | ⬜ |
