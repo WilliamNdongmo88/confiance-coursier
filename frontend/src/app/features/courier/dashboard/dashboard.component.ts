@@ -1,6 +1,7 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { DatePipe, NgClass, SlicePipe } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import { CourseService } from '../../../core/services/course.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { ToastService } from '../../../core/services/toast.service';
@@ -231,20 +232,32 @@ import {
         </span>
       </section>
 
-      <!-- Alerte KYC -->
-      <div class="kyc-banner">
-        <div class="kyc-banner__icon-wrap">
-          <svg lucideShieldAlert size="20"></svg>
+      <!-- Alerte KYC : affichée uniquement si kycStatus !== APPROVED -->
+      @if (kycStatus() !== 'APPROVED') {
+        <div class="kyc-banner">
+          <div class="kyc-banner__icon-wrap">
+            <svg lucideShieldAlert size="20"></svg>
+          </div>
+          <div class="kyc-banner__body">
+            @if (kycStatus() === 'PENDING') {
+              <strong class="kyc-banner__title">Vérification d'identité en cours</strong>
+              <p class="kyc-banner__desc">Votre dossier KYC est en cours d'examen par notre équipe (24-48h).</p>
+            } @else if (kycStatus() === 'REJECTED') {
+              <strong class="kyc-banner__title">Dossier KYC refusé — action requise</strong>
+              <p class="kyc-banner__desc">Votre dossier a été refusé. Soumettez-en un nouveau pour accepter des missions.</p>
+            } @else {
+              <strong class="kyc-banner__title">Votre identité doit être vérifiée</strong>
+              <p class="kyc-banner__desc">Le KYC doit être validé pour accepter de nouvelles missions.</p>
+            }
+          </div>
+          @if (kycStatus() !== 'PENDING') {
+            <a class="kyc-banner__cta" routerLink="/courier/kyc">
+              {{ kycStatus() === 'REJECTED' ? 'Resoumettre' : 'Compléter le dossier' }}
+              <svg lucideArrowRight size="13"></svg>
+            </a>
+          }
         </div>
-        <div class="kyc-banner__body">
-          <strong class="kyc-banner__title">Votre identité doit être vérifiée</strong>
-          <p class="kyc-banner__desc">Le KYC doit être validé pour accepter de nouvelles missions.</p>
-        </div>
-        <a class="kyc-banner__cta" routerLink="/courier/kyc">
-          Compléter le dossier
-          <svg lucideArrowRight size="13"></svg>
-        </a>
-      </div>
+      }
 
       <!-- Métriques -->
       <section class="metrics-grid" aria-label="Résumé de votre activité">
@@ -394,15 +407,29 @@ import {
           <article class="panel" style="padding:17px">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
               <strong style="font-size:13px;color:#304237">Profil de confiance</strong>
-              <span style="color:#8a958d;font-size:12px">1 / 4 étapes</span>
+              <span style="color:#8a958d;font-size:12px">
+                {{ kycStatus() === 'APPROVED' ? '2 / 4 étapes' : '1 / 4 étapes' }}
+              </span>
             </div>
             <div class="progressbar">
-              <div class="progressbar-fill" style="width:25%"></div>
+              <div class="progressbar-fill"
+                   [style.width]="kycStatus() === 'APPROVED' ? '50%' : '25%'"></div>
             </div>
-            <p style="font-size:12px;line-height:1.55;color:#7c8980;margin:0 0 11px">
-              Ajoutez les preuves KYC pour débloquer toutes les missions.
-            </p>
-            <a class="text-link" routerLink="/courier/kyc">Terminer ma vérification →</a>
+            @if (kycStatus() === 'APPROVED') {
+              <p style="font-size:12px;line-height:1.55;color:#7c8980;margin:0 0 11px">
+                Identité vérifiée ✓ Continuez à compléter votre profil pour augmenter votre score.
+              </p>
+              <a class="text-link" routerLink="/courier/profile">Compléter mon profil →</a>
+            } @else if (kycStatus() === 'PENDING') {
+              <p style="font-size:12px;line-height:1.55;color:#7c8980;margin:0">
+                Dossier en cours d'examen. Vous serez notifié dès la validation.
+              </p>
+            } @else {
+              <p style="font-size:12px;line-height:1.55;color:#7c8980;margin:0 0 11px">
+                Ajoutez les preuves KYC pour débloquer toutes les missions.
+              </p>
+              <a class="text-link" routerLink="/courier/kyc">Terminer ma vérification →</a>
+            }
           </article>
 
           <!-- Encart règles -->
@@ -458,11 +485,15 @@ export class CourierDashboardComponent implements OnInit {
   modalOpen                = signal(false);
   isAccepting              = false;
 
+  /** Statut KYC du coursier connecté — NONE | PENDING | APPROVED | REJECTED */
+  kycStatus = signal<string>('NONE');
+
   constructor(
     private courseService: CourseService,
     private authService: AuthService,
     private toast: ToastService,
     private router: Router,
+    private http: HttpClient,
   ) {}
 
   get firstName(): string {
@@ -472,6 +503,13 @@ export class CourierDashboardComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    // 1. Charger le profil pour connaître le statut KYC réel
+    this.http.get<any>('/api/users/me').subscribe({
+      next: (profile) => this.kycStatus.set(profile.kycStatus || 'NONE'),
+      error: () => {}   // silencieux — la bannière reste visible par défaut
+    });
+
+    // 2. Missions du coursier
     this.courseService.getMyMissions().subscribe({
       next: (list: any[]) => {
         this.myMissions    = list.filter(c => c.status !== 'COMPLETED');
@@ -480,6 +518,7 @@ export class CourierDashboardComponent implements OnInit {
       error: () => {}
     });
 
+    // 3. Courses publiées disponibles
     this.courseService.getPublishedCourses().subscribe({
       next: (list: any[]) => { this.publishedCourses = list; },
       error: () => {}
