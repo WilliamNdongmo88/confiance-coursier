@@ -146,8 +146,7 @@ export class LoginComponent implements OnInit {
     if (role === 'COURIER') {
       this.router.navigate(['/courier/dashboard']);
     } else if (role === 'ADMIN') {
-      // Route admin à venir (Sprint 6) — fallback côté client pour l'instant.
-      this.router.navigate(['/client/dashboard']);
+      this.router.navigate(['/admin/dashboard']);
     } else {
       this.router.navigate(['/client/dashboard']);
     }

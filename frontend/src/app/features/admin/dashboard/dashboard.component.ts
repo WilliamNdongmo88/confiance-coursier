@@ -93,7 +93,7 @@ import {
                   <h4>{{ kyc.userFullName || 'Utilisateur #' + kyc.userId }}</h4>
                   <p>Soumis le {{ kyc.submittedAt | date:'dd/MM/yyyy' }}</p>
                 </div>
-                <a routerLink="/admin/kyc" class="btn btn-primary btn-sm">Examiner</a>
+                <a routerLink="/admin/kyc" class="task-action">Examiner →</a>
               </li>
             } @empty {
               <li class="task-item">
@@ -122,7 +122,7 @@ import {
                   <h4>Signalement #{{ report.id }}</h4>
                   <p>Motif : {{ report.motif }}</p>
                 </div>
-                <a routerLink="/admin/reports" class="btn btn-danger btn-sm">Examiner</a>
+                <a routerLink="/admin/reports" class="task-action task-action--danger">Examiner →</a>
               </li>
             } @empty {
               <li class="task-item">
@@ -151,7 +151,7 @@ import {
                   <h4>#{{ dispute.id }} — {{ dispute.motifCode }}</h4>
                   <p>Course #{{ dispute.courseId }}</p>
                 </div>
-                <a routerLink="/admin/disputes" class="btn btn-danger btn-sm">Arbitrer</a>
+                <a routerLink="/admin/disputes" class="task-action task-action--danger">Arbitrer →</a>
               </li>
             } @empty {
               <li class="task-item">
@@ -167,9 +167,10 @@ import {
     </app-shell>
   `,
   styles: [`
+    /* ── Stats grid ── */
     .stats-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      grid-template-columns: repeat(4, 1fr);
       gap: 16px;
       margin-bottom: 28px;
     }
@@ -205,6 +206,8 @@ import {
       font-weight: 500;
       margin-top: 2px;
     }
+
+    /* ── Tasks grid ── */
     .tasks-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -242,21 +245,22 @@ import {
       margin: 0;
       flex: 1;
     }
+
+    /* ── Task item : layout en colonne ── */
     .task-item {
       display: flex;
-      justify-content: space-between;
-      align-items: center;
+      flex-direction: column;
+      align-items: flex-start;
       padding: 12px 0;
       border-bottom: 1px solid var(--border);
-      gap: 10px;
+      gap: 8px;
     }
     .task-item:last-child {
       border-bottom: none;
       padding-bottom: 0;
     }
     .task-info {
-      flex: 1;
-      min-width: 0;
+      width: 100%;
     }
     .task-info h4 {
       font-weight: 600;
@@ -271,11 +275,38 @@ import {
       color: var(--text-muted);
       margin-top: 2px;
     }
+    /* Lien "Examiner" compact sous les infos */
+    .task-action {
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--primary, #17634f);
+      text-decoration: none;
+      padding: 4px 10px;
+      border: 1px solid var(--primary, #17634f);
+      border-radius: 6px;
+      transition: background .15s, color .15s;
+      white-space: nowrap;
+    }
+    .task-action:hover {
+      background: var(--primary, #17634f);
+      color: #fff;
+    }
+    .task-action--danger {
+      color: var(--danger, #dc2626);
+      border-color: var(--danger, #dc2626);
+    }
+    .task-action--danger:hover {
+      background: var(--danger, #dc2626);
+      color: #fff;
+    }
+
+    /* ── Responsive ── */
     @media (max-width: 1024px) {
       .tasks-grid { grid-template-columns: 1fr; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
     }
-    @media (max-width: 700px) {
-      .stats-grid { grid-template-columns: 1fr 1fr; }
+    @media (max-width: 480px) {
+      .stats-grid { grid-template-columns: 1fr; }
     }
   `],
 })

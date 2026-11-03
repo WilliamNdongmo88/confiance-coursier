@@ -1,6 +1,6 @@
 # AGENT CONTEXT — confiance-coursier
 > Fichier de continuité pour tout agent IA qui reprend ce projet.
-> Mis à jour au : 2026-11-03 (session 44)
+> Mis à jour au : 2026-11-03 (session 45)
 > Dernier agent : Kiro CLI
 
 ---
@@ -1078,6 +1078,36 @@ Reprise d'un travail commencé en session précédente (log dans `text2.txt`). L
 - `ng build --configuration development` → **exit 0** (zéro warning)
 
 **Sprint 6 marqué ✅ Complet** (TICK-038 à TICK-042 tous terminés)
+
+### Session 45 — Connexion admin (hors ticket)
+
+#### Problème
+Aucun moyen de créer un compte ADMIN — l'inscription ne permet que CLIENT et COURIER. Le LoginComponent redirigeait l'admin vers `/client/dashboard` au lieu de `/admin/dashboard`.
+
+#### Solution — seed au démarrage via CommandLineRunner
+
+#### Fichiers créés
+- **`config/AdminSeeder.java`** : `CommandLineRunner` qui crée un compte admin au boot si aucun user avec `role=ADMIN` n'existe
+  - Lit `admin.email` et `admin.password` depuis `@Value` (alimentés par `.env`)
+  - Si les vars sont vides → log warning + skip
+  - Si un admin existe déjà → log info + skip
+  - Si l'email est déjà pris par un non-admin → log warning + skip
+  - Sinon → crée l'user avec `BCryptPasswordEncoder.encode(password)`, role=ADMIN, status=ACTIVE, fullName="Administrateur"
+
+#### Fichiers modifiés
+- **`backend/.env`** : ajout `ADMIN_EMAIL=admin@confiancecoursier.com` + `ADMIN_PASSWORD=Admin123!`
+- **`application.properties`** : ajout `admin.email=${ADMIN_EMAIL:}` + `admin.password=${ADMIN_PASSWORD:}`
+- **`features/auth/login/login.component.ts`** : redirect `ADMIN` corrigé → `/admin/dashboard` (au lieu de `/client/dashboard`)
+
+#### Flux de connexion admin
+1. L'admin se connecte via `/login` (email + mot de passe) → flux OTP normal (Brevo)
+2. Après vérification OTP → JWT avec `role=ADMIN`
+3. `LoginComponent.redirectByRole('ADMIN')` → navigue vers `/admin/dashboard`
+4. `AppShellComponent` sélectionne automatiquement `SidebarAdminComponent`
+
+#### Build
+- Backend : `mvnw compile` → **exit 0** (101 source files, warnings préexistants)
+- Frontend : `ng build` → **exit 0** (zéro warning)
 
 ---
 
