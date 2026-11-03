@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { AdminService, AdminKycResponse } from '../../../core/services/admin.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { AppShellComponent } from '../../../shared/components/app-shell/app-shell.component';
+import { MediaViewerComponent, MediaItem } from '../../../shared/components/media-viewer/media-viewer.component';
 import {
   LucideShieldCheck, LucideCalendar, LucideIdCard,
   LucideImage, LucideUser, LucideCheck, LucideX,
@@ -14,6 +15,7 @@ import {
   standalone: true,
   imports: [
     AppShellComponent, DatePipe, FormsModule,
+    MediaViewerComponent,
     LucideShieldCheck, LucideCalendar, LucideIdCard,
     LucideImage, LucideUser, LucideCheck, LucideX,
   ],
@@ -57,19 +59,25 @@ import {
             @if (kyc.status === 'PENDING') {
               <div class="kyc-docs">
                 @if (kyc.frontFileUrl) {
-                  <a [href]="kyc.frontFileUrl" target="_blank" class="kyc-doc-thumb" title="Recto">
+                  <button class="kyc-doc-thumb" title="Recto — Cliquez pour agrandir"
+                          (click)="openViewer(kyc, 0)">
                     <svg lucideImage size="20"></svg>
-                  </a>
+                    <span class="kyc-doc-label">Recto</span>
+                  </button>
                 }
                 @if (kyc.backFileUrl) {
-                  <a [href]="kyc.backFileUrl" target="_blank" class="kyc-doc-thumb" title="Verso">
+                  <button class="kyc-doc-thumb" title="Verso — Cliquez pour agrandir"
+                          (click)="openViewer(kyc, 1)">
                     <svg lucideImage size="20"></svg>
-                  </a>
+                    <span class="kyc-doc-label">Verso</span>
+                  </button>
                 }
                 @if (kyc.selfieFileUrl) {
-                  <a [href]="kyc.selfieFileUrl" target="_blank" class="kyc-doc-thumb" title="Selfie">
+                  <button class="kyc-doc-thumb" title="Selfie — Cliquez pour agrandir"
+                          (click)="openViewer(kyc, kyc.backFileUrl ? 2 : 1)">
                     <svg lucideUser size="20"></svg>
-                  </a>
+                    <span class="kyc-doc-label">Selfie</span>
+                  </button>
                 }
               </div>
             }
@@ -125,6 +133,15 @@ import {
           </div>
         }
       }
+
+      <!-- Modal prévisualisation documents KYC -->
+      <app-media-viewer
+        [items]="viewerItems()"
+        [activeIndex]="viewerIndex()"
+        [open]="viewerOpen()"
+        (close)="viewerOpen.set(false)">
+      </app-media-viewer>
+
     </app-shell>
   `,
   styles: [`
@@ -155,12 +172,14 @@ import {
     .kyc-meta span { display: flex; align-items: center; gap: 4px; }
     .kyc-docs { display: flex; gap: 8px; flex-wrap: wrap; }
     .kyc-doc-thumb {
-      width: 60px; height: 45px; border-radius: 6px;
+      width: 72px; height: 54px; border-radius: 6px;
       border: 1px solid var(--border); background: var(--bg);
-      display: flex; align-items: center; justify-content: center;
-      color: var(--text-muted); cursor: pointer; transition: border-color .15s;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 3px;
+      color: var(--text-muted); cursor: pointer; transition: border-color .15s, background .15s;
     }
-    .kyc-doc-thumb:hover { border-color: var(--primary); }
+    .kyc-doc-thumb:hover { border-color: var(--primary); background: var(--primary-light); color: var(--primary); }
+    .kyc-doc-label { font-size: .68rem; font-weight: 600; }
     .kyc-actions { display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
     @media (max-width: 640px) {
       .kyc-card { flex-direction: column; }
@@ -173,12 +192,27 @@ export class AdminKycComponent implements OnInit {
   private adminService = inject(AdminService);
   private toast = inject(ToastService);
 
-  readonly allList = signal<AdminKycResponse[]>([]);
-  readonly loading = signal(false);
-  readonly rejectingId = signal<number | null>(null);
+  readonly allList      = signal<AdminKycResponse[]>([]);
+  readonly loading      = signal(false);
+  readonly rejectingId  = signal<number | null>(null);
   readonly rejectReason = signal('');
 
   readonly pendingList = computed(() => this.allList().filter(k => k.status === 'PENDING'));
+
+  // ─── Media viewer ─────────────────────────────────────────────────────────
+  readonly viewerOpen  = signal(false);
+  readonly viewerItems = signal<MediaItem[]>([]);
+  readonly viewerIndex = signal(0);
+
+  openViewer(kyc: AdminKycResponse, startIndex: number): void {
+    const items: MediaItem[] = [];
+    if (kyc.frontFileUrl) items.push({ url: kyc.frontFileUrl, type: 'image', label: 'Recto' });
+    if (kyc.backFileUrl)  items.push({ url: kyc.backFileUrl,  type: 'image', label: 'Verso' });
+    if (kyc.selfieFileUrl) items.push({ url: kyc.selfieFileUrl, type: 'image', label: 'Selfie' });
+    this.viewerItems.set(items);
+    this.viewerIndex.set(Math.min(startIndex, items.length - 1));
+    this.viewerOpen.set(true);
+  }
 
   ngOnInit(): void {
     this.loadKyc();

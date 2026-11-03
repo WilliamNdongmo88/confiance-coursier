@@ -1,6 +1,6 @@
 # AGENT CONTEXT — confiance-coursier
 > Fichier de continuité pour tout agent IA qui reprend ce projet.
-> Mis à jour au : 2026-11-03 (session 45)
+> Mis à jour au : 2026-11-03 (session 47)
 > Dernier agent : Kiro CLI
 
 ---
@@ -1108,6 +1108,66 @@ Aucun moyen de créer un compte ADMIN — l'inscription ne permet que CLIENT et 
 #### Build
 - Backend : `mvnw compile` → **exit 0** (101 source files, warnings préexistants)
 - Frontend : `ng build` → **exit 0** (zéro warning)
+
+### Session 46 — Corrections UI admin dashboard (hors ticket)
+
+#### Problèmes signalés
+1. **Bouton "Examiner" dans la carte KYC en attente** : layout `flex row` avec `justify-content: space-between` → le bouton prenait toute la largeur disponible et cachait le nom + date.
+2. **Stat-cards en mode mobile** : `repeat(auto-fit, minmax(190px, 1fr))` produisait un comportement imprévisible selon la largeur → cartes non centrées.
+
+#### Corrections apportées — `features/admin/dashboard/dashboard.component.ts`
+
+**Fix 1 — Task items (KYC, Signalements, Litiges) :**
+- `.task-item` passe de `flex row + justify-content: space-between` à `flex-direction: column`
+- Nouvelle classe `.task-action` : lien compact (bordure fine, `4px 10px` padding, hover fond coloré) positionné sous les infos
+- `.task-action--danger` : variante rouge pour Signalements et Litiges
+- Les boutons `btn btn-primary btn-sm` / `btn btn-danger btn-sm` remplacés par `task-action` / `task-action--danger` dans les 3 colonnes
+
+**Fix 2 — Stats grid responsive :**
+- Grille fixe `repeat(4, 1fr)` en desktop (remplace `auto-fit minmax`)
+- `repeat(2, 1fr)` à ≤ 1024px (2 colonnes centrées)
+- `1fr` à ≤ 480px (colonne unique, bien centré)
+
+#### Build
+- `ng build --configuration development` → **exit 0** (zéro warning)
+
+### Session 47 — Modal prévisualisation media (hors ticket)
+
+#### Problèmes signalés
+- `admin/kyc` : clic sur les vignettes Recto/Verso/Selfie ouvrait `target="_blank"` (redirection page)
+- `client/validate` : clic sur une preuve appelait `window.open()` (redirection page)
+
+#### Solution — composant `MediaViewerComponent` réutilisable
+
+#### Fichier créé
+- **`shared/components/media-viewer/media-viewer.component.ts`** : modal plein écran de prévisualisation
+  - Support **image** (`<img>`), **vidéo** (`<video controls autoplay>`), **PDF** (`<iframe>`)
+  - Fond sombre semi-opaque (`rgba(0,0,0,.88)`) avec animation `fade-in`
+  - **Toolbar** : label du document + bouton télécharger (lien `download`) + bouton fermer (×)
+  - **Navigation flèches** gauche/droite (si `items.length > 1`) + indicateur de points cliquables
+  - Fermeture : clic sur le backdrop, touche **Échap** (`@HostListener('document:keydown.escape')`)
+  - Inputs : `items: MediaItem[]`, `activeIndex: number`, `open: boolean`
+  - Output : `close: EventEmitter<void>`
+  - `MediaItem` interface exportée : `{ url, type: 'image'|'video'|'pdf', label? }`
+
+#### Fichiers modifiés
+
+**`features/admin/kyc/kyc.component.ts`** :
+- Import `MediaViewerComponent` + `MediaItem` ajouté
+- Les 3 liens `<a href target="_blank">` remplacés par des `<button>` avec label sous l'icône
+- Signaux ajoutés : `viewerOpen`, `viewerItems`, `viewerIndex`
+- Méthode `openViewer(kyc, startIndex)` : construit la liste `[Recto, Verso, Selfie]` depuis les URLs MinIO et ouvre la modal au bon index
+- Modal `<app-media-viewer>` ajoutée à la fin du template
+- Style `.kyc-doc-thumb` mis à jour : `flex-direction: column` + label `.kyc-doc-label` + hover coloré vert
+
+**`features/client/validate/validate.component.ts`** :
+- Import `MediaViewerComponent` + `MediaItem` ajouté
+- Signaux ajoutés : `viewerOpen`, `viewerItems`, `viewerIndex`
+- `openProof(proof)` : remplace `window.open()` — construit la liste de tous les médias de la course (photos/vidéos/reçus), détermine le type (`image`/`video`/`pdf`) selon `proofType` et `mimeType`, ouvre la modal à l'index du media cliqué (navigation entre toutes les preuves)
+- Modal `<app-media-viewer>` ajoutée à la fin du template
+
+#### Build
+- `ng build --configuration development` → **exit 0** (zéro warning)
 
 ---
 
