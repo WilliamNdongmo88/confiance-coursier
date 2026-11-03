@@ -722,6 +722,33 @@ app.frontend.url=http://localhost:4200
 
 ---
 
+### Session 38 — TICK-032 [BE] + TICK-033 [FE] : Module Notation
+
+#### TICK-032 [BE] — Module Notation (Review)
+
+- **`review/domain/Review.java`** : entité JPA `reviews` — `courseId, authorId, targetId, reviewerRole, stars, comment, createdAt (@PrePersist)`
+- **`review/repository/ReviewRepository.java`** : `findByCourseId`, `findByTargetId`, `findByCourseIdAndAuthorId` (anti-doublon), `countByTargetId`
+- **`review/api/dto/SubmitReviewRequest.java`** : record `stars (@NotNull @Min(1) @Max(5))` + `comment (@Size(max=1000))`
+- **`review/api/dto/ReviewResponse.java`** : record + factory `from(Review)`
+- **`review/service/ReviewService.java`** : logique complète — vérif COMPLETED + participant + anti-doublon + détermination cible (CLIENT note COURIER, COURIER note CLIENT) + `updateTrustScore()` (moyenne glissante) + `checkAndSuspendIfNeeded()` (2 notes ≤ 2⭐ en 30j → SUSPENDED)
+- **`review/api/ReviewController.java`** : `POST /api/courses/{courseId}/review` + `GET /api/courses/{courseId}/reviews`
+- **`V7__fix_reviews_unique_constraint.sql`** : DROP contrainte UNIQUE sur `course_id` seul + ADD UNIQUE `(course_id, author_id)` → autorise 1 avis par auteur (2 par course)
+- **Build backend** : `mvnw compile` → **exit 0**
+
+#### TICK-033 [FE] — RateComponent (client + coursier)
+
+- **`features/shared/rate/rate.component.ts`** : composant réutilisable
+  - Route `/client/rate/:courseId` → rôle CLIENT (note le coursier) ; `/courier/rate-client/:courseId` → rôle COURIER (note le client)
+  - Avatar initiales, titre et placeholder du commentaire adaptés au rôle
+  - 5 étoiles interactives (hover + sélection) avec label contextuel coloré (vert ≥ 3⭐, rouge < 3⭐)
+  - Textarea commentaire optionnel
+  - Bouton désactivé tant qu'aucune étoile n'est sélectionnée ou pendant l'envoi
+  - `POST /api/courses/{courseId}/review` → toast + redirect dashboard après 1,8s
+  - Erreur backend affichée en toast (ex: "Vous avez déjà noté cette course.")
+- **`validate.component.ts`** : redirect post-validation mis à jour vers `/client/rate/:courseId`
+- **`app.routes.ts`** : routes `/client/rate/:courseId` et `/courier/rate-client/:courseId` ajoutées avec guards
+- **Build frontend** : `ng build --configuration development` → **exit 0** (zéro warning)
+
 ### Session 37 — TICK-030 [FE] + TICK-031 [BE] : Validation des preuves
 
 #### TICK-031 [BE] — Endpoint validation + libération escrow + scheduler

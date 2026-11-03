@@ -298,8 +298,8 @@ export class ValidateComponent implements OnInit {
       next: () => {
         this.isValidating.set(false);
         this.toast.success('Course validée ! Les fonds ont été libérés au coursier.');
-        // Redirige vers la page de notation (TICK-033 — pas encore implémenté → dashboard)
-        setTimeout(() => this.router.navigate(['/client/dashboard']), 1800);
+        // Redirige vers la notation (TICK-033)
+        setTimeout(() => this.router.navigate(['/client/rate', this.courseId]), 1800);
       },
       error: (err) => {
         this.isValidating.set(false);
