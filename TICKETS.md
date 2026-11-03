@@ -675,7 +675,7 @@ Le flux d'offre doit passer par le chat (spec fonctionnelle §2.1). Le coursier 
 ---
 
 ### TICK-028 🔴 [BE] Module Preuves (Proof)
-**Statut :** ⬜
+**Statut :** ✅
 **Fichiers concernés :** `proof/` (actuellement vide)
 
 **Travail à faire :**
@@ -1113,7 +1113,7 @@ Le flux d'offre doit passer par le chat (spec fonctionnelle §2.1). Le coursier 
 | TICK-025 | KycComponent (coursier) | S3 | FE | 🔴 | ✅ |
 | TICK-026 | Endpoints profil utilisateur | S3 | BE | 🟡 | ✅ |
 | TICK-027 | ProfileComponent | S3 | FE | 🟡 | ✅ |
-| TICK-028 | Module Preuves (backend) | S4 | BE | 🔴 | ⬜ |
+| TICK-028 | Module Preuves (backend) | S4 | BE | 🔴 | ✅ |
 | TICK-029 | ProofsComponent (coursier) | S4 | FE | 🔴 | ⬜ |
 | TICK-030 | ValidateComponent (client) | S4 | FE | 🔴 | ⬜ |
 | TICK-031 | Validation + libération escrow | S4 | BE | 🟡 | ⬜ |

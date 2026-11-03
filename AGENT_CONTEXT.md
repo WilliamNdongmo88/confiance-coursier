@@ -722,22 +722,59 @@ app.frontend.url=http://localhost:4200
 
 ---
 
-### Backend
+### Session 36 — TICK-028 [BE] : Module Preuves de livraison (implémentation réelle)
 
-| Priorité | Problème | Fichier |
-|----------|----------|---------|
-| 🟡 | `emailVerified` non implémenté sur `User` | `User.java`, migration à créer |
-| 🟡 | Note moyenne coursier non calculée (retourne `null`) | Module `review/` — TICK Sprint 5 |
-| 🟡 | `OfferService` vérifie `kycStatus == "APPROVED"` avec `==` Java (comparaison de références) | `OfferService.java` |
-| 🟢 | `app.otp.dev-log=true` à passer à `false` en production | `application.properties` |
-| 🟢 | Pas d'autorisation sur WebSocket (n'importe qui peut envoyer dans n'importe quelle room) | `ChatController.java` |
-| 🟢 | `GET /api/chat/rooms/{id}/messages` ne vérifie pas que le demandeur est participant | `ChatRestController.java` |
+#### Fichiers créés
 
-### Frontend
+- **`proof/domain/Proof.java`** : entité JPA mappée sur `proofs` (V2)
+  - Champs : `id, courseId, courierId, proofType, fileKey, fileHash (SHA-256 hex), fileSize, mimeType, latitude, longitude, capturedAt, uploadedAt (@PrePersist)`
 
-| Priorité | Problème | Fichier |
-|----------|----------|---------|
-| 🟢 | Note moyenne dans dashboard client affiche `—` | Sera rempli après module reviews |
+- **`proof/repository/ProofRepository.java`** :
+  - `findByCourseIdOrderByUploadedAtAsc(Long)` — liste des preuves
+  - `findByCourseIdAndFileHash(Long, String)` — détection doublons
+  - `countByCourseId(Long)` — limite max 10
+
+- **`proof/api/dto/ProofResponse.java`** : record avec `presignedUrl` (non persistée) + factory `from(Proof, String presignedUrl)`
+
+- **`proof/service/ProofService.java`** :
+  - `submitProof()` : vérifie coursier assigné + statuts IN_PROGRESS/PROOFS_SUBMITTED + limite 10 + SHA-256 anti-doublon + upload MinIO bucket `delivery-proofs` + transition IN_PROGRESS → PROOFS_SUBMITTED + `auto_validate_at = now + 72h`
+  - `getProofs()` : accessible client ET coursier, retourne preuves avec URLs présignées
+
+- **`proof/api/ProofController.java`** :
+  - `POST /api/courses/{courseId}/proofs` (multipart, `@Validated` + `@Pattern` sur `proofType`)
+  - `GET  /api/courses/{courseId}/proofs`
+
+- **Build** : `mvnw compile` → **exit 0**
+
+### Session 35 — TICK-028 [BE] : Module Preuves de livraison
+
+#### Fichiers créés
+
+- **`proof/domain/Proof.java`** : entité JPA mappée sur la table `proofs` (déjà dans V2)
+  - Champs : `id, courseId, courierId, proofType (PHOTO/VIDEO/RECEIPT), fileKey, fileHash (SHA-256), fileSize, mimeType, latitude, longitude, capturedAt, uploadedAt (@PrePersist)`
+
+- **`proof/repository/ProofRepository.java`** :
+  - `findByCourseIdOrderByUploadedAtAsc(Long)` — toutes les preuves d'une course
+  - `findByCourseIdAndFileHash(Long, String)` — détection doublons
+  - `countByCourseId(Long)` — limite max 10 preuves
+
+- **`proof/api/dto/ProofResponse.java`** : DTO de réponse avec `presignedUrl` peuplée par le service (non persistée en BDD)
+
+- **`proof/service/ProofService.java`** :
+  - `submitProof()` : vérifie ownership coursier, statut IN_PROGRESS ou PROOFS_SUBMITTED, limite 10 preuves, hash SHA-256 anti-doublon, upload MinIO (`delivery-proofs/proofs/{courseId}/{courierId}/{uuid}_{nom}.ext`), passage automatique `IN_PROGRESS → PROOFS_SUBMITTED` + `auto_validate_at = NOW() + 72h`, URL présignée 1h en retour
+  - `getProofs()` : accessible au client ET au coursier, retourne les preuves avec URLs présignées
+
+- **`proof/api/ProofController.java`** :
+  - `POST /api/courses/{courseId}/proofs` (multipart) : `file` + `proofType` (PHOTO|VIDEO|RECEIPT validé par `@Pattern`)
+  - `GET  /api/courses/{courseId}/proofs` : liste avec URLs présignées
+
+#### Correction GlobalExceptionHandler
+- **`shared/exception/GlobalExceptionHandler.java`** : ajout handler `ConstraintViolationException` → HTTP 400 avec le message de violation (pour que `@Pattern` sur `@RequestParam` retourne un 400 propre au lieu d'un 500)
+
+#### Tests validés (en cours de build)
+- ✅ `POST /api/courses/4/proofs` avec PHOTO → 200, course passe en `PROOFS_SUBMITTED`, `auto_validate_at = +72h`
+- ✅ Doublon (même fichier) → 400 `"Ce fichier a déjà été soumis pour cette course."`
+- ⏳ Type invalide → 400 propre (après rebuild avec fix ConstraintViolation)
 
 ---
 
@@ -946,3 +983,24 @@ Admin (6)     : dashboard, kyc, disputes, reports, commissions, users
 ### Composants Angular à créer (mapping maquette → Angular)
 Chaque page HTML de la maquette doit devenir un composant Angular standalone dans `features/`.
 Les CSS `main.css`, `app-layout.css`, `refonte.css` doivent être copiés/adaptés dans Angular.
+
+---
+
+## ÉTAT COURANT — Issues connues
+
+### Backend
+
+| Priorité | Problème | Fichier |
+|----------|----------|---------|
+| 🟡 | `emailVerified` non implémenté sur `User` | `User.java`, migration à créer |
+| 🟡 | Note moyenne coursier non calculée (retourne `null`) | Module `review/` — TICK Sprint 5 |
+| 🟡 | `OfferService` vérifie `kycStatus == "APPROVED"` avec `==` Java | `OfferService.java` |
+| 🟢 | `app.otp.dev-log=true` à passer à `false` en production | `application.properties` |
+| 🟢 | Pas d'autorisation sur WebSocket | `ChatController.java` |
+| 🟢 | `GET /api/chat/rooms/{id}/messages` ne vérifie pas la participation | `ChatRestController.java` |
+
+### Frontend
+
+| Priorité | Problème | Fichier |
+|----------|----------|---------|
+| 🟢 | Note moyenne dans dashboard client affiche `—` | Sera rempli après module reviews |

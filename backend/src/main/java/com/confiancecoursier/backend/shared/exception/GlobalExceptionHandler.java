@@ -1,6 +1,7 @@
 package com.confiancecoursier.backend.shared.exception;
 
 import com.confiancecoursier.backend.shared.util.FileStorageService;
+import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -15,6 +16,20 @@ import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    // Gère les violations de contraintes sur les @RequestParam / @PathVariable (@Validated)
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ErrorResponse> handleConstraintViolation(ConstraintViolationException ex) {
+        String message = ex.getConstraintViolations().stream()
+                .map(v -> v.getMessage())
+                .collect(Collectors.joining(", "));
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                message,
+                LocalDateTime.now()
+        );
+        return ResponseEntity.badRequest().body(error);
+    }
 
     // Gère nos exceptions métier (ex: "Email déjà utilisé")
     @ExceptionHandler(BusinessException.class)
