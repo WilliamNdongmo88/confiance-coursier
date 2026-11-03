@@ -6,6 +6,7 @@ import com.confiancecoursier.backend.dispute.api.dto.DisputeResponse;
 import com.confiancecoursier.backend.dispute.api.dto.OpenDisputeRequest;
 import com.confiancecoursier.backend.dispute.domain.Dispute;
 import com.confiancecoursier.backend.dispute.repository.DisputeRepository;
+import com.confiancecoursier.backend.notify.service.NotificationService;
 import com.confiancecoursier.backend.shared.exception.BusinessException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,10 +38,13 @@ public class DisputeService {
 
     private final DisputeRepository disputeRepository;
     private final CourseRepository  courseRepository;
+    private final NotificationService notificationService;
 
-    public DisputeService(DisputeRepository disputeRepository, CourseRepository courseRepository) {
+    public DisputeService(DisputeRepository disputeRepository, CourseRepository courseRepository,
+                          NotificationService notificationService) {
         this.disputeRepository = disputeRepository;
         this.courseRepository  = courseRepository;
+        this.notificationService = notificationService;
     }
 
     // ─── Ouverture d'un litige ─────────────────────────────────────────────
@@ -78,6 +82,9 @@ public class DisputeService {
         Dispute saved = disputeRepository.save(dispute);
         log.info("Litige ouvert : id={} courseId={} openedBy={} motif={}",
                 saved.getId(), courseId, openedBy, req.motifCode());
+
+        // Notification email admin + partie adverse
+        notificationService.notifyDisputeOpened(openedBy, courseId);
 
         return DisputeResponse.from(saved);
     }
@@ -136,6 +143,12 @@ public class DisputeService {
 
         Dispute resolved = disputeRepository.save(dispute);
         log.info("Litige {} résolu par admin {} — décision : {}", disputeId, adminId, decision);
+
+        // Notification email client + coursier
+        if (course != null) {
+            notificationService.notifyDisputeResolved(course.getClientId(), course.getCourierId(), decision.toUpperCase());
+        }
+
         return DisputeResponse.from(resolved);
     }
 

@@ -2,6 +2,7 @@ package com.confiancecoursier.backend.review.service;
 
 import com.confiancecoursier.backend.course.domain.Course;
 import com.confiancecoursier.backend.course.repository.CourseRepository;
+import com.confiancecoursier.backend.notify.service.NotificationService;
 import com.confiancecoursier.backend.review.api.dto.ReviewResponse;
 import com.confiancecoursier.backend.review.api.dto.SubmitReviewRequest;
 import com.confiancecoursier.backend.review.domain.Review;
@@ -44,13 +45,16 @@ public class ReviewService {
     private final ReviewRepository  reviewRepository;
     private final CourseRepository  courseRepository;
     private final UserRepository    userRepository;
+    private final NotificationService notificationService;
 
     public ReviewService(ReviewRepository reviewRepository,
                          CourseRepository courseRepository,
-                         UserRepository userRepository) {
+                         UserRepository userRepository,
+                         NotificationService notificationService) {
         this.reviewRepository = reviewRepository;
         this.courseRepository = courseRepository;
         this.userRepository   = userRepository;
+        this.notificationService = notificationService;
     }
 
     // ─── Soumission d'un avis ─────────────────────────────────────────────────
@@ -125,6 +129,11 @@ public class ReviewService {
         log.info("Avis soumis : courseId={} authorId={} targetId={} stars={}",
                 courseId, authorId, targetId, request.stars());
 
+        // ── Notification de la note reçue (coursier uniquement) ──────────────
+        if ("COURIER".equals(target.getRole())) {
+            notificationService.notifyBadRating(targetId, request.stars());
+        }
+
         // ── Mise à jour du trustScore de la cible ────────────────────────────
         updateTrustScore(target);
 
@@ -196,6 +205,9 @@ public class ReviewService {
             userRepository.save(courier);
             log.warn("[SUSPENSION AUTO] courierId={} suspendu après {} notes ≤ {}⭐ en {} jours.",
                     courier.getId(), badRecentRatings, BAD_RATING_MAX_STARS, BAD_RATING_WINDOW_DAYS);
+
+            // Notification suspension au coursier + admin
+            notificationService.notifySuspension(courier.getId());
         }
     }
 }

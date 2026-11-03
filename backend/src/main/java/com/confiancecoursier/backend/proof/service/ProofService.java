@@ -2,6 +2,7 @@ package com.confiancecoursier.backend.proof.service;
 
 import com.confiancecoursier.backend.course.domain.Course;
 import com.confiancecoursier.backend.course.repository.CourseRepository;
+import com.confiancecoursier.backend.notify.service.NotificationService;
 import com.confiancecoursier.backend.proof.api.dto.ProofResponse;
 import com.confiancecoursier.backend.proof.domain.Proof;
 import com.confiancecoursier.backend.proof.repository.ProofRepository;
@@ -52,16 +53,19 @@ public class ProofService {
     private final ProofRepository proofRepository;
     private final CourseRepository courseRepository;
     private final FileStorageService fileStorageService;
+    private final NotificationService notificationService;
 
     @Value("${minio.bucket-proofs}")
     private String proofsBucket;
 
     public ProofService(ProofRepository proofRepository,
                         CourseRepository courseRepository,
-                        FileStorageService fileStorageService) {
+                        FileStorageService fileStorageService,
+                        NotificationService notificationService) {
         this.proofRepository = proofRepository;
         this.courseRepository = courseRepository;
         this.fileStorageService = fileStorageService;
+        this.notificationService = notificationService;
     }
 
     // ─── Soumission d'une preuve ──────────────────────────────────────────────
@@ -144,6 +148,9 @@ public class ProofService {
             courseRepository.save(course);
             log.info("Course {} passée à PROOFS_SUBMITTED, auto-validation à {}",
                     courseId, course.getAutoValidateAt());
+
+            // Notification email au client
+            notificationService.notifyProofsSubmitted(course.getClientId(), courseId);
         }
 
         // — Génération de l'URL présignée (1h) pour la réponse

@@ -3,6 +3,7 @@ package com.confiancecoursier.backend.kyc.service;
 import com.confiancecoursier.backend.kyc.api.dto.KycStatusResponse;
 import com.confiancecoursier.backend.kyc.domain.KycSubmission;
 import com.confiancecoursier.backend.kyc.repository.KycRepository;
+import com.confiancecoursier.backend.notify.service.NotificationService;
 import com.confiancecoursier.backend.shared.exception.BusinessException;
 import com.confiancecoursier.backend.user.domain.User;
 import com.confiancecoursier.backend.user.repository.UserRepository;
@@ -23,10 +24,13 @@ public class KycService {
 
     private final KycRepository kycRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
-    public KycService(KycRepository kycRepository, UserRepository userRepository) {
+    public KycService(KycRepository kycRepository, UserRepository userRepository,
+                      NotificationService notificationService) {
         this.kycRepository = kycRepository;
         this.userRepository = userRepository;
+        this.notificationService = notificationService;
     }
 
     /**
@@ -74,6 +78,9 @@ public class KycService {
         // 4. Mettre à jour le kycStatus de l'utilisateur
         user.setKycStatus("PENDING");
         userRepository.save(user);
+
+        // 5. Notification email
+        notificationService.notifyKycSubmitted(userId);
 
         return submission;
     }
@@ -136,6 +143,9 @@ public class KycService {
         user.setKycStatus("APPROVED");
         userRepository.save(user);
 
+        // Notification email
+        notificationService.notifyKycApproved(submission.getUserId());
+
         return submission;
     }
 
@@ -174,6 +184,9 @@ public class KycService {
                 .orElseThrow(() -> new BusinessException("Utilisateur de la soumission introuvable."));
         user.setKycStatus("REJECTED");
         userRepository.save(user);
+
+        // Notification email
+        notificationService.notifyKycRejected(submission.getUserId(), reason);
 
         return submission;
     }

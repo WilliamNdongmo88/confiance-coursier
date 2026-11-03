@@ -7,6 +7,7 @@ import com.confiancecoursier.backend.course.domain.Course;
 import com.confiancecoursier.backend.course.domain.CourseOffer;
 import com.confiancecoursier.backend.course.repository.CourseOfferRepository;
 import com.confiancecoursier.backend.course.repository.CourseRepository;
+import com.confiancecoursier.backend.notify.service.NotificationService;
 import com.confiancecoursier.backend.shared.exception.BusinessException;
 import com.confiancecoursier.backend.user.domain.User;
 import com.confiancecoursier.backend.user.repository.UserRepository;
@@ -23,15 +24,18 @@ public class OfferService {
     private final CourseRepository courseRepository;
     private final ChatRoomRepository chatRoomRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     public OfferService(CourseOfferRepository offerRepository,
                         CourseRepository courseRepository,
                         ChatRoomRepository chatRoomRepository,
-                        UserRepository userRepository) {
+                        UserRepository userRepository,
+                        NotificationService notificationService) {
         this.offerRepository = offerRepository;
         this.courseRepository = courseRepository;
         this.chatRoomRepository = chatRoomRepository;
         this.userRepository = userRepository;
+        this.notificationService = notificationService;
     }
 
     @Transactional
@@ -127,6 +131,7 @@ public class OfferService {
         course.setStatus("ASSIGNED");
         courseRepository.save(course);
 
-        // TODO: Envoyer un email aux autres coursiers pour les prévenir
+        // Notification email au coursier assigné
+        notificationService.notifyCourseAssigned(offerToAccept.getCourierId(), courseId);
     }
 }

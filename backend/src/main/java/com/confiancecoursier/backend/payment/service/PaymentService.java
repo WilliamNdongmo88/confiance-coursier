@@ -2,6 +2,7 @@ package com.confiancecoursier.backend.payment.service;
 
 import com.confiancecoursier.backend.course.domain.Course;
 import com.confiancecoursier.backend.course.repository.CourseRepository;
+import com.confiancecoursier.backend.notify.service.NotificationService;
 import com.confiancecoursier.backend.payment.api.dto.PaymentInitiateRequest;
 import com.confiancecoursier.backend.payment.api.dto.PaymentInitiateResponse;
 import com.confiancecoursier.backend.payment.domain.EscrowEntry;
@@ -40,10 +41,13 @@ public class PaymentService {
 
     private final CourseRepository courseRepository;
     private final EscrowRepository escrowRepository;
+    private final NotificationService notificationService;
 
-    public PaymentService(CourseRepository courseRepository, EscrowRepository escrowRepository) {
+    public PaymentService(CourseRepository courseRepository, EscrowRepository escrowRepository,
+                          NotificationService notificationService) {
         this.courseRepository = courseRepository;
         this.escrowRepository = escrowRepository;
+        this.notificationService = notificationService;
     }
 
     // ─── Initiation du paiement ───────────────────────────────────────────────
@@ -89,6 +93,9 @@ public class PaymentService {
         log.info("[PAYMENT SIMULÉ] courseId={} total={} XAF method={} ref={}",
                 req.getCourseId(), total, req.getPaymentMethod(), ref);
 
+        // Notification email au client + coursier
+        notificationService.notifyPaymentReceived(course.getClientId(), course.getCourierId(), total);
+
         return PaymentInitiateResponse.builder()
                 .paymentRef(ref)
                 .totalAmount(total)
@@ -124,6 +131,10 @@ public class PaymentService {
         }
 
         applyValidation(course);
+
+        // Notification email au coursier
+        notificationService.notifyCourseValidated(course.getCourierId(), courseId);
+
         log.info("[VALIDATION CLIENT] courseId={} validé par clientId={}", courseId, clientId);
     }
 
@@ -145,6 +156,10 @@ public class PaymentService {
 
         for (Course course : courses) {
             applyValidation(course);
+
+            // Notification email client + coursier
+            notificationService.notifyAutoValidation(course.getClientId(), course.getCourierId(), course.getId());
+
             log.info("[AUTO-VALIDATION] courseId={} validée automatiquement (autoValidateAt={})",
                     course.getId(), course.getAutoValidateAt());
         }

@@ -1,6 +1,6 @@
 # AGENT CONTEXT — confiance-coursier
 > Fichier de continuité pour tout agent IA qui reprend ce projet.
-> Mis à jour au : 2026-11-03 (session 41)
+> Mis à jour au : 2026-11-03 (session 42)
 > Dernier agent : Kiro CLI
 
 ---
@@ -987,6 +987,47 @@ app.frontend.url=http://localhost:4200
 - La `SidebarAdminComponent` (créée en TICK-008) pointait déjà vers les routes `/admin/*` — elle est maintenant fonctionnelle
 - `AppShellComponent` sélectionne automatiquement la sidebar admin quand `role === 'ADMIN'`
 - Les stat-cards du dashboard affichent "—" (pas d'API de stats globales — sera TICK-041/042 ou admin stats dédiées)
+
+### Session 42 — TICK-040 [BE] : Module Notifications (Notify)
+
+#### Contexte
+Reprise d'un travail commencé en session précédente (log dans `text2.txt`). La session précédente avait créé `NotificationService.java` et modifié `KycService` + `ProofService`. Cette session a complété les 4 services restants.
+
+#### Fichier créé (session précédente, vérifié)
+- **`notify/service/NotificationService.java`** : service central d'envoi d'emails transactionnels via l'API REST Brevo (même approche que `OtpService` — `RestClient` + header `api-key`)
+  - Méthode générique `sendEmail(String to, String subject, String htmlBody)` (best-effort : erreur Brevo journalisée, ne bloque jamais l'opération métier)
+  - Template HTML standard (en-tête vert `#123b32`, carte blanche, design identique à l'email OTP)
+  - 15 méthodes de notification couvrant tous les événements de la spec §10 :
+    - KYC : `notifyKycSubmitted`, `notifyKycApproved`, `notifyKycRejected`
+    - Course : `notifyCourseAssigned`, `notifyPaymentReceived` (client+coursier), `notifyProofsSubmitted`, `notifyCourseValidated`, `notifyAutoValidation` (client+coursier)
+    - Litige : `notifyDisputeOpened` (admin), `notifyDisputeResolved` (client+coursier)
+    - Signalement : `notifyReportReceived` (admin), `notifyReportDecision` (utilisateur signalé)
+    - Notation : `notifyBadRating` (coursier+admin), `notifySuspension` (user+admin)
+    - Badge : `notifyBadgeObtained`
+  - `resolveEmail(userId)` : résout l'email via `UserRepository.findById`
+  - `notifyAdmins(subject, htmlBody)` : notifie tous les users avec `role=ADMIN` via `userRepository.findByRole("ADMIN")`
+
+#### Fichiers modifiés (session précédente — KycService + ProofService)
+- **`kyc/service/KycService.java`** : injection `NotificationService` ; appels `notifyKycSubmitted` dans `submitKyc()`, `notifyKycApproved` dans `approveKyc()`, `notifyKycRejected` dans `rejectKyc()`
+- **`proof/service/ProofService.java`** : injection `NotificationService` ; appel `notifyProofsSubmitted(course.getClientId(), courseId)` lors de la transition IN_PROGRESS → PROOFS_SUBMITTED
+
+#### Fichiers modifiés (cette session — 5 services restants)
+- **`payment/service/PaymentService.java`** : injection `NotificationService` ; `notifyPaymentReceived(clientId, courierId, total)` dans `initiate()` ; `notifyCourseValidated(courierId, courseId)` dans `validateCourse()` ; `notifyAutoValidation(clientId, courierId, courseId)` dans `autoValidateExpiredCourses()`
+- **`review/service/ReviewService.java`** : injection `NotificationService` ; `notifyBadRating(targetId, stars)` dans `submitReview()` (uniquement si cible = COURIER) ; `notifySuspension(courierId)` dans `checkAndSuspendIfNeeded()` quand suspension auto déclenchée
+- **`dispute/service/DisputeService.java`** : injection `NotificationService` ; `notifyDisputeOpened(openedBy, courseId)` dans `openDispute()` ; `notifyDisputeResolved(clientId, courierId, decision)` dans `resolveDispute()`
+- **`report/service/ReportService.java`** : injection `NotificationService` ; `notifyReportReceived(reporterId, targetId)` dans `submitReport()` ; `notifyReportDecision(targetId, decision)` dans `processReport()` ; `notifySuspension(targetId)` dans `checkAndSuspendIfNeeded()` quand suspension auto déclenchée
+- **`course/service/OfferService.java`** : injection `NotificationService` ; `notifyCourseAssigned(courierId, courseId)` dans `acceptOffer()` quand la course passe à ASSIGNED (remplace le TODO précédent)
+
+#### Build
+- `mvnw compile` → **exit 0** (100 source files, warnings préexistants uniquement)
+- `mvnw test-compile` → **exit 0**
+
+#### Critères d'acceptance vérifiés
+- ✅ `NotificationService` créé avec méthode `sendEmail(String to, String subject, String htmlBody)` via Brevo REST API (réutilise le pattern TICK-012)
+- ✅ Templates emails pour tous les événements clés de la spec §10
+- ✅ `NotificationService` appelé depuis `KycService`, `ProofService`, `OfferService`, `PaymentService`, `ReviewService`, `DisputeService`, `ReportService`
+- ✅ Les emails sont en FR (templates HTML en français)
+- ✅ Build compile sans erreur
 
 ---
 

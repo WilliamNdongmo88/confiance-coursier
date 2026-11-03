@@ -4,6 +4,7 @@ import com.confiancecoursier.backend.report.api.dto.ReportResponse;
 import com.confiancecoursier.backend.report.api.dto.SubmitReportRequest;
 import com.confiancecoursier.backend.report.domain.Report;
 import com.confiancecoursier.backend.report.repository.ReportRepository;
+import com.confiancecoursier.backend.notify.service.NotificationService;
 import com.confiancecoursier.backend.shared.exception.BusinessException;
 import com.confiancecoursier.backend.user.domain.User;
 import com.confiancecoursier.backend.user.repository.UserRepository;
@@ -35,10 +36,13 @@ public class ReportService {
 
     private final ReportRepository reportRepository;
     private final UserRepository   userRepository;
+    private final NotificationService notificationService;
 
-    public ReportService(ReportRepository reportRepository, UserRepository userRepository) {
+    public ReportService(ReportRepository reportRepository, UserRepository userRepository,
+                         NotificationService notificationService) {
         this.reportRepository = reportRepository;
         this.userRepository   = userRepository;
+        this.notificationService = notificationService;
     }
 
     // ─── Soumission d'un signalement ──────────────────────────────────────
@@ -65,6 +69,9 @@ public class ReportService {
         Report saved = reportRepository.save(report);
         log.info("Signalement soumis : id={} reporterId={} targetId={} motif={}",
                 saved.getId(), reporterId, targetId, req.motif());
+
+        // Notification email admin
+        notificationService.notifyReportReceived(reporterId, targetId);
 
         // Vérification de la règle de suspension automatique
         checkAndSuspendIfNeeded(target);
@@ -102,7 +109,12 @@ public class ReportService {
             });
         }
 
-        return ReportResponse.from(reportRepository.save(report));
+        Report savedReport = reportRepository.save(report);
+
+        // Notification email à l'utilisateur signalé
+        notificationService.notifyReportDecision(report.getTargetId(), dec);
+
+        return ReportResponse.from(savedReport);
     }
 
     // ─── Règle de suspension automatique ─────────────────────────────────
@@ -116,6 +128,9 @@ public class ReportService {
             userRepository.save(target);
             log.warn("[SUSPENSION AUTO] userId={} suspendu après {} signalements en {} jours.",
                     target.getId(), recent.size(), AUTO_SUSPEND_WINDOW_DAYS);
+
+            // Notification suspension au user + admin
+            notificationService.notifySuspension(target.getId());
         }
     }
 
