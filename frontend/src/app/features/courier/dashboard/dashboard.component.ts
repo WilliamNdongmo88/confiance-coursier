@@ -55,6 +55,7 @@ import {
       padding: 14px 18px;
       margin-bottom: 18px;
       box-shadow: 0 4px 16px rgba(120, 53, 15, .25);
+      flex-wrap: wrap;
     }
     .kyc-banner__icon-wrap {
       display: grid;
@@ -68,7 +69,7 @@ import {
     }
     .kyc-banner__body {
       flex: 1;
-      min-width: 0;
+      min-width: 160px;
     }
     .kyc-banner__title {
       display: block;
@@ -102,6 +103,16 @@ import {
     .kyc-banner__cta:hover {
       background: #fef3c7;
       transform: translateY(-1px);
+    }
+    @media (max-width: 520px) {
+      .kyc-banner {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+      }
+      .kyc-banner__icon-wrap { width: 32px; height: 32px; }
+      .kyc-banner__body { min-width: unset; width: 100%; }
+      .kyc-banner__cta { width: 100%; justify-content: center; }
     }
 
     /* ── Disponibilité ── */
@@ -253,6 +264,11 @@ import {
           @if (kycStatus() !== 'PENDING') {
             <a class="kyc-banner__cta" routerLink="/courier/kyc">
               {{ kycStatus() === 'REJECTED' ? 'Resoumettre' : 'Compléter le dossier' }}
+              <svg lucideArrowRight size="13"></svg>
+            </a>
+          } @else {
+            <a class="kyc-banner__cta" routerLink="/courier/kyc">
+              Voir mon dossier
               <svg lucideArrowRight size="13"></svg>
             </a>
           }
