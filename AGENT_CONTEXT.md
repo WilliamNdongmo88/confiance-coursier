@@ -1,6 +1,6 @@
 # AGENT CONTEXT — confiance-coursier
 > Fichier de continuité pour tout agent IA qui reprend ce projet.
-> Mis à jour au : 2026-11-03 (session 40)
+> Mis à jour au : 2026-11-03 (session 41)
 > Dernier agent : Kiro CLI
 
 ---
@@ -940,6 +940,53 @@ app.frontend.url=http://localhost:4200
 - ✅ Seul l'ADMIN peut accéder aux routes `/api/admin/**` (SecurityConfig `hasRole("ADMIN")`)
 - ✅ La validation KYC met à jour le statut du coursier (`KycService.approveKyc/rejectKyc` → `user.kycStatus`)
 - ✅ La config commissions est persistée dans `platform_settings` (`CommissionService` + `PlatformSettingRepository`)
+
+### Session 41 — TICK-039 [FE] : Composants Admin frontend
+
+#### Fichiers créés
+
+- **`core/services/admin.service.ts`** : service Angular centralisant tous les appels API admin (`/api/admin/*`) — interfaces TypeScript matchant les DTOs backend (AdminKycResponse, DisputeResponse, ReportResponse, UserProfileResponse, CommissionSettings)
+- **`features/admin/dashboard/dashboard.component.ts`** : fidèle à `maquette-v2/admin/dashboard.html`
+  - Alerte "Actions requises" (KYC + litiges + signalements en attente)
+  - 4 stat-cards (courses, commissions, coursiers actifs, clients actifs)
+  - 3 colonnes de tâches : KYC en attente, signalements, litiges à arbitrer
+  - Liens vers les pages détaillées
+- **`features/admin/kyc/kyc.component.ts`** : fidèle à `maquette-v2/admin/kyc.html`
+  - Liste des soumissions KYC avec avatar, nom, email, type de document, statut
+  - Thumbnails cliquables vers URLs présignées MinIO (recto, verso, selfie)
+  - Boutons Approuver / Refuser (refus avec textarea raison min. 10 chars)
+  - Cartes des soumissions déjà traitées affichées en grisé
+- **`features/admin/disputes/disputes.component.ts`** : fidèle à `maquette-v2/admin/disputes.html`
+  - Cartes de litiges avec ID course, motif, parties, description
+  - Boutons "Rembourser le client" (REMBOURSEMENT_TOTAL) / "Payer le coursier" (LIBERATION) / "Voir les échanges"
+  - Litiges résolus affichés en grisé avec décision
+- **`features/admin/reports/reports.component.ts`** : fidèle à `maquette-v2/admin/reports.html`
+  - Cartes de signalements avec ID, motif, parties, description
+  - Boutons "Classer sans suite" (REJET) / "Suspendre" (SUSPENSION) / "Avertir" (AVERTISSEMENT)
+  - Rappel de la règle 3/30j dans une alerte
+- **`features/admin/commissions/commissions.component.ts`** : fidèle à `maquette-v2/admin/commissions.html`
+  - 3 rate-cards : taux client (slider 0-10%), taux coursier (slider 0-40%), tarif minimum (input XAF)
+  - Simulation en temps réel (frais réels 15 000 + tarif 6 250 → total client / net coursier)
+  - Bouton "Enregistrer" → `PUT /api/admin/commissions`
+  - Layout étroit (`[narrow]="true"`)
+- **`features/admin/users/users.component.ts`** : fidèle à `maquette-v2/admin/users.html`
+  - Barre de filtres : recherche texte + filtre rôle + filtre statut
+  - Tableau desktop (utilisateur, rôle, KYC, inscription, statut, actions)
+  - Cartes mobile (responsive)
+  - Boutons Suspendre / Réactiver selon le statut courant
+  - Filtres combinables (recherche + rôle + statut) via `computed()`
+
+#### Fichiers modifiés
+- **`app.routes.ts`** : 6 routes admin ajoutées (`/admin/dashboard`, `/admin/kyc`, `/admin/disputes`, `/admin/reports`, `/admin/commissions`, `/admin/users`) avec `authGuard + roleGuard(ADMIN)`
+
+#### Build
+- **`ng build --configuration development`** → **exit 0** (zéro warning)
+- Fixes appliqués pendant le build : typing `Record<string, string>` pour les `params` HTTP (TypeScript strict), imports Lucide unused supprimés, `DatePipe` importé dans le dashboard, `FormsModule` importé pour les composants avec `ngModel`, `computed` importé pour les signaux dérivés
+
+#### Notes
+- La `SidebarAdminComponent` (créée en TICK-008) pointait déjà vers les routes `/admin/*` — elle est maintenant fonctionnelle
+- `AppShellComponent` sélectionne automatiquement la sidebar admin quand `role === 'ADMIN'`
+- Les stat-cards du dashboard affichent "—" (pas d'API de stats globales — sera TICK-041/042 ou admin stats dédiées)
 
 ---
 

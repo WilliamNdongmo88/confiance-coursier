@@ -18,6 +18,12 @@ import { RateComponent } from './features/shared/rate/rate.component';
 import { ValidateComponent } from './features/client/validate/validate.component';
 import { ProofsComponent } from './features/courier/proofs/proofs.component';
 import { ChatComponent } from './features/chat/chat.component';
+import { AdminDashboardComponent } from './features/admin/dashboard/dashboard.component';
+import { AdminKycComponent } from './features/admin/kyc/kyc.component';
+import { AdminDisputesComponent } from './features/admin/disputes/disputes.component';
+import { AdminReportsComponent } from './features/admin/reports/reports.component';
+import { AdminCommissionsComponent } from './features/admin/commissions/commissions.component';
+import { AdminUsersComponent } from './features/admin/users/users.component';
 import { authGuard } from './core/guards/auth.guard';
 import { roleGuard } from './core/guards/role.guard';
 
@@ -142,5 +148,43 @@ export const routes: Routes = [
     path: 'chat/:roomId',
     component: ChatComponent,
     canActivate: [authGuard]
+  },
+
+  // Routes ADMIN — token requis + rôle ADMIN
+  {
+    path: 'admin/dashboard',
+    component: AdminDashboardComponent,
+    canActivate: [authGuard, roleGuard],
+    data: { role: 'ADMIN' }
+  },
+  {
+    path: 'admin/kyc',
+    component: AdminKycComponent,
+    canActivate: [authGuard, roleGuard],
+    data: { role: 'ADMIN' }
+  },
+  {
+    path: 'admin/disputes',
+    component: AdminDisputesComponent,
+    canActivate: [authGuard, roleGuard],
+    data: { role: 'ADMIN' }
+  },
+  {
+    path: 'admin/reports',
+    component: AdminReportsComponent,
+    canActivate: [authGuard, roleGuard],
+    data: { role: 'ADMIN' }
+  },
+  {
+    path: 'admin/commissions',
+    component: AdminCommissionsComponent,
+    canActivate: [authGuard, roleGuard],
+    data: { role: 'ADMIN' }
+  },
+  {
+    path: 'admin/users',
+    component: AdminUsersComponent,
+    canActivate: [authGuard, roleGuard],
+    data: { role: 'ADMIN' }
   },
 ];

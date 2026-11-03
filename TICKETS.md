@@ -918,7 +918,7 @@ Le flux d'offre doit passer par le chat (spec fonctionnelle §2.1). Le coursier 
 ---
 
 ### TICK-039 🔴 [FE] Créer les composants Admin
-**Statut :** ⬜
+**Statut :** ✅
 **Maquette :** `maquette-v2/admin/`
 
 **Travail à faire :**
@@ -1124,7 +1124,7 @@ Le flux d'offre doit passer par le chat (spec fonctionnelle §2.1). Le coursier 
 | TICK-036 | Module Signalements (backend) | S5 | BE | 🔴 | ✅ |
 | TICK-037 | ReportUserComponent | S5 | FE | 🟡 | ✅ |
 | TICK-038 | Module Admin (backend) | S6 | BE | 🔴 | ✅ |
-| TICK-039 | Composants Admin (frontend) | S6 | FE | 🔴 | ⬜ |
+| TICK-039 | Composants Admin (frontend) | S6 | FE | 🔴 | ✅ |
 | TICK-040 | Module Notifications Brevo | S6 | BE | 🟡 | ⬜ |
 | TICK-041 | HistoryComponent | S6 | FE | 🟡 | ⬜ |
 | TICK-042 | EarningsComponent (coursier) | S6 | FE | 🟡 | ⬜ |
