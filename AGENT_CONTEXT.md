@@ -1,6 +1,6 @@
 # AGENT CONTEXT — confiance-coursier
 > Fichier de continuité pour tout agent IA qui reprend ce projet.
-> Mis à jour au : 2026-11-02 (session 33)
+> Mis à jour au : 2026-11-03 (session 40)
 > Dernier agent : Kiro CLI
 
 ---
@@ -885,6 +885,61 @@ app.frontend.url=http://localhost:4200
 - ✅ `POST /api/courses/4/proofs` avec PHOTO → 200, course passe en `PROOFS_SUBMITTED`, `auto_validate_at = +72h`
 - ✅ Doublon (même fichier) → 400 `"Ce fichier a déjà été soumis pour cette course."`
 - ⏳ Type invalide → 400 propre (après rebuild avec fix ConstraintViolation)
+
+### Session 40 — TICK-038 [BE] : Module Admin — KYC + Litiges + Signalements + Users + Commissions
+
+#### Contexte
+- **Divergence identifiée et corrigée** : TICKETS.md montrait Sprint 4 et 5 (TICK-029 à TICK-037) au statut ⬜, alors que AGENT_CONTEXT.md (Sessions 35-39) et la vérification des fichiers réels prouvent qu'ils sont terminés. Tous les statuts ont été mis à jour en ✅ dans TICKETS.md (corps + tableau récapitulatif + tableau des sprints).
+
+#### Fichiers créés
+
+- **`admin/domain/PlatformSetting.java`** : entité JPA `platform_settings` — `settingKey` (unique), `settingValue`, `updatedBy`, `updatedAt` (`@PrePersist` + `@PreUpdate`)
+- **`admin/repository/PlatformSettingRepository.java`** : `findBySettingKey(String)`
+- **`admin/service/CommissionService.java`** :
+  - `getCommissionSettings()` → lit `commission_rate_client` (défaut 0), `commission_rate_courier` (défaut 20), `tarif_minimum_coursier` (défaut 5000) depuis `platform_settings`
+  - `updateCommissionSettings(request, adminId)` → upsert des 3 clés dans `platform_settings`
+- **`admin/api/AdminKycController.java`** :
+  - `GET /api/admin/kyc?status=PENDING` → liste des soumissions avec infos utilisateur + URLs présignées MinIO (`AdminKycResponse`)
+  - `POST /api/admin/kyc/{id}/approve` → `KycService.approveKyc()`
+  - `POST /api/admin/kyc/{id}/reject` → body `RejectKycRequest` → `KycService.rejectKyc()`
+- **`admin/api/AdminDisputeController.java`** :
+  - `GET /api/admin/disputes?status=OPEN` → `DisputeService.getDisputesByStatus()`
+  - `POST /api/admin/disputes/{id}/resolve?decision=LIBERATION` → `DisputeService.resolveDispute()`
+- **`admin/api/AdminReportController.java`** :
+  - `GET /api/admin/reports?status=OPEN` → `ReportService.getReportsByStatus()`
+  - `POST /api/admin/reports/{id}/process?decision=SUSPENSION` → `ReportService.processReport()`
+- **`admin/api/AdminUserController.java`** :
+  - `GET /api/admin/users?role=&status=` → liste filtrable (combinaisons role/status/all) via `UserProfileResponse`
+  - `POST /api/admin/users/{id}/suspend` → `user.status = SUSPENDED`
+  - `POST /api/admin/users/{id}/activate` → `user.status = ACTIVE`
+- **`admin/api/AdminCommissionController.java`** :
+  - `GET /api/admin/commissions` → `CommissionService.getCommissionSettings()`
+  - `PUT /api/admin/commissions` → body `UpdateCommissionRequest` → `CommissionService.updateCommissionSettings()`
+- **`admin/api/dto/RejectKycRequest.java`** : record `@NotBlank @Size(min=10,max=500) String rejectionReason`
+- **`admin/api/dto/UpdateCommissionRequest.java`** : record `commissionRateClient`, `commissionRateCourier`, `tarifMinimumCoursier` (tous `@NotNull @DecimalMin`)
+- **`admin/api/dto/CommissionSettingsResponse.java`** : DTO avec `defaults()` (0% / 20% / 5000 XAF)
+- **`admin/api/dto/AdminKycResponse.java`** : record avec `of(KycSubmission, User, frontUrl, backUrl, selfieUrl)` — inclut userId, userFullName, userEmail, documentType, status, rejectionReason, URLs présignées
+
+#### Fichiers modifiés
+
+- **`config/SecurityConfig.java`** : ajout `.requestMatchers("/api/admin/**").hasRole("ADMIN")` avant `.anyRequest().authenticated()` — seuls les ADMIN peuvent accéder aux routes admin (vérifié : `UserDetailsServiceImpl` mappe `"ROLE_" + role`)
+- **`kyc/service/KycService.java`** : ajout de 3 méthodes admin :
+  - `getAllKycByStatus(status)` → `findByStatus()` ou `findAll()`
+  - `approveKyc(submissionId, adminId)` → `submission.status = APPROVED` + `reviewedBy/reviewedAt` + `user.kycStatus = APPROVED`
+  - `rejectKyc(submissionId, adminId, reason)` → `submission.status = REJECTED` + `rejectionReason` + `user.kycStatus = REJECTED`
+- **`dispute/service/DisputeService.java`** : ajout `getDisputesByStatus(status)` → `findByStatus()` ou `findAll()`, retourne `List<DisputeResponse>`
+- **`report/service/ReportService.java`** : ajout `getReportsByStatus(status)` → `findByStatus()` ou `findAll()`, retourne `List<ReportResponse>`
+- **`user/repository/UserRepository.java`** : ajout `findByRole(String)`, `findByStatus(String)`, `findByRoleAndStatus(String, String)` pour le filtrage admin
+
+#### Build
+- **`mvnw compile`** → **exit 0** (99 fichiers source compilés, JDK 21)
+- **`mvnw test-compile`** → **exit 0** (2 fichiers de test compilés)
+- Warnings préexistants uniquement (Lombok `@Builder.Default` sur Course/ChatMessage, API dépréciée dans JwtAuthenticationFilter)
+
+#### Critères d'acceptance vérifiés
+- ✅ Seul l'ADMIN peut accéder aux routes `/api/admin/**` (SecurityConfig `hasRole("ADMIN")`)
+- ✅ La validation KYC met à jour le statut du coursier (`KycService.approveKyc/rejectKyc` → `user.kycStatus`)
+- ✅ La config commissions est persistée dans `platform_settings` (`CommissionService` + `PlatformSettingRepository`)
 
 ---
 

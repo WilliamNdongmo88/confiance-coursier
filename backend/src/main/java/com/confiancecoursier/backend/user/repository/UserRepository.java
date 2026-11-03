@@ -14,4 +14,13 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     /** Tous les coursiers actifs — filtrés par rôle et statut. */
     List<User> findByRoleAndStatusOrderByTrustScoreDesc(String role, String status);
+
+    /** Tous les utilisateurs par rôle (admin). */
+    List<User> findByRole(String role);
+
+    /** Tous les utilisateurs par statut (admin). */
+    List<User> findByStatus(String status);
+
+    /** Utilisateurs par rôle et statut (admin). */
+    List<User> findByRoleAndStatus(String role, String status);
 }

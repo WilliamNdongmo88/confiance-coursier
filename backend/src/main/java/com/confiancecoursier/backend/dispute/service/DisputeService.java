@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -136,5 +137,20 @@ public class DisputeService {
         Dispute resolved = disputeRepository.save(dispute);
         log.info("Litige {} résolu par admin {} — décision : {}", disputeId, adminId, decision);
         return DisputeResponse.from(resolved);
+    }
+
+    // ─── Listage (admin) ──────────────────────────────────────────────────
+
+    /**
+     * Liste tous les litiges, éventuellement filtrés par statut.
+     *
+     * @param status statut filtrant (OPEN, RESOLVED…) ou null pour tout
+     * @return la liste des litiges au format DTO
+     */
+    public List<DisputeResponse> getDisputesByStatus(String status) {
+        List<Dispute> disputes = (status == null || status.isBlank())
+                ? disputeRepository.findAll()
+                : disputeRepository.findByStatus(status.toUpperCase());
+        return disputes.stream().map(DisputeResponse::from).toList();
     }
 }

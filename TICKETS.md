@@ -26,8 +26,8 @@
 | Sprint 1 | Design system + Auth complète | ✅ Complet |
 | Sprint 2 | Cycle de vie d'une course | ✅ Complet |
 | Sprint 3 | KYC + Profil utilisateur | ✅ Complet |
-| Sprint 4 | Preuves + Paiement Escrow | ⬜ En attente |
-| Sprint 5 | Notation + Litiges + Signalements | ⬜ En attente |
+| Sprint 4 | Preuves + Paiement Escrow | ✅ Complet |
+| Sprint 5 | Notation + Litiges + Signalements | ✅ Complet |
 | Sprint 6 | Admin + Notifications | ⬜ En attente |
 | Sprint 7 | Qualité, sécurité & mise en production | ⬜ En attente |
 
@@ -701,7 +701,7 @@ Le flux d'offre doit passer par le chat (spec fonctionnelle §2.1). Le coursier 
 ---
 
 ### TICK-029 🔴 [FE] Créer `ProofsComponent` (Coursier)
-**Statut :** ⬜
+**Statut :** ✅
 **Maquette :** `maquette-v2/courier/proofs.html`
 **Route :** `/courier/proofs/:courseId`
 
@@ -720,7 +720,7 @@ Le flux d'offre doit passer par le chat (spec fonctionnelle §2.1). Le coursier 
 ---
 
 ### TICK-030 🔴 [FE] Créer `ValidateComponent` (Client)
-**Statut :** ⬜
+**Statut :** ✅
 **Maquette :** `maquette-v2/client/validate.html`
 **Route :** `/client/validate/:courseId`
 
@@ -737,7 +737,7 @@ Le flux d'offre doit passer par le chat (spec fonctionnelle §2.1). Le coursier 
 ---
 
 ### TICK-031 🟡 [BE] Endpoint de validation et libération escrow (simulé)
-**Statut :** ⬜
+**Statut :** ✅
 
 **Travail à faire :**
 - [ ] `POST /api/courses/{courseId}/validate` (CLIENT uniquement) :
@@ -764,7 +764,7 @@ Le flux d'offre doit passer par le chat (spec fonctionnelle §2.1). Le coursier 
 ---
 
 ### TICK-032 🔴 [BE] Module Notation (Review)
-**Statut :** ⬜
+**Statut :** ✅
 **Fichiers concernés :** `review/` (actuellement vide)
 
 **Travail à faire :**
@@ -788,7 +788,7 @@ Le flux d'offre doit passer par le chat (spec fonctionnelle §2.1). Le coursier 
 ---
 
 ### TICK-033 🔴 [FE] Créer `RateComponent` (Client + Coursier)
-**Statut :** ⬜
+**Statut :** ✅
 **Maquette :** `maquette-v2/client/rate.html` + `maquette-v2/courier/rate-client.html`
 **Route :** `/client/rate/:courseId` + `/courier/rate-client/:courseId`
 
@@ -805,7 +805,7 @@ Le flux d'offre doit passer par le chat (spec fonctionnelle §2.1). Le coursier 
 ---
 
 ### TICK-034 🔴 [BE] Module Litiges (Dispute)
-**Statut :** ⬜
+**Statut :** ✅
 **Fichiers concernés :** `dispute/` (actuellement vide)
 
 **Travail à faire :**
@@ -830,7 +830,7 @@ Le flux d'offre doit passer par le chat (spec fonctionnelle §2.1). Le coursier 
 ---
 
 ### TICK-035 🟡 [FE] Créer `DisputeFormComponent` (Client + Coursier)
-**Statut :** ⬜
+**Statut :** ✅
 **Maquette :** `maquette-v2/client/dispute-form.html` + `maquette-v2/courier/dispute-form.html`
 
 **Travail à faire :**
@@ -845,7 +845,7 @@ Le flux d'offre doit passer par le chat (spec fonctionnelle §2.1). Le coursier 
 ---
 
 ### TICK-036 🔴 [BE] Module Signalements (Report)
-**Statut :** ⬜
+**Statut :** ✅
 **Fichiers concernés :** `report/` (actuellement vide)
 
 **Travail à faire :**
@@ -867,7 +867,7 @@ Le flux d'offre doit passer par le chat (spec fonctionnelle §2.1). Le coursier 
 ---
 
 ### TICK-037 🟡 [FE] Créer `ReportUserComponent` (Client + Coursier)
-**Statut :** ⬜
+**Statut :** ✅
 **Maquette :** `maquette-v2/client/report-user.html` + `maquette-v2/courier/report-user.html`
 **Route :** `/report-user/:userId`
 
@@ -886,7 +886,7 @@ Le flux d'offre doit passer par le chat (spec fonctionnelle §2.1). Le coursier 
 ---
 
 ### TICK-038 🔴 [BE] Module Admin — KYC + Litiges + Signalements
-**Statut :** ⬜
+**Statut :** ✅
 **Fichiers concernés :** `admin/` (actuellement vide)
 
 **Travail à faire :**
@@ -1114,16 +1114,16 @@ Le flux d'offre doit passer par le chat (spec fonctionnelle §2.1). Le coursier 
 | TICK-026 | Endpoints profil utilisateur | S3 | BE | 🟡 | ✅ |
 | TICK-027 | ProfileComponent | S3 | FE | 🟡 | ✅ |
 | TICK-028 | Module Preuves (backend) | S4 | BE | 🔴 | ✅ |
-| TICK-029 | ProofsComponent (coursier) | S4 | FE | 🔴 | ⬜ |
-| TICK-030 | ValidateComponent (client) | S4 | FE | 🔴 | ⬜ |
-| TICK-031 | Validation + libération escrow | S4 | BE | 🟡 | ⬜ |
-| TICK-032 | Module Notation (backend) | S5 | BE | 🔴 | ⬜ |
-| TICK-033 | RateComponent (client + coursier) | S5 | FE | 🔴 | ⬜ |
-| TICK-034 | Module Litiges (backend) | S5 | BE | 🔴 | ⬜ |
-| TICK-035 | DisputeFormComponent | S5 | FE | 🟡 | ⬜ |
-| TICK-036 | Module Signalements (backend) | S5 | BE | 🔴 | ⬜ |
-| TICK-037 | ReportUserComponent | S5 | FE | 🟡 | ⬜ |
-| TICK-038 | Module Admin (backend) | S6 | BE | 🔴 | ⬜ |
+| TICK-029 | ProofsComponent (coursier) | S4 | FE | 🔴 | ✅ |
+| TICK-030 | ValidateComponent (client) | S4 | FE | 🔴 | ✅ |
+| TICK-031 | Validation + libération escrow | S4 | BE | 🟡 | ✅ |
+| TICK-032 | Module Notation (backend) | S5 | BE | 🔴 | ✅ |
+| TICK-033 | RateComponent (client + coursier) | S5 | FE | 🔴 | ✅ |
+| TICK-034 | Module Litiges (backend) | S5 | BE | 🔴 | ✅ |
+| TICK-035 | DisputeFormComponent | S5 | FE | 🟡 | ✅ |
+| TICK-036 | Module Signalements (backend) | S5 | BE | 🔴 | ✅ |
+| TICK-037 | ReportUserComponent | S5 | FE | 🟡 | ✅ |
+| TICK-038 | Module Admin (backend) | S6 | BE | 🔴 | ✅ |
 | TICK-039 | Composants Admin (frontend) | S6 | FE | 🔴 | ⬜ |
 | TICK-040 | Module Notifications Brevo | S6 | BE | 🟡 | ⬜ |
 | TICK-041 | HistoryComponent | S6 | FE | 🟡 | ⬜ |

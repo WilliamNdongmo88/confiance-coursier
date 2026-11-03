@@ -126,4 +126,19 @@ public class ReportService {
             throw new BusinessException("L'identifiant de l'utilisateur signalé est invalide.");
         }
     }
+
+    // ─── Listage (admin) ──────────────────────────────────────────────────
+
+    /**
+     * Liste tous les signalements, éventuellement filtrés par statut.
+     *
+     * @param status statut filtrant (OPEN, PROCESSED…) ou null pour tout
+     * @return la liste des signalements au format DTO
+     */
+    public List<ReportResponse> getReportsByStatus(String status) {
+        List<Report> reports = (status == null || status.isBlank())
+                ? reportRepository.findAll()
+                : reportRepository.findByStatus(status.toUpperCase());
+        return reports.stream().map(ReportResponse::from).toList();
+    }
 }
