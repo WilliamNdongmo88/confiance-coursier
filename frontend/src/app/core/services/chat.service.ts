@@ -91,4 +91,9 @@ export class ChatService {
   getMessages(roomId: number): Observable<any[]> {
     return this.http.get<any[]>(`/api/chat/rooms/${roomId}/messages`);
   }
+
+  // Charger les infos de la room (clientId/Name, courierId/Name, courseId)
+  getRoomInfo(roomId: number): Observable<any> {
+    return this.http.get<any>(`/api/chat/rooms/${roomId}`);
+  }
 }
