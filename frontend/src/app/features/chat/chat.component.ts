@@ -512,18 +512,39 @@ interface ChatMsg {
     }
 
     /* ── Dark mode ── */
-    [data-theme="dark"] .chat-header,
-    [data-theme="dark"] .chat-input-bar { background: #1F2C26; border-color: #2E4037; }
-    [data-theme="dark"] .chat-trace-banner { background: #1F2C26; border-color: #2E4037; }
-    [data-theme="dark"] .chat-body { background: #18221D; }
-    [data-theme="dark"] .message-row.incoming .message-bubble {
-      background: #1F2C26; border-color: #2E4037; color: #F3F7F5;
+    :host-context([data-theme="dark"]) .chat-header,
+    :host-context([data-theme="dark"]) .chat-input-bar { background: #1F2C26; border-color: #2E4037; }
+    :host-context([data-theme="dark"]) .chat-trace-banner { background: #1a2e28; border-color: #2E4037; color: #a8bfb4; }
+    :host-context([data-theme="dark"]) .chat-body { background: #18221D; }
+    :host-context([data-theme="dark"]) .chat-title { color: #e8f0ec; }
+    :host-context([data-theme="dark"]) .chat-subtitle { color: #7fa898; }
+    :host-context([data-theme="dark"]) .chat-date-divider { color: #7fa898; }
+    :host-context([data-theme="dark"]) .chat-date-divider::before,
+    :host-context([data-theme="dark"]) .chat-date-divider::after { background: #2E4037; }
+    :host-context([data-theme="dark"]) .message-row.incoming .message-bubble {
+      background: #1F2C26; border-color: #2E4037; color: #e8f0ec;
     }
-    [data-theme="dark"] .chat-input { background: #1F2C26; border-color: #2E4037; color: #F3F7F5; }
-    [data-theme="dark"] .offer-card { background: #1F2C26; border-color: #d7ed9a; }
-    [data-theme="dark"] .modal-content { background: #1F2C26; border-color: #2E4037; }
-    [data-theme="dark"] .offer-preview { background: #18221D; }
-    [data-theme="dark"] .modal-title { color: #F3F7F5; }
+    :host-context([data-theme="dark"]) .message-row.outgoing .message-bubble {
+      background: #17634f; color: #fff;
+    }
+    :host-context([data-theme="dark"]) .message-time { color: #7fa898; }
+    :host-context([data-theme="dark"]) .chat-input {
+      background: #1a2e28; border-color: #2E4037; color: #e8f0ec;
+    }
+    :host-context([data-theme="dark"]) .chat-input::placeholder { color: #5a7a6e; }
+    :host-context([data-theme="dark"]) .offer-card {
+      background: #1a2e28; border-color: #d7ed9a;
+    }
+    :host-context([data-theme="dark"]) .offer-card h4 { color: #e8f0ec; }
+    :host-context([data-theme="dark"]) .offer-total { color: #e8f0ec; border-color: #2E4037; }
+    :host-context([data-theme="dark"]) .offer-detail { color: #a8bfb4; }
+    :host-context([data-theme="dark"]) .modal-content { background: #1F2C26; border-color: #2E4037; }
+    :host-context([data-theme="dark"]) .modal-title { color: #e8f0ec; }
+    :host-context([data-theme="dark"]) .offer-preview { background: #18221D; }
+    :host-context([data-theme="dark"]) .offer-preview-row .label { color: #7fa898; }
+    :host-context([data-theme="dark"]) .offer-preview-row .value { color: #e8f0ec; }
+    :host-context([data-theme="dark"]) .badge-verified { background: #1a3d2e; color: #6fcf97; }
+    :host-context([data-theme="dark"]) .chat-header-info .chat-avatar { background: #1a3d2e; color: #d7ed9a; }
   `],
   template: `
     <!-- Overlay mobile sidebar -->

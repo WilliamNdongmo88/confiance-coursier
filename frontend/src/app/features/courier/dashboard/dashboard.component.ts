@@ -362,6 +362,7 @@ import {
                         <svg lucideCamera size="13"></svg> Preuves
                       </a>
                     }
+                    <!-- Bouton Chat : visible dès qu'une chatRoom existe (toutes missions actives) -->
                     @if (mission.chatRoomId) {
                       <a [routerLink]="['/chat', mission.chatRoomId]" class="btn-row btn-row--green">
                         <svg lucideMessageCircle size="14"></svg> Chat

@@ -112,8 +112,24 @@ public class CourseService {
     }
 
     public List<CourseResponse> getMyMissions(Long courierId) {
-        return courseRepository.findByCourierIdOrderByCreatedAtDesc(courierId)
+        // 1. Courses où le coursier est assigné (courierId rempli)
+        List<Course> assigned = courseRepository.findByCourierIdOrderByCreatedAtDesc(courierId);
+
+        // 2. Courses où le coursier a une ChatRoom (offre faite, client pas encore payé)
+        //    On inclut ces courses pour que le bouton Chat apparaisse dès l'envoi de l'offre
+        List<Long> assignedIds = assigned.stream().map(Course::getId).toList();
+        List<Course> chatCourses = chatRoomRepository.findByCourierId(courierId)
                 .stream()
+                .map(room -> courseRepository.findById(room.getCourseId()).orElse(null))
+                .filter(c -> c != null && !assignedIds.contains(c.getId()))
+                .toList();
+
+        // 3. Fusionner les deux listes (assigned en premier)
+        List<Course> all = new java.util.ArrayList<>();
+        all.addAll(assigned);
+        all.addAll(chatCourses);
+
+        return all.stream()
                 .map(course -> {
                     Long chatRoomId = chatRoomRepository
                             .findByCourseIdAndCourierId(course.getId(), courierId)
