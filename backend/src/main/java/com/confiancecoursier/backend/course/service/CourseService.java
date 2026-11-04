@@ -46,9 +46,17 @@ public class CourseService {
                 .collect(Collectors.toList());
     }
 
-    public List<CourseResponse> getPublishedCourses() {
+    public List<CourseResponse> getPublishedCourses(Long courierId) {
+        // Récupérer les IDs des courses où ce coursier a déjà une ChatRoom (offre déjà faite)
+        List<Long> alreadyEngagedCourseIds = chatRoomRepository.findByCourierId(courierId)
+                .stream()
+                .map(room -> room.getCourseId())
+                .toList();
+
         return courseRepository.findByStatusOrderByCreatedAtDesc("PUBLISHED")
                 .stream()
+                // Exclure les courses où le coursier est déjà engagé
+                .filter(course -> !alreadyEngagedCourseIds.contains(course.getId()))
                 .map(CourseResponse::fromEntity)
                 .collect(Collectors.toList());
     }

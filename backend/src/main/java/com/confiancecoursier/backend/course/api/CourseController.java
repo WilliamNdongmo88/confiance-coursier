@@ -58,7 +58,9 @@ public class CourseController {
 
     @GetMapping("/published")
     public ResponseEntity<List<CourseResponse>> getPublishedCourses() {
-        return ResponseEntity.ok(courseService.getPublishedCourses());
+        // On passe le courierId pour exclure les courses où ce coursier a déjà une offre/chatroom
+        Long courierId = getCurrentUserId();
+        return ResponseEntity.ok(courseService.getPublishedCourses(courierId));
     }
 
     @PutMapping("/{id}")

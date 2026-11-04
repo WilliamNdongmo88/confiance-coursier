@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { DecimalPipe } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import { AppShellComponent } from '../../../shared/components/app-shell/app-shell.component';
 import { PaymentService } from '../../../core/services/payment.service';
 import { ToastService } from '../../../core/services/toast.service';
@@ -16,8 +17,6 @@ import {
 
 type PaymentMethod = 'STRIPE' | 'MTN' | 'ORANGE';
 
-const CLIENT_FEE_RATE = 5; // % — doit correspondre à PaymentService.java
-
 @Component({
   selector: 'app-pay',
   standalone: true,
@@ -25,8 +24,7 @@ const CLIENT_FEE_RATE = 5; // % — doit correspondre à PaymentService.java
     FormsModule,
     RouterLink,
     DecimalPipe,
-    AppShellComponent,
-    LucideArrowLeft,
+    AppShellComponent,    LucideArrowLeft,
     LucideFileText,
     LucideAlertTriangle,
     LucideCreditCard,
@@ -61,6 +59,30 @@ const CLIENT_FEE_RATE = 5; // % — doit correspondre à PaymentService.java
       padding: 4px 8px;
       text-align: right;
     }
+
+    /* ── Encart vigilance ── */
+    .vigilance-box {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      background: #fff3dc;
+      color: #5a3e10;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      margin-bottom: 16px;
+      border: 1px solid rgba(166,107,22,0.2);
+      line-height: 1.5;
+    }
+    .vigilance-box svg { color: #a66b16; flex-shrink: 0; margin-top: 1px; }
+
+    :host-context([data-theme="dark"]) .vigilance-box {
+      background: #2d2008;
+      color: #fde68a;
+      border-color: rgba(253,230,138,.2);
+    }
+    :host-context([data-theme="dark"]) .vigilance-box svg { color: #fcd34d; }
+    :host-context([data-theme="dark"]) .vigilance-box strong { color: #fef3c7; }
 
     .security-note {
       display: flex;
@@ -140,8 +162,8 @@ const CLIENT_FEE_RATE = 5; // % — doit correspondre à PaymentService.java
         </div>
 
         <!-- Encart vigilance -->
-        <div style="background:var(--cc-warning-bg,#fff3dc);color:var(--text,#15241f);padding:12px;border-radius:8px;font-size:0.85rem;margin-bottom:16px;display:flex;gap:10px;border:1px solid rgba(166,107,22,0.2)">
-          <svg lucideAlertTriangle size="18" style="color:var(--cc-warning,#a66b16);flex-shrink:0"></svg>
+        <div class="vigilance-box">
+          <svg lucideAlertTriangle size="18"></svg>
           <span><strong>Vigilance :</strong> Ne saisissez que le montant exact convenu dans le chat. Si un coursier vous demande de modifier ce montant hors plateforme, signalez-le immédiatement.</span>
         </div>
 
@@ -168,8 +190,8 @@ const CLIENT_FEE_RATE = 5; // % — doit correspondre à PaymentService.java
           <span style="font-weight:600;">{{ tarifCoursier | number:'1.0-0' }} XAF</span>
         </div>
 
-        <!-- Frais de service -->
-        @if (fraisService > 0) {
+        <!-- Frais de service — affiché uniquement si taux > 0, comme dans la maquette -->
+        @if (fraisService > 0 && feeRate > 0) {
           <div class="invoice-line">
             <span>Frais de service ({{ feeRate }}%) :</span>
             <span>{{ fraisService | number:'1.0-0' }} XAF</span>
@@ -187,9 +209,15 @@ const CLIENT_FEE_RATE = 5; // % — doit correspondre à PaymentService.java
       <div class="security-note">
         <svg lucideShieldCheck size="18"></svg>
         <div>
-          <strong>Protection Escrow (Frais de service {{ feeRate }}%) :</strong>
-          Vos fonds sont bloqués en toute sécurité. Le coursier ne recevra l'argent
-          qu'après votre validation de la livraison ou après 72h automatiquement.
+          @if (feeRate > 0) {
+            <strong>Protection Escrow (Frais de service {{ feeRate }}%) :</strong>
+            Vos fonds sont bloqués en toute sécurité. Des frais de service de {{ feeRate }}% s'appliquent sur le total.
+            Le coursier ne recevra l'argent qu'après votre validation de la livraison ou après 72h automatiquement.
+          } @else {
+            <strong>Protection Escrow :</strong>
+            Vos fonds sont bloqués en toute sécurité. Aucun frais de service ne sera appliqué.
+            Le coursier ne recevra l'argent qu'après votre validation de la livraison ou après 72h automatiquement.
+          }
         </div>
       </div>
 
@@ -269,7 +297,8 @@ export class PayComponent implements OnInit {
   /** Résultats calculés */
   fraisService = 0;
   total = 0;
-  readonly feeRate = CLIENT_FEE_RATE;
+  /** Taux de frais client — chargé depuis l'API admin (0 = pas de frais affichés) */
+  feeRate = 0;
 
   /** Méthode sélectionnée */
   selectedMethod: PaymentMethod = 'STRIPE';
@@ -281,15 +310,28 @@ export class PayComponent implements OnInit {
     private router: Router,
     private paymentService: PaymentService,
     private toast: ToastService,
+    private http: HttpClient,
   ) {}
 
   ngOnInit(): void {
     this.roomId   = Number(this.route.snapshot.paramMap.get('roomId') ?? 0);
     this.courseId = Number(this.route.snapshot.queryParamMap.get('courseId') ?? 0);
 
-    // Le montant de l'offre est transmis en queryParam depuis ChatComponent.acceptOffer()
     const amountParam = this.route.snapshot.queryParamMap.get('amount');
     this.tarifCoursier = amountParam ? Number(amountParam) : 0;
+
+    // Charger le taux client via l'endpoint public (accessible à tous les rôles authentifiés)
+    // L'ancien endpoint /api/admin/commissions retournait 403 pour les clients → feeRate restait à 0
+    this.http.get<any>('/api/commissions/public').subscribe({
+      next: (settings) => {
+        this.feeRate = settings.commissionRateClient ?? 0;
+        this.updateTotals();
+      },
+      error: () => {
+        // En cas d'erreur réseau, on reste à 0 (pas de frais affichés)
+        this.feeRate = 0;
+      }
+    });
   }
 
   selectMethod(method: PaymentMethod): void {
@@ -304,7 +346,7 @@ export class PayComponent implements OnInit {
       return;
     }
     const base = fr + this.tarifCoursier;
-    this.fraisService = Math.round(base * CLIENT_FEE_RATE / 100);
+    this.fraisService = Math.round(base * this.feeRate / 100);
     this.total = base + this.fraisService;
   }
 

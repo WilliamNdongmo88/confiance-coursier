@@ -25,9 +25,9 @@ import {
         </div>
       </section>
 
-      <div class="app-alert app-alert--warning" style="margin-bottom:22px">
-        <span class="app-alert-icon"><svg lucideAlertTriangle size="18"></svg></span>
-        <div class="app-alert-body">
+      <div class="warning-banner">
+        <span class="warning-banner-icon"><svg lucideAlertTriangle size="18"></svg></span>
+        <div class="warning-banner-body">
           <strong>Attention</strong>
           <p>Toute modification prend effet immédiatement sur les nouvelles courses. Les courses en cours ne sont pas affectées.</p>
         </div>
@@ -150,6 +150,44 @@ import {
     </app-shell>
   `,
   styles: [`
+    /* ── Bannière avertissement ── */
+    .warning-banner {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      background: #fff3dc;
+      border: 1px solid rgba(166,107,22,.25);
+      border-radius: var(--radius-md, 10px);
+      padding: 14px 16px;
+      margin-bottom: 22px;
+    }
+    .warning-banner-icon {
+      color: #a66b16;
+      flex-shrink: 0;
+      margin-top: 1px;
+      display: flex;
+    }
+    .warning-banner-body strong {
+      display: block;
+      font-size: .9rem;
+      font-weight: 700;
+      color: #5a3e10;
+      margin-bottom: 3px;
+    }
+    .warning-banner-body p {
+      margin: 0;
+      font-size: .84rem;
+      color: #6b5530;
+      line-height: 1.5;
+    }
+
+    :host-context([data-theme="dark"]) .warning-banner {
+      background: #2d2008;
+      border-color: rgba(253,230,138,.2);
+    }
+    :host-context([data-theme="dark"]) .warning-banner-icon { color: #fcd34d; }
+    :host-context([data-theme="dark"]) .warning-banner-body strong { color: #fef3c7; }
+    :host-context([data-theme="dark"]) .warning-banner-body p { color: #fde68a; }
     .rate-card {
       background: var(--bg-card); border: 1px solid var(--border);
       border-radius: var(--radius-lg); padding: 22px;
