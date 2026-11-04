@@ -14,6 +14,7 @@ export interface RegisterRequest {
 export interface LoginRequest {
   email: string;
   password: string;
+  otp?: string;
 }
 
 export interface AuthResponse {
@@ -36,6 +37,11 @@ export class AuthService {
   readonly isLoggedIn = computed(() => this._isLoggedIn());
 
   constructor(private http: HttpClient) {}
+
+  /** Demande l'envoi d'un OTP à l'email admin avant la connexion. */
+  requestAdminOtp(email: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/admin-otp`, { email });
+  }
 
   register(data: RegisterRequest): Observable<any> {
     return this.http.post(`${this.apiUrl}/register`, data);

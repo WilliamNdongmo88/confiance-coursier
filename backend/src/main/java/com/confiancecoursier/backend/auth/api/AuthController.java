@@ -31,6 +31,21 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Envoie un OTP par email au compte admin si l'email fourni correspond.
+     * Retourne otpRequired=true UNIQUEMENT si c'est l'email admin.
+     */
+    @PostMapping("/admin-otp")
+    public ResponseEntity<OtpResponse> adminOtp(@RequestBody LoginRequest request) {
+        boolean isAdmin = authService.isAdminEmail(request.getEmail());
+        if (isAdmin) {
+            authService.requestAdminOtp(request.getEmail());
+            return ResponseEntity.ok(new OtpResponse(
+                    "Un code de vérification a été envoyé à votre adresse email.", true));
+        }
+        return ResponseEntity.ok(new OtpResponse("Connexion standard.", false));
+    }
+
     @PostMapping("/verify-otp")
     public ResponseEntity<OtpResponse> verifyOtp(@Valid @RequestBody VerifyOtpRequest request) {
         authService.verifyOtp(request.getEmail(), request.getOtp());

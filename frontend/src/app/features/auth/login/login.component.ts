@@ -1,16 +1,18 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { NgIf } from '@angular/common';
 import { AuthService } from '../../../core/services/auth.service';
 import { ThemeService } from '../../../core/services/theme.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { SpinnerComponent } from '../../../shared/spinner/spinner.component';
-import { LucideArrowLeft, LucideBike, LucideMoon, LucideSun } from '@lucide/angular';
+import { LucideArrowLeft, LucideBike, LucideMoon, LucideSun, LucideShieldCheck } from '@lucide/angular';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [FormsModule, RouterLink, SpinnerComponent, LucideArrowLeft, LucideBike, LucideMoon, LucideSun],
+  imports: [FormsModule, RouterLink, NgIf, SpinnerComponent,
+            LucideArrowLeft, LucideBike, LucideMoon, LucideSun, LucideShieldCheck],
   template: `
     <div class="auth-wrapper">
       <div class="auth-card">
@@ -24,7 +26,9 @@ import { LucideArrowLeft, LucideBike, LucideMoon, LucideSun } from '@lucide/angu
             <button class="lang-toggle" type="button" aria-label="Changer de langue" (click)="toggleLang()">
               {{ lang().toUpperCase() }}
             </button>
-            <button class="theme-toggle" type="button" [attr.aria-label]="theme.isDarkMode() ? 'Activer le thème clair' : 'Activer le thème sombre'" (click)="theme.toggleTheme()">
+            <button class="theme-toggle" type="button"
+                    [attr.aria-label]="theme.isDarkMode() ? 'Activer le thème clair' : 'Activer le thème sombre'"
+                    (click)="theme.toggleTheme()">
               @if (theme.isDarkMode()) {
                 <svg lucideSun size="18"></svg>
               } @else {
@@ -54,7 +58,27 @@ import { LucideArrowLeft, LucideBike, LucideMoon, LucideSun } from '@lucide/angu
               class="form-input" placeholder="••••••••" autocomplete="current-password">
           </div>
 
-          <div class="options-row">
+          <!-- Champ OTP admin — affiché uniquement après requestAdminOtp() -->
+          <div *ngIf="otpRequired()" class="form-group otp-group">
+            <label class="form-label" for="login-otp">
+              <svg lucideShieldCheck size="14" style="display:inline;vertical-align:middle;margin-right:5px;"></svg>
+              Code de vérification administrateur
+            </label>
+            <input id="login-otp" type="text" [(ngModel)]="otp" name="otp"
+              class="form-input otp-input"
+              placeholder="000000"
+              maxlength="6"
+              inputmode="numeric"
+              autocomplete="one-time-code">
+            <p class="form-hint" style="margin-top:6px;">
+              Vérifiez votre boîte email — le code expire dans 5 minutes.
+              <button type="button" class="forgot-link" (click)="resendAdminOtp()" [disabled]="isLoading">
+                Renvoyer
+              </button>
+            </p>
+          </div>
+
+          <div class="options-row" *ngIf="!otpRequired()">
             <label class="form-checkbox">
               <input id="login-remember" type="checkbox" [(ngModel)]="remember" name="remember">
               Se souvenir de moi
@@ -66,6 +90,9 @@ import { LucideArrowLeft, LucideBike, LucideMoon, LucideSun } from '@lucide/angu
             @if (isLoading) {
               <app-spinner></app-spinner>
               Connexion en cours...
+            } @else if (otpRequired()) {
+              <svg lucideShieldCheck size="16"></svg>
+              Vérifier et se connecter
             } @else {
               Se connecter
             }
@@ -78,45 +105,89 @@ import { LucideArrowLeft, LucideBike, LucideMoon, LucideSun } from '@lucide/angu
   `,
   styles: [`
     :host { display: block; }
+    .otp-group {
+      background: var(--bg-card, #f7f8f5);
+      border: 1px solid #b8ddc8;
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 16px;
+    }
+    [data-theme="dark"] .otp-group {
+      background: #1a2e24;
+      border-color: #2e5040;
+    }
+    .otp-input {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: 8px;
+      text-align: center;
+    }
   `]
 })
 export class LoginComponent implements OnInit {
-  email = '';
+  email    = '';
   password = '';
+  otp      = '';
   remember = true;
   isLoading = false;
 
-  /** Langue courante (FR/EN) — bascule cosmétique conforme à la maquette. */
+  /** true = l'email est admin → le champ OTP est affiché */
+  readonly otpRequired = signal<boolean>(false);
+
   readonly lang = signal<string>('fr');
 
   private authService = inject(AuthService);
-  private router = inject(Router);
-  private toast = inject(ToastService);
-  readonly theme = inject(ThemeService);
+  private router      = inject(Router);
+  private toast       = inject(ToastService);
+  readonly theme      = inject(ThemeService);
 
   ngOnInit(): void {
     this.initLang();
-
-    // Redirect automatique si déjà connecté (token valide en localStorage).
     if (this.authService.isLoggedIn()) {
       this.redirectByRole(this.authService.getCurrentUserRole());
     }
   }
 
   onSubmit(): void {
+    if (!this.email || !this.password) return;
     this.isLoading = true;
-    this.authService.login({ email: this.email, password: this.password }).subscribe({
-      next: (response) => {
-        this.isLoading = false;
-        // saveToken() est déjà appelé dans AuthService.login() (tap) — inclut fullName.
-        this.toast.success(`Bienvenue ${response.email} !`);
-        this.redirectByRole(response.role);
-      },
-      error: (err) => {
-        this.isLoading = false;
-        const message = err.error?.message || 'Email ou mot de passe incorrect.';
-        this.toast.error(message);
-      }
+
+    // ── Étape 1 : si OTP pas encore demandé, on le demande d'abord ──────────
+    if (!this.otpRequired()) {
+      this.authService.requestAdminOtp(this.email).subscribe({
+        next: (res: any) => {
+          this.isLoading = false;
+          if (res?.otpRequired === true) {
+            // C'est un admin → afficher le champ OTP
+            this.otpRequired.set(true);
+            this.toast.info('Vérifiez votre boîte email — un code vous a été envoyé.');
+          } else {
+            // Utilisateur normal → connexion directe
+            this.doLogin();
+          }
+        },
+        error: () => {
+          this.isLoading = false;
+          // En cas d'erreur réseau, on tente quand même la connexion normale
+          this.doLogin();
+        }
+      });
+      return;
+    }
+
+    // ── Étape 2 : OTP déjà demandé → connexion avec OTP ─────────────────────
+    if (!this.otp || this.otp.length !== 6) {
+      this.isLoading = false;
+      this.toast.error('Veuillez saisir le code à 6 chiffres reçu par email.');
+      return;
+    }
+    this.doLogin();
+  }
+
+  resendAdminOtp(): void {
+    this.authService.requestAdminOtp(this.email).subscribe({
+      next: () => this.toast.info('Un nouveau code a été envoyé à votre adresse email.'),
+      error: () => this.toast.error('Impossible d\'envoyer le code. Réessayez.')
     });
   }
 
@@ -131,6 +202,25 @@ export class LoginComponent implements OnInit {
       document.documentElement.setAttribute('lang', next);
       try { localStorage.setItem('lang', next); } catch (e) { /* ignore */ }
     }
+  }
+
+  private doLogin(): void {
+    this.isLoading = true;
+    const payload: any = { email: this.email, password: this.password };
+    if (this.otpRequired() && this.otp) payload.otp = this.otp;
+
+    this.authService.login(payload).subscribe({
+      next: (response) => {
+        this.isLoading = false;
+        this.toast.success(`Bienvenue ${response.email} !`);
+        this.redirectByRole(response.role);
+      },
+      error: (err) => {
+        this.isLoading = false;
+        const message = err.error?.message || 'Email ou mot de passe incorrect.';
+        this.toast.error(message);
+      }
+    });
   }
 
   private initLang(): void {

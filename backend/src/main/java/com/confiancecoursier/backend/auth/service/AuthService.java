@@ -31,6 +31,9 @@ public class AuthService {
     @Value("${jwt.refresh-expiration}")
     private long refreshExpirationMs;
 
+    @Value("${admin.email:}")
+    private String adminEmail;
+
     public AuthService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
                        JwtService jwtService,
@@ -68,6 +71,23 @@ public class AuthService {
     }
 
     public AuthResponse login(LoginRequest request) {
+        // ── Vérification OTP pour le compte admin ─────────────────────────────
+        boolean isAdmin = adminEmail != null
+                && !adminEmail.isBlank()
+                && adminEmail.equalsIgnoreCase(request.getEmail());
+
+        if (isAdmin) {
+            // L'OTP doit être présent et valide avant de vérifier le mot de passe
+            if (request.getOtp() == null || request.getOtp().isBlank()) {
+                throw new BusinessException("Un code OTP est requis pour la connexion administrateur.");
+            }
+            boolean otpValid = otpService.validateOtp(request.getEmail(), request.getOtp());
+            if (!otpValid) {
+                throw new BusinessException("Code OTP invalide ou expiré.");
+            }
+        }
+
+        // ── Vérification email + mot de passe ─────────────────────────────────
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
         );
@@ -79,10 +99,26 @@ public class AuthService {
         String accessToken = jwtService.generateToken(userDetails);
         String refreshToken = jwtService.generateRefreshToken(userDetails);
 
-        // Stocke le refresh token dans Redis (clé refresh:<userId>) avec TTL 7 jours.
         storeRefreshToken(user.getId(), refreshToken);
 
         return new AuthResponse(accessToken, refreshToken, user.getEmail(), user.getFullName(), user.getRole(), user.getId());
+    }
+
+    /**
+     * Déclenche l'envoi d'un OTP à l'adresse admin si et seulement si
+     * l'email fourni correspond au compte administrateur configuré.
+     */
+    public void requestAdminOtp(String email) {
+        if (isAdminEmail(email)) {
+            otpService.generateOtp(email);
+        }
+    }
+
+    /** Retourne true si l'email correspond au compte admin configuré. */
+    public boolean isAdminEmail(String email) {
+        return adminEmail != null
+                && !adminEmail.isBlank()
+                && adminEmail.equalsIgnoreCase(email);
     }
 
     /**

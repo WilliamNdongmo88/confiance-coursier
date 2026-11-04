@@ -12,4 +12,7 @@ public class LoginRequest {
 
     @NotBlank
     private String password;
+
+    /** OTP requis uniquement pour la connexion admin. Null/vide pour les autres rôles. */
+    private String otp;
 }
