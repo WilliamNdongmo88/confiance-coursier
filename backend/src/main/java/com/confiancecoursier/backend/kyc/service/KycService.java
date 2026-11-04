@@ -5,8 +5,10 @@ import com.confiancecoursier.backend.kyc.domain.KycSubmission;
 import com.confiancecoursier.backend.kyc.repository.KycRepository;
 import com.confiancecoursier.backend.notify.service.NotificationService;
 import com.confiancecoursier.backend.shared.exception.BusinessException;
+import com.confiancecoursier.backend.shared.util.FileStorageService;
 import com.confiancecoursier.backend.user.domain.User;
 import com.confiancecoursier.backend.user.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,12 +27,18 @@ public class KycService {
     private final KycRepository kycRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final FileStorageService fileStorageService;
+
+    @Value("${minio.bucket-kyc}")
+    private String kycBucket;
 
     public KycService(KycRepository kycRepository, UserRepository userRepository,
-                      NotificationService notificationService) {
+                      NotificationService notificationService,
+                      FileStorageService fileStorageService) {
         this.kycRepository = kycRepository;
         this.userRepository = userRepository;
         this.notificationService = notificationService;
+        this.fileStorageService = fileStorageService;
     }
 
     /**
@@ -200,5 +208,48 @@ public class KycService {
         notificationService.notifyKycRejected(submission.getUserId(), reason);
 
         return submission;
+    }
+
+    /**
+     * Supprime une soumission KYC rejetée ainsi que ses fichiers MinIO.
+     *
+     * <p>Règles :
+     * <ul>
+     *   <li>La soumission doit être au statut {@code REJECTED}</li>
+     *   <li>Les 3 fichiers (recto, verso, selfie) sont supprimés de MinIO (best-effort)</li>
+     *   <li>La ligne {@code kyc_submissions} est supprimée de la BDD</li>
+     *   <li>Si le coursier n'a plus aucune soumission KYC, son {@code kycStatus} repasse à {@code NONE}</li>
+     * </ul>
+     *
+     * @param submissionId ID de la soumission à supprimer
+     */
+    @Transactional
+    public void deleteRejectedKyc(Long submissionId) {
+        KycSubmission submission = kycRepository.findById(submissionId)
+                .orElseThrow(() -> new BusinessException("Soumission KYC introuvable."));
+
+        if (!"REJECTED".equals(submission.getStatus())) {
+            throw new BusinessException("Seules les soumissions KYC rejetées peuvent être supprimées.");
+        }
+
+        // 1. Supprimer les fichiers MinIO (best-effort — ne bloque pas si le fichier est déjà absent)
+        fileStorageService.deleteFile(submission.getFrontFileKey(),  kycBucket);
+        fileStorageService.deleteFile(submission.getBackFileKey(),   kycBucket);
+        fileStorageService.deleteFile(submission.getSelfieFileKey(), kycBucket);
+
+        // 2. Mémoriser l'userId avant suppression
+        Long userId = submission.getUserId();
+
+        // 3. Supprimer la ligne en base
+        kycRepository.delete(submission);
+
+        // 4. Si ce coursier n'a plus aucune soumission, repasser kycStatus à NONE
+        userRepository.findById(userId).ifPresent(user -> {
+            boolean hasOtherSubmissions = !kycRepository.findByUserId(userId).isEmpty();
+            if (!hasOtherSubmissions) {
+                user.setKycStatus("NONE");
+                userRepository.save(user);
+            }
+        });
     }
 }

@@ -7,7 +7,7 @@ import { AppShellComponent } from '../../../shared/components/app-shell/app-shel
 import { MediaViewerComponent, MediaItem } from '../../../shared/components/media-viewer/media-viewer.component';
 import {
   LucideShieldCheck, LucideCalendar, LucideIdCard,
-  LucideImage, LucideUser, LucideCheck, LucideX,
+  LucideImage, LucideUser, LucideCheck, LucideX, LucideTrash2,
 } from '@lucide/angular';
 
 @Component({
@@ -17,7 +17,7 @@ import {
     AppShellComponent, DatePipe, FormsModule,
     MediaViewerComponent,
     LucideShieldCheck, LucideCalendar, LucideIdCard,
-    LucideImage, LucideUser, LucideCheck, LucideX,
+    LucideImage, LucideUser, LucideCheck, LucideX, LucideTrash2,
   ],
   template: `
     <app-shell pageTitle="Validations KYC">
@@ -36,7 +36,9 @@ import {
       }
 
       @for (kyc of allList(); track kyc.id) {
-        <div class="kyc-card" [class.kyc-card--done]="kyc.status !== 'PENDING'">
+        <div class="kyc-card"
+             [class.kyc-card--approved]="kyc.status === 'APPROVED'"
+             [class.kyc-card--rejected]="kyc.status === 'REJECTED'">
 
           <!-- ── En-tête de la carte ── -->
           <div class="kyc-card-header">
@@ -93,7 +95,19 @@ import {
                 @if (kyc.status === 'APPROVED') {
                   <span class="status-badge status-badge--success">Approuvé</span>
                 } @else {
+                  <!-- Statut REJECTED : badge + bouton supprimer -->
                   <span class="status-badge status-badge--danger">Refusé</span>
+                  <button class="btn btn-danger btn-sm"
+                          style="margin-top:6px; display:flex; align-items:center; gap:5px;"
+                          [disabled]="deletingId() === kyc.id"
+                          (click)="deleteKyc(kyc)">
+                    @if (deletingId() === kyc.id) {
+                      <span class="spinner" style="width:13px;height:13px;border-width:2px;"></span>
+                    } @else {
+                      <svg lucideTrash2 size="13"></svg>
+                    }
+                    Supprimer
+                  </button>
                 }
               </div>
             }
@@ -202,6 +216,10 @@ import {
     }
     .kyc-card:hover { border-color: var(--primary); }
     .kyc-card--done { opacity: .65; pointer-events: none; }
+    /* Approuvé : grisé + non interactif */
+    .kyc-card--approved { opacity: .55; pointer-events: none; }
+    /* Rejeté : légèrement atténué mais interactions actives (bouton Supprimer) */
+    .kyc-card--rejected { opacity: .80; }
 
     /* ── En-tête : avatar + infos + boutons ── */
     .kyc-card-header {
@@ -301,6 +319,7 @@ export class AdminKycComponent implements OnInit {
   readonly loading      = signal(false);
   readonly rejectingId  = signal<number | null>(null);
   readonly rejectReason = signal('');
+  readonly deletingId   = signal<number | null>(null);
 
   readonly pendingList = computed(() => this.allList().filter(k => k.status === 'PENDING'));
 
@@ -373,6 +392,25 @@ export class AdminKycComponent implements OnInit {
         this.cancelReject();
       },
       error: () => this.toast.error('Erreur lors du rejet.'),
+    });
+  }
+
+  deleteKyc(kyc: AdminKycResponse): void {
+    if (!confirm(`Supprimer définitivement le dossier KYC de ${kyc.userFullName || 'cet utilisateur'} et ses fichiers MinIO ?`)) {
+      return;
+    }
+    this.deletingId.set(kyc.id);
+    this.adminService.deleteKyc(kyc.id).subscribe({
+      next: () => {
+        this.allList.update(list => list.filter(k => k.id !== kyc.id));
+        this.deletingId.set(null);
+        this.toast.success(`Dossier de ${kyc.userFullName || 'utilisateur'} supprimé.`);
+      },
+      error: (err) => {
+        this.deletingId.set(null);
+        const msg = err?.error?.message ?? 'Erreur lors de la suppression.';
+        this.toast.error(msg);
+      },
     });
   }
 }

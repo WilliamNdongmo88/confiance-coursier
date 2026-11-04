@@ -2,8 +2,7 @@ package com.confiancecoursier.backend.shared.util;
 
 import io.minio.*;
 import io.minio.errors.*;
-import io.minio.http.Method;
-import org.slf4j.Logger;
+import io.minio.http.Method;import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -74,6 +73,35 @@ public class FileStorageService {
         } catch (MinioException | IOException | InvalidKeyException | NoSuchAlgorithmException e) {
             log.error("Échec de l'upload MinIO : bucket={}, key={}, erreur={}", bucket, fileKey, e.getMessage());
             throw new FileStorageException("Impossible de stocker le fichier : " + e.getMessage(), e);
+        }
+    }
+
+    // ─── Suppression ─────────────────────────────────────────────────────────
+
+    /**
+     * Supprime un fichier du bucket MinIO.
+     * Opération best-effort : si la clé est nulle/vide ou si le fichier n'existe pas,
+     * on loggue un avertissement sans lever d'exception.
+     *
+     * @param fileKey  Clé du fichier dans le bucket (ex: {@code kyc/42/uuid.jpg})
+     * @param bucket   Nom du bucket
+     */
+    public void deleteFile(String fileKey, String bucket) {
+        if (fileKey == null || fileKey.isBlank()) {
+            log.warn("deleteFile ignoré : fileKey vide (bucket={})", bucket);
+            return;
+        }
+        try {
+            minioClient.removeObject(
+                    RemoveObjectArgs.builder()
+                            .bucket(bucket)
+                            .object(fileKey)
+                            .build()
+            );
+            log.info("Fichier supprimé de MinIO : bucket={}, key={}", bucket, fileKey);
+        } catch (MinioException | IOException | InvalidKeyException | NoSuchAlgorithmException e) {
+            // On loggue mais on ne bloque pas — l'objet est peut-être déjà absent
+            log.warn("Impossible de supprimer le fichier MinIO : bucket={}, key={}, erreur={}", bucket, fileKey, e.getMessage());
         }
     }
 

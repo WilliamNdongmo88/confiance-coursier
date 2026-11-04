@@ -96,6 +96,18 @@ public class AdminKycController {
         return ResponseEntity.ok(AdminKycResponse.of(submission, user, null, null, null));
     }
 
+    /**
+     * DELETE /api/admin/kyc/{id}
+     *
+     * Supprime une soumission KYC rejetée et ses fichiers MinIO.
+     * Seules les soumissions au statut {@code REJECTED} peuvent être supprimées.
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        kycService.deleteRejectedKyc(id);
+        return ResponseEntity.noContent().build(); // 204
+    }
+
     // ─── Utilitaires ──────────────────────────────────────────────────────────
 
     private String presignedUrl(String fileKey) {

@@ -97,6 +97,10 @@ export class AdminService {
     return this.http.post<AdminKycResponse>(`/api/admin/kyc/${id}/reject`, { rejectionReason });
   }
 
+  deleteKyc(id: number): Observable<void> {
+    return this.http.delete<void>(`/api/admin/kyc/${id}`);
+  }
+
   // ─── Disputes ─────────────────────────────────────────────────────────────
 
   getDisputes(status?: string): Observable<DisputeResponse[]> {
