@@ -36,15 +36,22 @@ public class KycService {
     /**
      * Soumet une demande KYC pour un coursier.
      *
-     * @param userId       ID du coursier
-     * @param documentType CNI ou PASSPORT
-     * @param frontFileKey clé du fichier recto (fournie par FileStorageService dans TICK-024)
-     * @param backFileKey  clé du fichier verso
+     * @param userId        ID du coursier
+     * @param firstName     Prénom déclaré
+     * @param lastName      Nom de famille déclaré
+     * @param birthDate     Date de naissance (ISO : YYYY-MM-DD)
+     * @param nationality   Nationalité déclarée
+     * @param documentType  CNI ou PASSPORT
+     * @param frontFileKey  clé du fichier recto (fournie par FileStorageService)
+     * @param backFileKey   clé du fichier verso
      * @param selfieFileKey clé du selfie
      * @return la soumission créée
      */
     @Transactional
-    public KycSubmission submitKyc(Long userId, String documentType,
+    public KycSubmission submitKyc(Long userId,
+                                   String firstName, String lastName,
+                                   java.time.LocalDate birthDate, String nationality,
+                                   String documentType,
                                    String frontFileKey, String backFileKey, String selfieFileKey) {
 
         // 1. Vérifier que l'utilisateur existe et est bien un COURIER
@@ -67,6 +74,10 @@ public class KycService {
         // 3. Créer la soumission
         KycSubmission submission = KycSubmission.builder()
                 .userId(userId)
+                .firstName(firstName)
+                .lastName(lastName)
+                .birthDate(birthDate)
+                .nationality(nationality)
                 .documentType(documentType)
                 .frontFileKey(frontFileKey)
                 .backFileKey(backFileKey)

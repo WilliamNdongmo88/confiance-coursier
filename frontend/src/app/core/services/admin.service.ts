@@ -9,6 +9,11 @@ export interface AdminKycResponse {
   userId: number;
   userFullName: string | null;
   userEmail: string | null;
+  // Informations personnelles déclarées lors du KYC
+  firstName: string | null;
+  lastName: string | null;
+  birthDate: string | null;   // ISO date: YYYY-MM-DD
+  nationality: string | null;
   documentType: string;
   status: string;
   rejectionReason: string | null;

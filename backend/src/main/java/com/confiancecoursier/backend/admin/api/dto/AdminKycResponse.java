@@ -3,24 +3,34 @@ package com.confiancecoursier.backend.admin.api.dto;
 import com.confiancecoursier.backend.kyc.domain.KycSubmission;
 import com.confiancecoursier.backend.user.domain.User;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
  * Réponse détaillée d'une soumission KYC pour le back-office admin.
  *
- * <p>Inclut les informations de l'utilisateur propriétaire de la soumission
+ * <p>Inclut les informations personnelles saisies par le coursier lors de la soumission
+ * (à comparer visuellement avec les documents), les informations du compte utilisateur,
  * ainsi que les URLs présignées des fichiers (générées par le contrôleur).
  */
 public record AdminKycResponse(
     Long id,
     Long userId,
+    // ─── Informations du compte ─────────────────────────────────────────────
     String userFullName,
     String userEmail,
+    // ─── Informations personnelles déclarées lors du KYC ────────────────────
+    String firstName,
+    String lastName,
+    LocalDate birthDate,
+    String nationality,
+    // ─── Document ───────────────────────────────────────────────────────────
     String documentType,
     String status,
     String rejectionReason,
     LocalDateTime submittedAt,
     LocalDateTime reviewedAt,
+    // ─── Fichiers (URLs présignées MinIO) ────────────────────────────────────
     String frontFileUrl,
     String backFileUrl,
     String selfieFileUrl
@@ -38,6 +48,10 @@ public record AdminKycResponse(
                 s.getUserId(),
                 user != null ? user.getFullName() : null,
                 user != null ? user.getEmail() : null,
+                s.getFirstName(),
+                s.getLastName(),
+                s.getBirthDate(),
+                s.getNationality(),
                 s.getDocumentType(),
                 s.getStatus(),
                 s.getRejectionReason(),

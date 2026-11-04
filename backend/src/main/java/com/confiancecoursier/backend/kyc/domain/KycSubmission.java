@@ -21,6 +21,26 @@ public class KycSubmission {
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
+    // ─── Informations personnelles saisies lors du KYC ────────────────────────
+
+    /** Prénom du coursier (tel que saisi à l'étape 1 du formulaire KYC). */
+    @Column(name = "first_name", length = 100)
+    private String firstName;
+
+    /** Nom de famille du coursier. */
+    @Column(name = "last_name", length = 100)
+    private String lastName;
+
+    /** Date de naissance (format ISO : YYYY-MM-DD). */
+    @Column(name = "birth_date")
+    private java.time.LocalDate birthDate;
+
+    /** Nationalité déclarée par le coursier (ex : "Camerounaise"). */
+    @Column(name = "nationality", length = 100)
+    private String nationality;
+
+    // ─── Documents ────────────────────────────────────────────────────────────
+
     /** CNI ou PASSPORT */
     @Column(name = "document_type", nullable = false)
     private String documentType;

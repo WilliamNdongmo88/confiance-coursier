@@ -648,6 +648,10 @@ export class KycComponent implements OnInit {
     this.uploadProgress.set(0);
 
     const form = new FormData();
+    form.append('firstName',    this.firstName.trim());
+    form.append('lastName',     this.lastName.trim());
+    form.append('birthDate',    this.dob);          // format YYYY-MM-DD (input type=date)
+    form.append('nationality',  this.nationality);
     form.append('documentType', this.documentType);
     form.append('frontFile',    this.frontFile()!);
     form.append('backFile',     this.backFile()!);

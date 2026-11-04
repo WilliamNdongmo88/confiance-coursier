@@ -9,12 +9,14 @@ import com.confiancecoursier.backend.user.repository.UserRepository;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.security.Principal;
+import java.time.LocalDate;
 import java.util.Map;
 
 /**
@@ -47,6 +49,10 @@ public class KycController {
     /**
      * POST /api/kyc/submit
      * Accepte : multipart/form-data avec les champs :
+     *   - firstName    : prénom
+     *   - lastName     : nom de famille
+     *   - birthDate    : date de naissance (YYYY-MM-DD)
+     *   - nationality  : nationalité
      *   - documentType : CNI | PASSPORT
      *   - frontFile    : fichier recto
      *   - backFile     : fichier verso
@@ -57,6 +63,21 @@ public class KycController {
      */
     @PostMapping(value = "/submit", consumes = "multipart/form-data")
     public ResponseEntity<Map<String, Object>> submit(
+            @RequestParam
+            @NotBlank(message = "Le prénom est obligatoire.")
+            String firstName,
+
+            @RequestParam
+            @NotBlank(message = "Le nom de famille est obligatoire.")
+            String lastName,
+
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate birthDate,
+
+            @RequestParam(required = false)
+            String nationality,
+
             @RequestParam
             @NotBlank(message = "Le type de document est obligatoire.")
             @Pattern(regexp = "CNI|PASSPORT", message = "Le type doit être CNI ou PASSPORT.")
@@ -76,7 +97,12 @@ public class KycController {
         String backKey   = fileStorageService.uploadFile(backFile,   kycBucket, keyPrefix);
         String selfieKey = fileStorageService.uploadFile(selfieFile, kycBucket, keyPrefix);
 
-        var submission = kycService.submitKyc(userId, documentType, frontKey, backKey, selfieKey);
+        var submission = kycService.submitKyc(
+                userId,
+                firstName, lastName, birthDate, nationality,
+                documentType,
+                frontKey, backKey, selfieKey
+        );
 
         return ResponseEntity.ok(Map.of(
                 "message", "Votre demande KYC a été soumise et est en cours d'examen.",

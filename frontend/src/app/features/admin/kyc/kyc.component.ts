@@ -36,94 +36,140 @@ import {
       }
 
       @for (kyc of allList(); track kyc.id) {
-        <div class="kyc-card" [style.opacity]="kyc.status !== 'PENDING' ? '.65' : '1'"
-             [style.pointer-events]="kyc.status !== 'PENDING' ? 'none' : 'auto'">
-          <div class="kyc-avatar">{{ initials(kyc) }}</div>
-          <div class="kyc-info">
-            <h3>
-              {{ kyc.userFullName || 'Utilisateur #' + kyc.userId }}
-              @if (kyc.status === 'PENDING') {
-                <span class="badge badge-warning" style="font-size:.65rem">En attente</span>
-              } @else if (kyc.status === 'APPROVED') {
-                <span class="badge badge-success" style="font-size:.65rem">Approuvé</span>
-              } @else {
-                <span class="badge badge-danger" style="font-size:.65rem">Refusé</span>
-              }
-            </h3>
-            <div class="kyc-meta">
-              <span><svg lucideCalendar size="12"></svg> Soumis le {{ kyc.submittedAt | date:'dd/MM/yyyy' }}</span>
-              <span><svg lucideIdCard size="12"></svg> {{ kyc.documentType }}</span>
-              <span style="opacity:.8">{{ kyc.userEmail }}</span>
+        <div class="kyc-card" [class.kyc-card--done]="kyc.status !== 'PENDING'">
+
+          <!-- ── En-tête de la carte ── -->
+          <div class="kyc-card-header">
+            <div class="kyc-avatar">{{ initials(kyc) }}</div>
+            <div class="kyc-header-info">
+              <h3>
+                {{ kyc.userFullName || 'Utilisateur #' + kyc.userId }}
+                @if (kyc.status === 'PENDING') {
+                  <span class="badge badge-warning" style="font-size:.65rem">En attente</span>
+                } @else if (kyc.status === 'APPROVED') {
+                  <span class="badge badge-success" style="font-size:.65rem">Approuvé</span>
+                } @else {
+                  <span class="badge badge-danger" style="font-size:.65rem">Refusé</span>
+                }
+              </h3>
+              <div class="kyc-meta">
+                <span><svg lucideCalendar size="12"></svg> Soumis le {{ kyc.submittedAt | date:'dd/MM/yyyy' }}</span>
+                <span><svg lucideIdCard size="12"></svg> {{ kyc.documentType }}</span>
+                <span>{{ kyc.userEmail }}</span>
+              </div>
             </div>
 
+            <!-- Boutons d'action (coin haut-droit) -->
             @if (kyc.status === 'PENDING') {
+              <div class="kyc-actions">
+                @if (rejectingId() !== kyc.id) {
+                  <button class="btn btn-primary btn-sm" (click)="approve(kyc)">
+                    <svg lucideCheck size="14"></svg> Approuver
+                  </button>
+                  <button class="btn btn-danger btn-sm" (click)="startReject(kyc)">
+                    <svg lucideX size="14"></svg> Refuser
+                  </button>
+                } @else {
+                  <textarea
+                    class="form-input"
+                    placeholder="Raison du rejet (min. 10 caractères)"
+                    [ngModel]="rejectReason()"
+                    (ngModelChange)="rejectReason.set($event)"
+                    rows="3"
+                    style="font-size:.82rem;width:220px"
+                  ></textarea>
+                  <div style="display:flex;gap:6px">
+                    <button class="btn btn-danger btn-sm"
+                            (click)="confirmReject(kyc)"
+                            [disabled]="rejectReason().length < 10">
+                      Confirmer
+                    </button>
+                    <button class="btn btn-secondary btn-sm" (click)="cancelReject()">Annuler</button>
+                  </div>
+                }
+              </div>
+            } @else {
+              <div class="kyc-actions">
+                @if (kyc.status === 'APPROVED') {
+                  <span class="status-badge status-badge--success">Approuvé</span>
+                } @else {
+                  <span class="status-badge status-badge--danger">Refusé</span>
+                }
+              </div>
+            }
+          </div>
+
+          <!-- ── Corps : Infos déclarées | Documents ── -->
+          <div class="kyc-card-body">
+
+            <!-- Colonne gauche : informations personnelles déclarées -->
+            <div class="kyc-section">
+              <p class="kyc-section-title">
+                <svg lucideUser size="13"></svg>
+                Informations déclarées
+              </p>
+              <dl class="kyc-dl">
+                <div class="kyc-dl-row">
+                  <dt>Prénom</dt>
+                  <dd>{{ kyc.firstName || '—' }}</dd>
+                </div>
+                <div class="kyc-dl-row">
+                  <dt>Nom de famille</dt>
+                  <dd>{{ kyc.lastName || '—' }}</dd>
+                </div>
+                <div class="kyc-dl-row">
+                  <dt>Date de naissance</dt>
+                  <dd>{{ kyc.birthDate ? (kyc.birthDate | date:'dd/MM/yyyy') : '—' }}</dd>
+                </div>
+                <div class="kyc-dl-row">
+                  <dt>Nationalité</dt>
+                  <dd>{{ kyc.nationality || '—' }}</dd>
+                </div>
+              </dl>
+            </div>
+
+            <!-- Colonne droite : documents soumis -->
+            <div class="kyc-section">
+              <p class="kyc-section-title">
+                <svg lucideIdCard size="13"></svg>
+                Documents soumis
+              </p>
               <div class="kyc-docs">
                 @if (kyc.frontFileUrl) {
                   <button class="kyc-doc-thumb" title="Recto — Cliquez pour agrandir"
                           (click)="openViewer(kyc, 0)">
-                    <svg lucideImage size="20"></svg>
+                    <svg lucideImage size="22"></svg>
                     <span class="kyc-doc-label">Recto</span>
                   </button>
                 }
                 @if (kyc.backFileUrl) {
                   <button class="kyc-doc-thumb" title="Verso — Cliquez pour agrandir"
                           (click)="openViewer(kyc, 1)">
-                    <svg lucideImage size="20"></svg>
+                    <svg lucideImage size="22"></svg>
                     <span class="kyc-doc-label">Verso</span>
                   </button>
                 }
                 @if (kyc.selfieFileUrl) {
                   <button class="kyc-doc-thumb" title="Selfie — Cliquez pour agrandir"
                           (click)="openViewer(kyc, kyc.backFileUrl ? 2 : 1)">
-                    <svg lucideUser size="20"></svg>
+                    <svg lucideUser size="22"></svg>
                     <span class="kyc-doc-label">Selfie</span>
                   </button>
                 }
+                @if (!kyc.frontFileUrl && !kyc.backFileUrl && !kyc.selfieFileUrl) {
+                  <p style="font-size:.82rem;color:var(--text-muted)">Aucun document disponible.</p>
+                }
               </div>
-            }
+            </div>
 
-            @if (kyc.status === 'REJECTED' && kyc.rejectionReason) {
-              <p style="font-size:.8rem;color:var(--danger);margin-top:8px">
-                Raison du rejet : {{ kyc.rejectionReason }}
-              </p>
-            }
           </div>
 
-          @if (kyc.status === 'PENDING') {
-            <div class="kyc-actions">
-              @if (rejectingId() !== kyc.id) {
-                <button class="btn btn-primary btn-sm" (click)="approve(kyc)">
-                  <svg lucideCheck size="14"></svg> Approuver
-                </button>
-                <button class="btn btn-danger btn-sm" (click)="startReject(kyc)">
-                  <svg lucideX size="14"></svg> Refuser
-                </button>
-              } @else {
-                <textarea
-                  class="form-input"
-                  placeholder="Raison du rejet (min. 10 caractères)"
-                  [ngModel]="rejectReason()"
-                  (ngModelChange)="rejectReason.set($event)"
-                  rows="3"
-                  style="font-size:.82rem;width:200px"
-                ></textarea>
-                <div style="display:flex;gap:6px">
-                  <button class="btn btn-danger btn-sm" (click)="confirmReject(kyc)" [disabled]="rejectReason().length < 10">
-                    Confirmer
-                  </button>
-                  <button class="btn btn-secondary btn-sm" (click)="cancelReject()">Annuler</button>
-                </div>
-              }
-            </div>
-          } @else {
-            <div class="kyc-actions">
-              @if (kyc.status === 'APPROVED') {
-                <span class="status-badge status-badge--success">Approuvé</span>
-              } @else {
-                <span class="status-badge status-badge--danger">Refusé</span>
-              }
-            </div>
+          @if (kyc.status === 'REJECTED' && kyc.rejectionReason) {
+            <p style="font-size:.8rem;color:var(--danger);margin-top:10px;padding:0 4px">
+              ✕ Raison du rejet : {{ kyc.rejectionReason }}
+            </p>
           }
+
         </div>
       } @empty {
         @if (!loading()) {
@@ -145,46 +191,105 @@ import {
     </app-shell>
   `,
   styles: [`
+    /* ── Carte principale ── */
     .kyc-card {
       background: var(--bg-card);
       border: 1px solid var(--border);
       border-radius: var(--radius-lg);
       padding: 20px;
-      display: flex;
-      align-items: flex-start;
-      gap: 16px;
-      margin-bottom: 14px;
+      margin-bottom: 16px;
       transition: border-color .15s;
     }
     .kyc-card:hover { border-color: var(--primary); }
+    .kyc-card--done { opacity: .65; pointer-events: none; }
+
+    /* ── En-tête : avatar + infos + boutons ── */
+    .kyc-card-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
     .kyc-avatar {
-      width: 46px; height: 46px; border-radius: 50%;
+      width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0;
       background: var(--primary-light); color: var(--primary);
       display: flex; align-items: center; justify-content: center;
-      font-weight: 700; font-size: 1rem; flex-shrink: 0;
+      font-weight: 700; font-size: 1rem;
     }
-    .kyc-info { flex: 1; min-width: 0; }
-    .kyc-info h3 { font-size: .98rem; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+    .kyc-header-info { flex: 1; min-width: 0; }
+    .kyc-header-info h3 {
+      font-size: .98rem; font-weight: 700; color: var(--text);
+      margin: 0 0 4px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    }
     .kyc-meta {
       display: flex; gap: 10px; flex-wrap: wrap;
-      font-size: .8rem; color: var(--text-muted); margin-bottom: 10px;
+      font-size: .8rem; color: var(--text-muted);
     }
     .kyc-meta span { display: flex; align-items: center; gap: 4px; }
+    .kyc-actions { display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; align-items: flex-end; }
+
+    /* ── Corps : 2 colonnes côte à côte ── */
+    .kyc-card-body {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      border-top: 1px solid var(--border);
+      padding-top: 14px;
+    }
+
+    /* ── Section (infos déclarées / documents) ── */
+    .kyc-section {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+    }
+    .kyc-section-title {
+      font-size: .72rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .06em;
+      color: var(--primary); margin: 0 0 10px;
+      display: flex; align-items: center; gap: 5px;
+    }
+
+    /* ── Liste définition (label / valeur) ── */
+    .kyc-dl { margin: 0; }
+    .kyc-dl-row {
+      display: flex; justify-content: space-between; align-items: baseline;
+      gap: 8px; padding: 5px 0;
+      border-bottom: 1px dashed var(--border);
+    }
+    .kyc-dl-row:last-child { border-bottom: none; }
+    .kyc-dl-row dt {
+      font-size: .78rem; color: var(--text-muted);
+      font-weight: 500; white-space: nowrap;
+    }
+    .kyc-dl-row dd {
+      font-size: .85rem; font-weight: 600; color: var(--text);
+      margin: 0; text-align: right;
+    }
+
+    /* ── Documents ── */
     .kyc-docs { display: flex; gap: 8px; flex-wrap: wrap; }
     .kyc-doc-thumb {
-      width: 72px; height: 54px; border-radius: 6px;
-      border: 1px solid var(--border); background: var(--bg);
+      width: 80px; height: 64px; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--bg-card);
       display: flex; flex-direction: column;
-      align-items: center; justify-content: center; gap: 3px;
-      color: var(--text-muted); cursor: pointer; transition: border-color .15s, background .15s;
+      align-items: center; justify-content: center; gap: 4px;
+      color: var(--text-muted); cursor: pointer;
+      transition: border-color .15s, background .15s, color .15s;
     }
-    .kyc-doc-thumb:hover { border-color: var(--primary); background: var(--primary-light); color: var(--primary); }
-    .kyc-doc-label { font-size: .68rem; font-weight: 600; }
-    .kyc-actions { display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
-    @media (max-width: 640px) {
-      .kyc-card { flex-direction: column; }
-      .kyc-actions { flex-direction: row; width: 100%; }
-      .kyc-actions .btn { flex: 1; justify-content: center; }
+    .kyc-doc-thumb:hover {
+      border-color: var(--primary);
+      background: var(--primary-light);
+      color: var(--primary);
+    }
+    .kyc-doc-label { font-size: .7rem; font-weight: 600; }
+
+    /* ── Responsive ── */
+    @media (max-width: 700px) {
+      .kyc-card-body { grid-template-columns: 1fr; }
+      .kyc-card-header { flex-wrap: wrap; }
+      .kyc-actions { flex-direction: row; width: 100%; justify-content: flex-start; }
     }
   `],
 })
