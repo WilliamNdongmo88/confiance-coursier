@@ -194,7 +194,7 @@ import {
     .modal-overlay.active { display: flex; }
     .modal-box {
       width: min(480px, 100%);
-      background: var(--cc-white, #fff);
+      background: #ffffff;
       border-radius: 13px;
       padding: 24px;
       box-shadow: 0 28px 80px rgba(16,38,29,.22);
@@ -221,13 +221,22 @@ import {
       grid-template-columns: 130px 1fr;
       gap: 10px;
       padding: 10px 0;
-      border-bottom: 1px solid var(--cc-line, #e2e8e2);
+      border-bottom: 1px solid #e2e8e2;
       font-size: 12px;
     }
     .modal-detail span:first-child { color: #7e8a82; }
     .modal-detail strong { color: #34463a; font-weight: 700; }
     .modal-actions { display: flex; gap: 8px; margin-top: 18px; flex-wrap: wrap; }
     .modal-actions > * { flex: 1; min-width: 0; justify-content: center; }
+
+    /* ── Modal dark mode ── */
+    [data-theme="dark"] .modal-box         { background: #1c2e26; box-shadow: 0 28px 80px rgba(0,0,0,.5); }
+    [data-theme="dark"] .modal-header h2   { color: #e2ede6; }
+    [data-theme="dark"] .modal-close       { background: #2a3d32; color: #9bb8a8; }
+    [data-theme="dark"] .modal-close:hover { background: #35503f; }
+    [data-theme="dark"] .modal-detail      { border-bottom-color: #2e4037; }
+    [data-theme="dark"] .modal-detail span:first-child { color: #7a9e8a; }
+    [data-theme="dark"] .modal-detail strong            { color: #c8ddd0; }
   `],
   template: `
     <app-shell pageTitle="Vue d'ensemble">

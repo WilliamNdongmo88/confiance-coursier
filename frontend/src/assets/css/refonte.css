@@ -745,3 +745,12 @@ button, input, select, textarea { font: inherit; }
   color: #B0C0B7 !important;
 }
 
+
+/* ── Courier dashboard — modal dark mode ────────────────────────────────── */
+[data-theme="dark"] .modal-box         { background: #1c2e26 !important; box-shadow: 0 28px 80px rgba(0,0,0,.5) !important; }
+[data-theme="dark"] .modal-header h2   { color: #e2ede6 !important; }
+[data-theme="dark"] .modal-close       { background: #2a3d32 !important; color: #9bb8a8 !important; }
+[data-theme="dark"] .modal-close:hover { background: #35503f !important; }
+[data-theme="dark"] .modal-detail      { border-bottom-color: #2e4037 !important; }
+[data-theme="dark"] .modal-detail span:first-child { color: #7a9e8a !important; }
+[data-theme="dark"] .modal-detail strong            { color: #c8ddd0 !important; }
