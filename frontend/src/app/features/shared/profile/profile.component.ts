@@ -13,6 +13,7 @@ import {
   LucideShieldAlert,
   LucideClock,
   LucideXCircle,
+  LucideCheckCircle2,
 } from '@lucide/angular';
 
 interface UserProfile {
@@ -46,6 +47,7 @@ interface UserProfile {
     LucideShieldAlert,
     LucideClock,
     LucideXCircle,
+    LucideCheckCircle2,
   ],
   styles: [`
     .avatar-section {
@@ -87,6 +89,63 @@ interface UserProfile {
     [data-theme="dark"] .avatar-section { border-bottom-color: #2e4037; }
     [data-theme="dark"] .avatar-lg { background: #1e3029; color: #d7ed9a; }
     [data-theme="dark"] hr { border-top-color: #2e4037 !important; }
+    /* ── Bannière KYC (même style que courier/dashboard) ── */
+    .kyc-banner {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: linear-gradient(135deg, #78350f 0%, #92400e 100%);
+      border: 1px solid #b45309;
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 16px rgba(120, 53, 15, .25);
+      flex-wrap: wrap;
+    }
+    .kyc-banner__icon-wrap {
+      display: grid;
+      place-items: center;
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: rgba(255,255,255,.15);
+      color: #fde68a;
+      flex-shrink: 0;
+    }
+    .kyc-banner__body { flex: 1; min-width: 160px; }
+    .kyc-banner__title {
+      display: block;
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 2px;
+    }
+    .kyc-banner__desc {
+      margin: 0;
+      font-size: 12px;
+      color: #fde68a;
+      line-height: 1.4;
+    }
+    .kyc-banner__cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #fde68a;
+      color: #78350f;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 8px 14px;
+      border-radius: 8px;
+      text-decoration: none;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: background .15s, transform .1s;
+    }
+    .kyc-banner__cta:hover { background: #fef3c7; transform: translateY(-1px); }
+    @media (max-width: 560px) {
+      .kyc-banner__body { min-width: unset; width: 100%; }
+      .kyc-banner__cta  { width: 100%; justify-content: center; }
+    }
   `],
   template: `
 <app-shell [pageTitle]="isCourier ? 'Mon profil coursier' : 'Mon profil'">
@@ -206,24 +265,29 @@ interface UserProfile {
     </div>
 
     <!-- Section KYC (coursier uniquement) -->
-    <div *ngIf="isCourier"
-         style="margin-bottom: 16px; padding: 14px 16px; border-radius: 10px;
-                background: #f7f8f5; border: 1px solid #e1e8e0;">
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
-        <div>
-          <p style="font-weight:600; font-size:.88rem; margin-bottom:3px;">Vérification d'identité (KYC)</p>
-          <p class="text-muted text-sm">
-            <ng-container *ngIf="profile()!.kycStatus === 'APPROVED'">Votre identité est vérifiée. Vous pouvez accepter des missions.</ng-container>
-            <ng-container *ngIf="profile()!.kycStatus === 'PENDING'">Votre dossier est en cours d'examen.</ng-container>
-            <ng-container *ngIf="profile()!.kycStatus === 'REJECTED'">Votre dossier a été rejeté. Veuillez le resoumettre.</ng-container>
-            <ng-container *ngIf="profile()!.kycStatus !== 'APPROVED' && profile()!.kycStatus !== 'PENDING' && profile()!.kycStatus !== 'REJECTED'">Soumettez votre KYC pour débloquer les missions.</ng-container>
-          </p>
-        </div>
-        <a routerLink="/courier/kyc" class="btn btn-secondary btn-sm" style="flex-shrink:0;">
-          <svg lucideShieldCheck size="14"></svg>
-          {{ profile()!.kycStatus === 'APPROVED' ? 'Voir' : 'Soumettre' }}
-        </a>
+    <!-- Bannière KYC (coursier uniquement, masquée si APPROVED) -->
+    <div *ngIf="isCourier && profile()!.kycStatus !== 'APPROVED'" class="kyc-banner">
+      <div class="kyc-banner__icon-wrap">
+        <svg lucideShieldAlert size="20"></svg>
       </div>
+      <div class="kyc-banner__body">
+        <ng-container *ngIf="profile()!.kycStatus === 'PENDING'">
+          <strong class="kyc-banner__title">Vérification d'identité en cours</strong>
+          <p class="kyc-banner__desc">Votre dossier KYC est en cours d'examen par notre équipe (24-48h).</p>
+        </ng-container>
+        <ng-container *ngIf="profile()!.kycStatus === 'REJECTED'">
+          <strong class="kyc-banner__title">Dossier KYC refusé — action requise</strong>
+          <p class="kyc-banner__desc">Votre dossier a été refusé. Soumettez-en un nouveau pour accepter des missions.</p>
+        </ng-container>
+        <ng-container *ngIf="profile()!.kycStatus !== 'PENDING' && profile()!.kycStatus !== 'REJECTED'">
+          <strong class="kyc-banner__title">Votre identité doit être vérifiée</strong>
+          <p class="kyc-banner__desc">Le KYC doit être validé pour accepter de nouvelles missions.</p>
+        </ng-container>
+      </div>
+      <a class="kyc-banner__cta" routerLink="/courier/kyc">
+        <svg lucideShieldCheck size="13"></svg>
+        {{ profile()!.kycStatus === 'REJECTED' ? 'Resoumettre' : (profile()!.kycStatus === 'PENDING' ? 'Voir mon dossier' : 'Compléter le dossier') }}
+      </a>
     </div>
 
     <!-- Section Sécurité -->
