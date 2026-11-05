@@ -522,6 +522,7 @@ Ordre imposé : Sprint 7 entièrement (il débloque tout), puis 8, puis 9 / 10 /
 **Validation :** suspendre un coursier connecté → son prochain clic le déconnecte avec un message clair.
 
 #### TICK-054 🔴 [BE] Distinguer jeton d'accès et refresh token — 1,5 h
+**Statut :** ✅ (2026-11-05)
 **Anomalie :** A-11 · **Fichiers :** `JwtService`, `JwtAuthenticationFilter`, `AuthService.refreshAccessToken`
 **Critères d'acceptation :**
 - Claim `typ` = `access` ou `refresh`.

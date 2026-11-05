@@ -1203,6 +1203,14 @@ Aucun moyen de créer un compte ADMIN — l'inscription ne permet que CLIENT et 
 
 ---
 
+### Session 48 (suite) — TICK-054 [BE] : jeton d'accès ≠ refresh token
+- `JwtService` : claim `typ` = `access` (generateToken) / `refresh` (generateRefreshToken, + `jti` UUID) ; `isAccessToken()`, `isRefreshToken()` ; `isTokenValid()` exige `typ=access` (jetons sans type refusés)
+- `AuthService.extractEmailSafely` (refresh + logout) : n'accepte qu'un `typ=refresh`
+- ⚠ Effet de bord attendu au déploiement : les sessions ouvertes avant ce changement (jetons sans `typ`) doivent se reconnecter une fois
+- Tests : `auth/service/JwtTokenTypeTest` (5) — total 43 ✅ ; vérif runtime 8083 : refresh en Bearer → 401, access sur /refresh → 400, rotation OK, rejeu ancien refresh → 400
+
+---
+
 ## 9. DOMAINES À IMPLÉMENTER (par ordre de priorité métier)
 
 ### 1. Guards Angular (prérequis avant tout)

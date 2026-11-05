@@ -232,8 +232,15 @@ public class AuthService {
      * Extrait l'email (subject) du token sans lever d'exception :
      * renvoie {@code null} si le token est invalide, mal formé ou expiré.
      */
+    /**
+     * Extrait l'email d'un refresh token valide. Renvoie {@code null} si le token est
+     * invalide, expiré ou n'est pas de type {@code refresh} (ex. un jeton d'accès) — TICK-054.
+     */
     private String extractEmailSafely(String token) {
         try {
+            if (!jwtService.isRefreshToken(token)) {
+                return null;
+            }
             return jwtService.extractUsername(token);
         } catch (Exception e) {
             return null;

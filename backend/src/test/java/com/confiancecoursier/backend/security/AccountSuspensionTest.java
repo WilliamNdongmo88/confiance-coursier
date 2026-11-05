@@ -136,6 +136,7 @@ class AccountSuspensionTest {
         user(2, "s@test.com", "SUSPENDED");
         JwtService jwt = mock(JwtService.class);
         when(jwt.extractUsername("refresh-tok")).thenReturn("s@test.com");
+        when(jwt.isRefreshToken("refresh-tok")).thenReturn(true);
         StringRedisTemplate redis = mock(StringRedisTemplate.class);
         AuthService auth = new AuthService(userRepository, new BCryptPasswordEncoder(), jwt,
                 mock(AuthenticationManager.class), userDetailsService, mock(OtpService.class), redis);

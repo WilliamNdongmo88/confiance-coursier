@@ -12,10 +12,20 @@ import javax.crypto.SecretKey;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.Function;
 
 @Service
 public class JwtService {
+
+    /**
+     * Claim qui distingue les deux usages d'un JWT (TICK-054).
+     * Un refresh token (7 j) ne doit jamais être accepté comme jeton d'accès,
+     * et un jeton d'accès ne doit jamais servir à renouveler une session.
+     */
+    public static final String TYPE_CLAIM = "typ";
+    public static final String TYPE_ACCESS = "access";
+    public static final String TYPE_REFRESH = "refresh";
 
     @Value("${jwt.secret}")
     private String secretKey;
@@ -40,7 +50,9 @@ public class JwtService {
     }
 
     public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {
-        return buildToken(extraClaims, userDetails, jwtExpiration);
+        Map<String, Object> claims = new HashMap<>(extraClaims);
+        claims.put(TYPE_CLAIM, TYPE_ACCESS);
+        return buildToken(claims, userDetails, jwtExpiration);
     }
 
     /**
@@ -49,7 +61,21 @@ public class JwtService {
      * dans Redis (clé {@code refresh:<userId>}) afin de pouvoir l'invalider.
      */
     public String generateRefreshToken(UserDetails userDetails) {
-        return buildToken(new HashMap<>(), userDetails, refreshExpiration);
+        Map<String, Object> claims = new HashMap<>();
+        claims.put(TYPE_CLAIM, TYPE_REFRESH);
+        // jti unique : deux refresh émis dans la même seconde restent distincts (rotation fiable).
+        claims.put("jti", UUID.randomUUID().toString());
+        return buildToken(claims, userDetails, refreshExpiration);
+    }
+
+    /** {@code true} si le token est signé, non expiré et de type {@code access}. */
+    public boolean isAccessToken(String token) {
+        return TYPE_ACCESS.equals(extractClaim(token, c -> c.get(TYPE_CLAIM, String.class)));
+    }
+
+    /** {@code true} si le token est signé, non expiré et de type {@code refresh}. */
+    public boolean isRefreshToken(String token) {
+        return TYPE_REFRESH.equals(extractClaim(token, c -> c.get(TYPE_CLAIM, String.class)));
     }
 
     /**
@@ -71,9 +97,15 @@ public class JwtService {
                 .compact();
     }
 
+    /**
+     * Valide un jeton <strong>d'accès</strong> pour l'utilisateur donné.
+     * Un refresh token (claim {@code typ=refresh}) ou un jeton sans type est refusé (TICK-054).
+     */
     public boolean isTokenValid(String token, UserDetails userDetails) {
         final String username = extractUsername(token);
-        return (username.equals(userDetails.getUsername())) && !isTokenExpired(token);
+        return username.equals(userDetails.getUsername())
+                && !isTokenExpired(token)
+                && isAccessToken(token);
     }
 
     private Date extractExpiration(String token) {
