@@ -1,10 +1,12 @@
 package com.confiancecoursier.backend.admin.api;
 
+import com.confiancecoursier.backend.auth.service.AuthService;
 import com.confiancecoursier.backend.shared.exception.BusinessException;
 import com.confiancecoursier.backend.user.api.dto.UserProfileResponse;
 import com.confiancecoursier.backend.user.domain.User;
 import com.confiancecoursier.backend.user.repository.UserRepository;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,9 +27,11 @@ import java.util.List;
 public class AdminUserController {
 
     private final UserRepository userRepository;
+    private final AuthService authService;
 
-    public AdminUserController(UserRepository userRepository) {
+    public AdminUserController(UserRepository userRepository, AuthService authService) {
         this.userRepository = userRepository;
+        this.authService = authService;
     }
 
     /**
@@ -69,8 +73,17 @@ public class AdminUserController {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("Utilisateur introuvable."));
 
+        // TICK-053 : un admin ne peut pas se suspendre lui-même.
+        String currentEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+        if (user.getEmail().equalsIgnoreCase(currentEmail)) {
+            throw new BusinessException("Vous ne pouvez pas suspendre votre propre compte.");
+        }
+
         user.setStatus("SUSPENDED");
         userRepository.save(user);
+        // Coupe la session longue (plus de refresh). Le JWT court déjà émis est refusé
+        // dès la requête suivante par JwtAuthenticationFilter.
+        authService.revokeSessions(user.getId());
         return ResponseEntity.ok(UserProfileResponse.fromUser(user));
     }
 

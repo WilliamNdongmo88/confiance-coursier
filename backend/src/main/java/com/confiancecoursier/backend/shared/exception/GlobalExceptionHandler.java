@@ -5,6 +5,8 @@ import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -68,6 +70,17 @@ public class GlobalExceptionHandler {
                 LocalDateTime.now()
         );
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+    }
+
+    // Compte suspendu / bloqué (login après mot de passe correct, ou refresh) → 403 — TICK-053
+    @ExceptionHandler({AccountSuspendedException.class, LockedException.class, DisabledException.class})
+    public ResponseEntity<ErrorResponse> handleAccountSuspended(Exception ex) {
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.FORBIDDEN.value(),
+                AccountSuspendedException.DEFAULT_MESSAGE,
+                LocalDateTime.now()
+        );
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
     }
 
     // Gère les erreurs de stockage de fichiers (MinIO)

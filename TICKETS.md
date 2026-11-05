@@ -1088,6 +1088,7 @@ Le flux d'offre doit passer par le chat (spec fonctionnelle §2.1). Le coursier 
 |--------|-------|--------|
 | TICK-051 | 🔴 [BE] Interdire l'auto-attribution du rôle ADMIN | ✅ |
 | TICK-052 | 🔴 [BE] Fermer les endpoints de décision hors `/api/admin` | ✅ |
+| TICK-053 | 🔴 [BE] Rendre la suspension effective | ✅ |
 
 ---
 

@@ -1,6 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { NgIf } from '@angular/common';
 import { AuthService } from '../../../core/services/auth.service';
 import { ThemeService } from '../../../core/services/theme.service';
@@ -140,9 +140,14 @@ export class LoginComponent implements OnInit {
   private router      = inject(Router);
   private toast       = inject(ToastService);
   readonly theme      = inject(ThemeService);
+  private route       = inject(ActivatedRoute);
 
   ngOnInit(): void {
     this.initLang();
+    // TICK-053 : déconnexion forcée suite à une suspension de compte.
+    if (this.route.snapshot.queryParamMap.get('reason') === 'suspended') {
+      this.toast.error('Votre compte est suspendu. Contactez le support pour plus d\'informations.');
+    }
     if (this.authService.isLoggedIn()) {
       this.redirectByRole(this.authService.getCurrentUserRole());
     }

@@ -511,6 +511,7 @@ Ordre imposé : Sprint 7 entièrement (il débloque tout), puis 8, puis 9 / 10 /
 **Validation :** résoudre un litige depuis l'admin → OK ; même appel avec un token client → refus.
 
 #### TICK-053 🔴 [BE] Rendre la suspension effective — 2 h
+**Statut :** ✅ (2026-11-05)
 **Anomalie :** A-10 · **Fichiers :** `UserDetailsServiceImpl`, `JwtAuthenticationFilter`, `AuthService`, `AdminUserController`
 **Description :** `enabled = status == ACTIVE`. Le filtre JWT recharge le statut (avec un cache court). La suspension révoque le refresh token Redis. Un admin ne peut pas se suspendre lui-même.
 **Critères d'acceptation :**

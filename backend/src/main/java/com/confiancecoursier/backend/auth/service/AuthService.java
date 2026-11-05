@@ -3,6 +3,7 @@ package com.confiancecoursier.backend.auth.service;
 import com.confiancecoursier.backend.auth.api.dto.AuthResponse;
 import com.confiancecoursier.backend.auth.api.dto.LoginRequest;
 import com.confiancecoursier.backend.auth.api.dto.RegisterRequest;
+import com.confiancecoursier.backend.shared.exception.AccountSuspendedException;
 import com.confiancecoursier.backend.shared.exception.BusinessException;
 import com.confiancecoursier.backend.user.domain.User;
 import com.confiancecoursier.backend.user.repository.UserRepository;
@@ -147,6 +148,12 @@ public class AuthService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new BusinessException("Utilisateur non trouvé."));
 
+        // TICK-053 : un compte suspendu ne peut plus renouveler sa session.
+        if (!user.isActive()) {
+            deleteRefreshToken(user.getId());
+            throw new AccountSuspendedException();
+        }
+
         // Vérifie que le refresh token correspond à celui stocké (et qu'il n'a pas été révoqué).
         String stored = getStoredRefreshToken(user.getId());
         if (stored == null || !stored.equals(refreshToken)) {
@@ -193,6 +200,14 @@ public class AuthService {
         if (userRepository.existsByEmail(email)) {
             otpService.generateOtp(email);
         }
+    }
+
+    /**
+     * Révoque la session longue (refresh token) d'un utilisateur.
+     * Utilisé à la suspension d'un compte (TICK-053).
+     */
+    public void revokeSessions(Long userId) {
+        deleteRefreshToken(userId);
     }
 
     // ── Helpers Redis pour le refresh token ──

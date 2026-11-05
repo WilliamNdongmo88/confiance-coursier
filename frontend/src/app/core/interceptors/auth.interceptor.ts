@@ -56,9 +56,11 @@ function refreshOnce(auth: AuthService, router: Router): Observable<AuthResponse
     }),
     catchError((err) => {
       // Échec du refresh (token expiré/révoqué) : déconnexion + redirection.
+      // 403 = compte suspendu (TICK-053) → la page de login affiche le motif.
       refreshInProgress$ = null;
       auth.logout();
-      router.navigate(['/login']);
+      const suspended = err instanceof HttpErrorResponse && err.status === 403;
+      router.navigate(['/login'], suspended ? { queryParams: { reason: 'suspended' } } : {});
       return throwError(() => err);
     }),
     // Multidiffusion : un seul appel /api/auth/refresh pour tous les abonnés.

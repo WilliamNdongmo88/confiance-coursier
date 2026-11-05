@@ -66,4 +66,9 @@ public class User {
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
+
+    /** Un compte ne peut utiliser l'application que s'il est ACTIVE (TICK-053). */
+    public boolean isActive() {
+        return "ACTIVE".equalsIgnoreCase(status);
+    }
 }

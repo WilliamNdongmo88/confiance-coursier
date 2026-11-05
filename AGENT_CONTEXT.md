@@ -1190,6 +1190,19 @@ Aucun moyen de créer un compte ADMIN — l'inscription ne permet que CLIENT et 
 
 ---
 
+### Session 48 (suite) — TICK-053 [BE+FE] : suspension effective
+- `User.isActive()` (statut `ACTIVE`) ; `UserDetailsServiceImpl` : `accountLocked(!isActive())`
+- `SecurityConfig.authenticationProvider()` : contrôle du verrou **après** le mot de passe (pre-checks vides, post-checks = `AccountStatusUserDetailsChecker`) → mauvais mot de passe = 401 même si suspendu (pas de fuite d'état)
+- `JwtAuthenticationFilter` : JWT d'un compte verrouillé ignoré → 401
+- `AuthService.refreshAccessToken` : compte non actif → suppression du refresh Redis + `AccountSuspendedException` (403) ; nouvelle méthode `revokeSessions(userId)`
+- `AdminUserController.suspend` : refus de l'auto-suspension (400) + `revokeSessions`
+- `GlobalExceptionHandler` : `AccountSuspendedException` / `LockedException` / `DisabledException` → 403 « Votre compte est suspendu… »
+- Front : `auth.interceptor.ts` → refresh 403 ⇒ `/login?reason=suspended` ; `login.component.ts` affiche le toast
+- Les suspensions automatiques (`ReportService`, `ReviewService`) sont couvertes par le filtre + le refresh (pas de révocation explicite nécessaire)
+- Tests : `security/AccountSuspensionTest` (10) — total 38 ✅ ; vérif runtime 8083 (9 contrôles OK, données de test supprimées) ; `ng build` OK
+
+---
+
 ## 9. DOMAINES À IMPLÉMENTER (par ordre de priorité métier)
 
 ### 1. Guards Angular (prérequis avant tout)
