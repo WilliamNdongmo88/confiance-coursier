@@ -1080,6 +1080,16 @@ Le flux d'offre doit passer par le chat (spec fonctionnelle §2.1). Le coursier 
 
 ---
 
+## PLAN D'AMÉLIORATION (TICK-051 → TICK-105)
+> Les tickets à partir de TICK-051 sont détaillés dans `PLAN_AMELIORATION.md` §7 (critères d'acceptation, validation, estimations).
+> Ils remplacent l'ancien Sprint 7 (TICK-043 → TICK-050, absorbés — voir le plan).
+
+| Ticket | Titre | Statut |
+|--------|-------|--------|
+| TICK-051 | 🔴 [BE] Interdire l'auto-attribution du rôle ADMIN | ✅ |
+
+---
+
 ## RÉCAPITULATIF DES TICKETS
 
 | ID | Titre | Sprint | Composante | Priorité | Statut |

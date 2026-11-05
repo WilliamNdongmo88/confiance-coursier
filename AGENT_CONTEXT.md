@@ -1,6 +1,6 @@
 # AGENT CONTEXT — confiance-coursier
 > Fichier de continuité pour tout agent IA qui reprend ce projet.
-> Mis à jour au : 2026-11-03 (session 47)
+> Mis à jour au : 2026-11-05 (session 48)
 > Dernier agent : Kiro CLI
 
 ---
@@ -1168,6 +1168,16 @@ Aucun moyen de créer un compte ADMIN — l'inscription ne permet que CLIENT et 
 
 #### Build
 - `ng build --configuration development` → **exit 0** (zéro warning)
+
+---
+
+### Session 48 — Plan d'amélioration + TICK-051 [BE] : rôle ADMIN interdit à l'inscription
+- **Revue complète** du projet → `PLAN_AMELIORATION.md` (anomalies A-01…A-38, parcours cibles, escrow, tickets TICK-051+). **Lire ce plan en premier.**
+- **TICK-051** :
+  - `auth/api/dto/RegisterRequest.java` : `@Pattern("(?i)\s*(CLIENT|COURIER)\s*")` sur `role`
+  - `auth/service/AuthService.java` : `SELF_REGISTRABLE_ROLES = {CLIENT, COURIER}` ; rôle normalisé (trim + upper) ; `BusinessException` sinon (défense en profondeur)
+  - Tests (sans base) : `RegisterRequestValidationTest` (13) + `AuthServiceRegisterTest` (11) → 24/24 ✅
+  - Vérif runtime (instance 8083) : ADMIN/admin → 400 ; CLIENT/COURIER → 200 ; comptes de test supprimés. Un seul ADMIN en base (le compte seedé).
 
 ---
 

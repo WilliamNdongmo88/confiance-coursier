@@ -16,9 +16,14 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.util.Locale;
+import java.util.Set;
 
 @Service
 public class AuthService {
+
+    /** Rôles qu'un visiteur peut choisir à l'inscription (jamais ADMIN). */
+    static final Set<String> SELF_REGISTRABLE_ROLES = Set.of("CLIENT", "COURIER");
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -51,6 +56,13 @@ public class AuthService {
     }
 
     public void register(RegisterRequest request) {
+        // Défense en profondeur : la DTO valide déjà le rôle, mais le service
+        // ne doit jamais créer un compte ADMIN quel que soit l'appelant.
+        String role = request.getRole() == null ? "" : request.getRole().trim().toUpperCase(Locale.ROOT);
+        if (!SELF_REGISTRABLE_ROLES.contains(role)) {
+            throw new BusinessException("Rôle invalide : seuls CLIENT ou COURIER sont autorisés.");
+        }
+
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new BusinessException("Un compte avec cet email existe déjà.");
         }
@@ -60,7 +72,7 @@ public class AuthService {
                 .fullName(request.getFullName())
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .phone(request.getPhone())
-                .role(request.getRole().toUpperCase())
+                .role(role)
                 .status("ACTIVE")
                 .build();
 
