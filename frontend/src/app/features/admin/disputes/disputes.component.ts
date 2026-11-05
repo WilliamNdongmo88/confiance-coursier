@@ -66,6 +66,9 @@ import {
               <button class="btn btn-secondary btn-sm" (click)="resolve(dispute, 'LIBERATION')">
                 <svg lucideCheckCircle size="14"></svg> Payer le coursier
               </button>
+              <button class="btn btn-secondary btn-sm" (click)="split(dispute)">
+                <svg lucideScale size="14"></svg> Partager
+              </button>
               <button class="btn btn-ghost btn-sm" (click)="viewChat()">
                 <svg lucideMessageSquare size="14"></svg> Voir les échanges
               </button>
@@ -144,16 +147,39 @@ export class AdminDisputesComponent implements OnInit {
     });
   }
 
-  resolve(dispute: DisputeResponse, decision: string): void {
-    this.adminService.resolveDispute(dispute.id, decision).subscribe({
+  /**
+   * Partage (REMBOURSEMENT_PARTIEL) : l'admin saisit le montant rendu au client (0 < x < total).
+   * Le serveur prélève les frais plateforme sur le reste et verse le solde au coursier.
+   * Saisie minimale en attendant l'écran détail du litige (TICK-092).
+   */
+  split(dispute: DisputeResponse): void {
+    const raw = window.prompt('Montant à rembourser au client (XAF) — le reste revient au coursier, frais plateforme déduits :');
+    if (raw === null) return;
+    const amount = Math.round(Number(raw.replace(/\s/g, '')));
+    if (!Number.isFinite(amount) || amount <= 0) {
+      this.toast.error('Montant invalide.');
+      return;
+    }
+    this.resolve(dispute, 'REMBOURSEMENT_PARTIEL', amount);
+  }
+
+  resolve(dispute: DisputeResponse, decision: string, refundAmount?: number): void {
+    const labels: Record<string, string> = {
+      REMBOURSEMENT_TOTAL: 'Rembourser le client',
+      LIBERATION: 'Payer le coursier',
+      REMBOURSEMENT_PARTIEL: `Rembourser ${refundAmount ?? 0} XAF au client et verser le reste au coursier`,
+    };
+    if (!window.confirm(`${labels[decision] ?? decision} ? Cette décision est définitive.`)) return;
+
+    this.adminService.resolveDispute(dispute.id, decision, refundAmount).subscribe({
       next: (updated) => {
         this.allList.update(list => list.map(d => d.id === updated.id ? updated : d));
-        const msg = decision === 'REMBOURSEMENT_TOTAL'
-          ? 'Client remboursé. Litige clôturé.'
+        const msg = decision === 'REMBOURSEMENT_TOTAL' ? 'Client remboursé. Litige clôturé.'
+          : decision === 'REMBOURSEMENT_PARTIEL' ? 'Partage effectué. Litige clôturé.'
           : 'Paiement libéré au coursier. Litige clôturé.';
         this.toast.success(msg);
       },
-      error: () => this.toast.error('Erreur lors de la résolution.'),
+      error: (err) => this.toast.error(err?.error?.message ?? 'Erreur lors de la résolution.'),
     });
   }
 

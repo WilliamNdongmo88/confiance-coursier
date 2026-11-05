@@ -1096,6 +1096,9 @@ Le flux d'offre doit passer par le chat (spec fonctionnelle §2.1). Le coursier 
 | TICK-058 | 🔴 [BE+FE] Offre persistée depuis le chat, avec règles métier | ✅ |
 | TICK-059 | 🔴 [FULL] Acceptation de l'offre et assignation du coursier | ✅ |
 | TICK-060 | 🔴 [FULL] Paiement fiable côté serveur | ✅ |
+| TICK-061 | 🔴 [BE] EscrowService et ledger équilibré | ✅ |
+
+> 2026-11-05 — TICK-055 → TICK-061 revus et corrigés (session 51, voir `AGENT_CONTEXT.md` §7 et `PLAN_AMELIORATION.md` §1.4).
 
 ---
 

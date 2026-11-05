@@ -1,13 +1,15 @@
 package com.confiancecoursier.backend.chat.api;
 
-import com.confiancecoursier.backend.admin.service.CommissionService;
 import com.confiancecoursier.backend.chat.api.dto.ChatMessageDto;
 import com.confiancecoursier.backend.chat.domain.ChatMessage;
 import com.confiancecoursier.backend.chat.domain.ChatRoom;
 import com.confiancecoursier.backend.chat.repository.ChatMessageRepository;
 import com.confiancecoursier.backend.chat.service.ChatAccessService;
 import com.confiancecoursier.backend.course.domain.CourseOffer;
-import com.confiancecoursier.backend.course.repository.CourseOfferRepository;
+import com.confiancecoursier.backend.course.service.OfferService;
+import com.confiancecoursier.backend.shared.exception.BusinessException;
+import com.confiancecoursier.backend.shared.exception.ConflictException;
+import com.confiancecoursier.backend.shared.exception.ForbiddenException;
 import com.confiancecoursier.backend.user.domain.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,7 +22,6 @@ import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.security.Principal;
 import java.util.Map;
 
@@ -32,9 +33,9 @@ import java.util.Map;
  *   <li>l'expéditeur est <b>toujours</b> l'utilisateur authentifié (le {@code senderId} du payload est ignoré) ;</li>
  *   <li>seuls le client et le coursier du salon peuvent écrire (salon non archivé) ;</li>
  *   <li>types acceptés depuis le client : {@code TEXT} et {@code OFFER} — {@code SYSTEM} est réservé au serveur ;</li>
- *   <li>{@code OFFER} (TICK-058) : uniquement le coursier du salon, montant entier XAF ≥ tarifMinimum (lu depuis
- *       {@code platform_settings}), course PUBLISHED. L'ancienne offre ACTIVE est marquée SUPERSEDED avant
- *       d'en créer une nouvelle. Le message retourné inclut {@code offerId}.</li>
+ *   <li>{@code OFFER} (TICK-058) : uniquement le coursier du salon, KYC APPROVED, montant entier XAF ≥ tarifMinimum
+ *       (lu depuis {@code platform_settings}), course PUBLISHED — règles portées par {@link OfferService#submitOffer}.
+ *       Le message enregistré porte {@code offerId}.</li>
  * </ul>
  * Tout refus est renvoyé à l'émetteur seul sur {@code /user/queue/errors}.
  */
@@ -47,19 +48,16 @@ public class ChatController {
     private final ChatMessageRepository chatMessageRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final ChatAccessService chatAccessService;
-    private final CourseOfferRepository offerRepository;
-    private final CommissionService commissionService;
+    private final OfferService offerService;
 
     public ChatController(ChatMessageRepository chatMessageRepository,
                           SimpMessagingTemplate messagingTemplate,
                           ChatAccessService chatAccessService,
-                          CourseOfferRepository offerRepository,
-                          CommissionService commissionService) {
+                          OfferService offerService) {
         this.chatMessageRepository = chatMessageRepository;
         this.messagingTemplate     = messagingTemplate;
         this.chatAccessService     = chatAccessService;
-        this.offerRepository       = offerRepository;
-        this.commissionService     = commissionService;
+        this.offerService          = offerService;
     }
 
     @Transactional
@@ -92,51 +90,21 @@ public class ChatController {
                 }
             }
             case "OFFER" -> {
-                // ── Règles TICK-058 ────────────────────────────────────────────
+                // ── Règles TICK-058 (portées par OfferService) ───────────────────
                 if (!sender.getId().equals(room.getCourierId())) {
                     throw new ChatRejectedException("Seul le coursier peut proposer un tarif.");
                 }
-                if (dto.getOfferAmount() == null || dto.getOfferAmount().compareTo(BigDecimal.ZERO) <= 0) {
-                    throw new ChatRejectedException("Montant de l'offre invalide.");
+                CourseOffer offer;
+                try {
+                    // rôle COURIER + KYC APPROVED, course PUBLISHED sous verrou, entier XAF ≥ minimum,
+                    // ancienne offre ACTIVE → SUPERSEDED
+                    offer = offerService.submitOffer(room.getCourseId(), sender.getId(),
+                            dto.getOfferAmount(), content);
+                } catch (BusinessException | ForbiddenException | ConflictException e) {
+                    throw new ChatRejectedException(e.getMessage());
                 }
-
-                // Arrondi XAF entier
-                BigDecimal rounded = dto.getOfferAmount().setScale(0, RoundingMode.HALF_UP);
-
-                // Tarif minimum depuis platform_settings (jamais codé en dur)
-                BigDecimal tarifMin = commissionService.getCommissionSettings().getTarifMinimumCoursier();
-                if (rounded.compareTo(tarifMin) < 0) {
-                    throw new ChatRejectedException(
-                            "Le montant minimum est de " + tarifMin.toPlainString() + " XAF.");
-                }
-
-                // Vérifier que la course est encore PUBLISHED
-                chatAccessService.findCourse(room.getCourseId())
-                        .filter(c -> "PUBLISHED".equals(c.getStatus()))
-                        .orElseThrow(() -> new ChatRejectedException(
-                                "Cette course n'accepte plus d'offres."));
-
-                // Marquer l'offre ACTIVE précédente comme SUPERSEDED
-                offerRepository.findByCourseIdAndCourierIdAndStatus(
-                        room.getCourseId(), sender.getId(), "ACTIVE")
-                        .ifPresent(prev -> {
-                            prev.setStatus("SUPERSEDED");
-                            offerRepository.save(prev);
-                        });
-
-                // Créer la nouvelle offre ACTIVE
-                CourseOffer newOffer = CourseOffer.builder()
-                        .courseId(room.getCourseId())
-                        .courierId(sender.getId())
-                        .amount(rounded)
-                        .details(content.isEmpty() ? null : content)
-                        .status("ACTIVE")
-                        .build();
-                newOffer = offerRepository.save(newOffer);
-
-                offerAmount = rounded;
-                offerId     = newOffer.getId();
-                // Le content du message = description optionnelle ou vide
+                offerAmount = offer.getAmount();
+                offerId     = offer.getId();
             }
             default -> throw new ChatRejectedException("Type de message non autorisé.");
         }
@@ -151,11 +119,12 @@ public class ChatController {
                 .content(content)
                 .messageType(type)
                 .offerAmount(offerAmount)
+                .offerId(offerId)
                 .build();
         message = chatMessageRepository.save(message);
 
         // Enrichir le message diffusé avec l'offerId (utile au front pour "Accepter et payer")
-        Map<String, Object> payload = buildPayload(message, offerId);
+        Map<String, Object> payload = buildPayload(message);
         messagingTemplate.convertAndSend("/topic/chat/" + room.getId(), (Object) payload);
     }
 
@@ -168,7 +137,7 @@ public class ChatController {
 
     // ── Utilitaires ───────────────────────────────────────────────────────────
 
-    private Map<String, Object> buildPayload(ChatMessage msg, Long offerId) {
+    private Map<String, Object> buildPayload(ChatMessage msg) {
         var map = new java.util.LinkedHashMap<String, Object>();
         map.put("id",          msg.getId());
         map.put("roomId",      msg.getRoomId());
@@ -177,7 +146,10 @@ public class ChatController {
         map.put("messageType", msg.getMessageType());
         map.put("createdAt",   msg.getCreatedAt());
         if (msg.getOfferAmount() != null) map.put("offerAmount", msg.getOfferAmount());
-        if (offerId != null)              map.put("offerId",      offerId);
+        if (msg.getOfferId() != null) {
+            map.put("offerId",     msg.getOfferId());
+            map.put("offerStatus", "ACTIVE"); // une offre qui vient d'être créée est toujours ACTIVE
+        }
         return map;
     }
 

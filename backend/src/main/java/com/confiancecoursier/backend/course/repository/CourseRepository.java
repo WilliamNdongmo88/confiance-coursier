@@ -20,7 +20,7 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT c FROM Course c WHERE c.id = :id")
-    Optional<Course> findByIdForUpdate(Long id);
+    Optional<Course> findByIdForUpdate(@org.springframework.data.repository.query.Param("id") Long id);
     // Récupère toutes les courses avec un statut donné (ex: PUBLISHED)
     List<Course> findByStatusOrderByCreatedAtDesc(String status);
 
@@ -30,46 +30,9 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
     // Récupère toutes les missions d'un coursier
     List<Course> findByCourierIdOrderByCreatedAtDesc(Long courierId);
 
-    // ─── Gains plateforme ──────────────────────────────────────────────────
-
-    /** Somme des gains plateforme sur toutes les courses COMPLETED. */
-    @Query("SELECT COALESCE(SUM(c.platformFeeAmount), 0) FROM Course c " +
-           "WHERE c.status = 'COMPLETED' AND c.platformFeeAmount IS NOT NULL")
-    BigDecimal sumPlatformFees();
-
-    /** Volume brut total (total_amount) des courses COMPLETED. */
-    @Query("SELECT COALESCE(SUM(c.totalAmount), 0) FROM Course c " +
-           "WHERE c.status = 'COMPLETED'")
-    BigDecimal sumTotalVolume();
-
-    /** Nombre de courses COMPLETED. */
+    /** Nombre de courses dans un statut donné. */
     long countByStatus(String status);
 
-    /** Gains du mois courant. */
-    @Query("SELECT COALESCE(SUM(c.platformFeeAmount), 0) FROM Course c " +
-           "WHERE c.status = 'COMPLETED' AND c.platformFeeAmount IS NOT NULL " +
-           "AND FUNCTION('DATE_TRUNC', 'month', c.completedAt) = FUNCTION('DATE_TRUNC', 'month', CURRENT_TIMESTAMP)")
-    BigDecimal sumPlatformFeesThisMonth();
-
-    /** Gains du mois précédent. */
-    @Query(value = "SELECT COALESCE(SUM(platform_fee_amount), 0) FROM courses " +
-                   "WHERE status = 'COMPLETED' AND platform_fee_amount IS NOT NULL " +
-                   "AND DATE_TRUNC('month', completed_at) = DATE_TRUNC('month', NOW() - INTERVAL '1 month')",
-           nativeQuery = true)
-    BigDecimal sumPlatformFeesLastMonth();
-
-    /** Historique mensuel : [year_month, nb_courses, gains, volume]. */
-    @Query(value = "SELECT TO_CHAR(DATE_TRUNC('month', completed_at), 'YYYY-MM') AS month, " +
-                   "COUNT(*) AS nb_courses, " +
-                   "COALESCE(SUM(platform_fee_amount), 0) AS gains, " +
-                   "COALESCE(SUM(total_amount), 0) AS volume " +
-                   "FROM courses " +
-                   "WHERE status = 'COMPLETED' AND platform_fee_amount IS NOT NULL " +
-                   "GROUP BY DATE_TRUNC('month', completed_at) " +
-                   "ORDER BY DATE_TRUNC('month', completed_at) DESC",
-           nativeQuery = true)
-    List<Object[]> findMonthlyGains();
-
-    /** Détail des 50 dernières courses complétées avec gains. */
-    List<Course> findTop50ByStatusAndPlatformFeeAmountIsNotNullOrderByCompletedAtDesc(String status);
+    /** Détail des 50 dernières courses clôturées (les gains sont lus depuis le ledger — TICK-061). */
+    List<Course> findTop50ByStatusInAndPlatformFeeAmountIsNotNullOrderByCompletedAtDesc(java.util.Collection<String> statuses);
 }

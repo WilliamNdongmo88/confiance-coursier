@@ -96,6 +96,17 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
     }
 
+    // Modification concurrente d'une course (@Version) → 409 — TICK-060
+    @ExceptionHandler(org.springframework.orm.ObjectOptimisticLockingFailureException.class)
+    public ResponseEntity<ErrorResponse> handleOptimisticLock(Exception ex) {
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.CONFLICT.value(),
+                "Cette course vient d'être modifiée par une autre action. Rechargez la page.",
+                LocalDateTime.now()
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
     // Compte suspendu / bloqué (login après mot de passe correct, ou refresh) → 403 — TICK-053
     @ExceptionHandler({AccountSuspendedException.class, LockedException.class, DisabledException.class})
     public ResponseEntity<ErrorResponse> handleAccountSuspended(Exception ex) {

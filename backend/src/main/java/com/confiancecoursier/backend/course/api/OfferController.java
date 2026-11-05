@@ -1,7 +1,5 @@
 package com.confiancecoursier.backend.course.api;
 
-import com.confiancecoursier.backend.course.api.dto.CreateOfferRequest;
-import com.confiancecoursier.backend.course.api.dto.CreateOfferResponse;
 import com.confiancecoursier.backend.course.domain.Course;
 import com.confiancecoursier.backend.course.domain.CourseOffer;
 import com.confiancecoursier.backend.course.repository.CourseRepository;
@@ -10,7 +8,6 @@ import com.confiancecoursier.backend.shared.exception.BusinessException;
 import com.confiancecoursier.backend.shared.exception.ForbiddenException;
 import com.confiancecoursier.backend.user.domain.User;
 import com.confiancecoursier.backend.user.repository.UserRepository;
-import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -20,6 +17,9 @@ import java.util.List;
 
 /**
  * Gestion des offres sur une course.
+ *
+ * <p>Les offres sont créées uniquement depuis le chat (message OFFER, TICK-058) :
+ * l'ancien {@code POST /api/courses/{courseId}/offers} a été supprimé.
  *
  * <p>TICK-056 : contrôle de participation sur GET /offers.
  * <ul>
@@ -44,14 +44,6 @@ public class OfferController {
         this.userRepository = userRepository;
     }
 
-    @PostMapping
-    public ResponseEntity<CreateOfferResponse> createOffer(@PathVariable Long courseId,
-                                                           @Valid @RequestBody CreateOfferRequest request) {
-        Long courierId = getCurrentUserId();
-        CreateOfferResponse response = offerService.createOffer(courseId, courierId, request.getAmount(), request.getDetails());
-        return ResponseEntity.ok(response);
-    }
-
     /**
      * POST /api/courses/{courseId}/offers/{offerId}/accept
      * TICK-059 — Le CLIENT accepte une offre ACTIVE → course passe en ASSIGNED.
@@ -62,7 +54,7 @@ public class OfferController {
                                             Principal principal) {
         User caller = resolveUser(principal);
         if (!"CLIENT".equalsIgnoreCase(caller.getRole())) {
-            throw new com.confiancecoursier.backend.shared.exception.ForbiddenException("Seul le client peut accepter une offre.");
+            throw new ForbiddenException("Seul le client peut accepter une offre.");
         }
         offerService.acceptOffer(courseId, offerId, caller.getId());
         return ResponseEntity.noContent().build();
@@ -101,10 +93,6 @@ public class OfferController {
     }
 
     // ── Utilitaires ───────────────────────────────────────────────────────────
-
-    private Long getCurrentUserId() {
-        return resolveUser(null).getId();
-    }
 
     private User resolveUser(Principal principal) {
         String email = principal != null

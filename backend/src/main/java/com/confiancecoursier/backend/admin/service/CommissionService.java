@@ -85,6 +85,16 @@ public class CommissionService {
                 .orElse(defaultValue);
     }
 
+    /**
+     * Lit un paramètre booléen depuis {@code platform_settings}.
+     * Retourne {@code defaultValue} si le paramètre est absent ou illisible.
+     */
+    public boolean getBooleanSetting(String key, boolean defaultValue) {
+        return settingRepository.findBySettingKey(key)
+                .map(s -> Boolean.parseBoolean(s.getSettingValue()))
+                .orElse(defaultValue);
+    }
+
     private void upsertSetting(String key, String value, Long adminId) {
         Optional<PlatformSetting> existing = settingRepository.findBySettingKey(key);
         if (existing.isPresent()) {

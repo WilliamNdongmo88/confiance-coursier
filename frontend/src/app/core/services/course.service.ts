@@ -39,11 +39,6 @@ export class CourseService {
     return this.http.get<any[]>(`${this.apiUrl}/published`);
   }
 
-  // Créer une offre pour une course
-  createOffer(courseId: number, amount: number, details: string): Observable<any> {
-    return this.http.post(`${this.apiUrl}/${courseId}/offers`, { amount, details });
-  }
-
   updateCourse(id: number, data: CreateCourseRequest): Observable<any> {
     return this.http.put(`${this.apiUrl}/${id}`, data);
   }

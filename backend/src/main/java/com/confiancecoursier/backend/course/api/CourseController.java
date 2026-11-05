@@ -78,10 +78,19 @@ public class CourseController {
             if (courierId == null) {
                 throw new BusinessException("courierId manquant dans le corps de la requête.");
             }
-            // Vérifier que le coursier existe et est actif
+            // Conversation déjà ouverte : renvoyée telle quelle (idempotent)
+            var existingRoom = chatRoomRepository.findByCourseIdAndCourierId(courseId, courierId);
+            if (existingRoom.isPresent()) {
+                return ResponseEntity.ok(Map.of("chatRoomId", existingRoom.get().getId()));
+            }
+            // Nouvelle conversation : course encore ouverte, et correspondant = vrai coursier actif KYC APPROVED.
+            // Sinon n'importe quel compte deviendrait « coursier du salon » et pourrait poster des offres.
+            if (!"PUBLISHED".equals(course.getStatus())) {
+                throw new BusinessException("Cette course n'est plus ouverte aux propositions.");
+            }
             userRepository.findById(courierId)
-                    .filter(User::isActive)
-                    .orElseThrow(() -> new BusinessException("Coursier introuvable ou inactif."));
+                    .filter(OfferService::canMakeOffers)
+                    .orElseThrow(() -> new BusinessException("Ce coursier n'est pas disponible (compte non vérifié ou inactif)."));
 
         } else if ("COURIER".equalsIgnoreCase(caller.getRole())) {
             // KYC APPROVED obligatoire

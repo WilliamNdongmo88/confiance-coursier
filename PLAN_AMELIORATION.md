@@ -100,6 +100,22 @@ Chemins abrégés : `BE/` = `backend/src/main/java/com/confiancecoursier/backend
 | A-37 | Admin : `findAll()` sans pagination, IDs au lieu des noms, suspension sans confirmation, documents KYC qui disparaissent après décision, payout qui ne permet pas d'effacer un champ ni ne valide les formats | TICK-093/094 |
 | A-38 | `app.html` par défaut inutilisé, `app.spec.ts` qui attend « Hello, frontend » ; tests BE limités à `AuthControllerTest`, sur la base de dev | TICK-096/099 |
 
+### 1.4 Revue de conformité TICK-055 → TICK-061 (2026-11-05) — toutes corrigées
+
+| ID | Ticket | Anomalie trouvée à la revue | Correction |
+|----|--------|-----------------------------|------------|
+| A-39 | 061 | `V12` en échec (`updated_by` BIGINT ← `'SYSTEM'`) : backend ne démarrait plus | V12 corrigée (jamais appliquée) |
+| A-40 | 061 | Ledger déséquilibré : `release` écrivait en positif ; partage avec écart ; gains lus hors ledger | Signes normalisés (V13), invariant vérifié à chaque clôture, gains depuis `PLATFORM_FEE` |
+| A-41 | 055 | SEND STOMP direct vers `/topic/**` diffusé sans contrôle | SEND limité à `/app/**` |
+| A-42 | 058/059 | `offerId` non persisté ; « Accepter » sur toutes les offres et inactif après rechargement | `chat_messages.offer_id` + `offerStatus` exposé |
+| A-43 | 057/058 | Contournement KYC : salon ouvert avec n'importe quel compte, OFFER sans contrôle KYC | Contrôles dans `CourseController` et `OfferService` |
+| A-44 | 057/058 | Offres à 0,01 rendues ACTIVE par V10 ; ancien `POST /offers` sans minimum | V13 (REJECTED/SUPERSEDED) + endpoint supprimé |
+| A-45 | 058 | 2ᵉ offre d'un coursier bloquée par l'index UNIQUE (INSERT avant UPDATE) | `saveAndFlush` de l'offre remplacée |
+| A-46 | 059/060/061 | Pas de verrou sur acceptation, validation, scheduler, litige ; `@Version` absent | `findByIdForUpdate` partout + `@Version` |
+| A-47 | 060 | `real_costs` NOT NULL mais `null` à la création → création de course en échec | Valeur par défaut 0 |
+| A-48 | 060 | Front : clé d'idempotence régénérée à chaque clic, page payable hors ASSIGNED ; rejeu de clé sans contrôle du client | Corrigé (front + back) |
+| A-49 | 055→061 | `ChatSecurityTest` ne compilait plus ; tests exigés absents (IDOR, ledger = 0) | Tests réparés et ajoutés (106 verts) |
+
 ---
 
 ## 2. AMÉLIORATION DE L'INTERFACE UTILISATEUR
@@ -618,7 +634,8 @@ Contrôles :
 - Frais réels = 0 accepté.
 **Validation :** E2E-4 (montant falsifié, double paiement) + paiement nominal.
 
-#### TICK-061 🔴 [BE] EscrowService et ledger équilibré (validation, 72 h, litiges, gains) — 6 h
+#### TICK-061 🔴 [BE] EscrowService et ledger équilibré — 6 h
+**Statut :** ✅ (2026-11-05, session 50)
 **Anomalies :** A-08, AD-02, BE-12 · **Fichiers :** nouveau `payment/service/EscrowService.java`, `PaymentService.applyValidation`, `DisputeService.resolve`, `AdminDisputeController` + DTO `{decision, refundAmount}`, `GainsService`, `CourseRepository`
 **Description :** centraliser HOLD, PAYOUT_COURIER, PLATFORM_FEE, REFUND_CLIENT et SPLIT (cf. §4.2). La résolution d'un litige écrit le ledger. Nouveaux statuts `REFUNDED` et escrow `REFUNDED`/`SPLIT`. Les gains plateforme sont lus depuis `PLATFORM_FEE`. Nouveau paramètre `refund_platform_fees_on_full_refund` (défaut `false`, seedé par migration), lu au moment de la décision et figé sur la course.
 **Critères d'acceptation :**

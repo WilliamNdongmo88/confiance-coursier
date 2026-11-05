@@ -25,7 +25,10 @@ import java.util.regex.Pattern;
  *       (type {@code access}, compte non suspendu). Le Principal STOMP est l'email de l'utilisateur.</li>
  *   <li><b>SUBSCRIBE</b> : {@code /topic/chat/{roomId}} seulement si participant (ou ADMIN) ;
  *       {@code /user/queue/errors} pour tout utilisateur connecté ; toute autre destination est refusée.</li>
- *   <li><b>SEND</b> : exige une session authentifiée (les contrôles métier sont dans {@code ChatController}).</li>
+ *   <li><b>SEND</b> : exige une session authentifiée et une destination applicative {@code /app/...}
+ *       (les contrôles métier sont dans {@code ChatController}). Un SEND direct vers {@code /topic/**},
+ *       {@code /queue/**} ou {@code /user/**} est refusé : sinon le simple broker le diffuserait
+ *       tel quel aux abonnés, sans passer par les contrôles (expéditeur, type, offre).</li>
  * </ul>
  * Le endpoint HTTP {@code /ws/**} reste public (handshake SockJS) : l'authentification se fait au CONNECT.
  */
@@ -34,6 +37,7 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
 
     private static final Pattern CHAT_TOPIC = Pattern.compile("^/topic/chat/(\\d+)$");
     static final String ERRORS_QUEUE = "/user/queue/errors";
+    static final String APP_PREFIX = "/app/";
 
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
@@ -61,6 +65,10 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
             authorizeSubscribe(requireUser(accessor), accessor.getDestination());
         } else if (StompCommand.SEND.equals(command)) {
             requireUser(accessor);
+            String destination = accessor.getDestination();
+            if (destination == null || !destination.startsWith(APP_PREFIX)) {
+                throw new AccessDeniedException("Destination d'envoi non autorisée : " + destination);
+            }
         }
         return message;
     }

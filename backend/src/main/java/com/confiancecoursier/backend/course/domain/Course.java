@@ -70,8 +70,9 @@ public class Course {
     private LocalDateTime paidAt;
 
     /** Frais réels déclarés par le client (achats avancés par le coursier). */
-    @Column(name = "real_costs")
-    private BigDecimal realCosts;
+    @Builder.Default
+    @Column(name = "real_costs", nullable = false)
+    private BigDecimal realCosts = BigDecimal.ZERO;
 
     /** Clé d'idempotence pour éviter le double paiement (UNIQUE en base). */
     @Column(name = "idempotency_key")
@@ -89,6 +90,15 @@ public class Course {
     @Column(name = "accepted_offer_id")
     private Long acceptedOfferId;
 
+    /** Paramètre « rembourser les frais plateforme » figé au moment de la décision de remboursement (TICK-061). */
+    @Column(name = "refund_platform_fees")
+    private Boolean refundPlatformFees;
+
+    /** Verrou optimiste (TICK-060) — complète le verrou pessimiste de findByIdForUpdate. */
+    @Version
+    @Column(nullable = false)
+    private Long version;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
@@ -96,5 +106,6 @@ public class Course {
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         publishedAt = LocalDateTime.now();
+        if (realCosts == null) realCosts = BigDecimal.ZERO;
     }
 }

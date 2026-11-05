@@ -7,12 +7,14 @@ import com.confiancecoursier.backend.dispute.api.dto.OpenDisputeRequest;
 import com.confiancecoursier.backend.dispute.domain.Dispute;
 import com.confiancecoursier.backend.dispute.repository.DisputeRepository;
 import com.confiancecoursier.backend.notify.service.NotificationService;
+import com.confiancecoursier.backend.payment.service.EscrowService;
 import com.confiancecoursier.backend.shared.exception.BusinessException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
@@ -39,19 +41,21 @@ public class DisputeService {
     private final DisputeRepository disputeRepository;
     private final CourseRepository  courseRepository;
     private final NotificationService notificationService;
+    private final EscrowService escrowService;
 
     public DisputeService(DisputeRepository disputeRepository, CourseRepository courseRepository,
-                          NotificationService notificationService) {
+                          NotificationService notificationService, EscrowService escrowService) {
         this.disputeRepository = disputeRepository;
         this.courseRepository  = courseRepository;
         this.notificationService = notificationService;
+        this.escrowService = escrowService;
     }
 
     // ─── Ouverture d'un litige ─────────────────────────────────────────────
 
     @Transactional
     public DisputeResponse openDispute(Long courseId, Long openedBy, OpenDisputeRequest req) {
-        Course course = courseRepository.findById(courseId)
+        Course course = courseRepository.findByIdForUpdate(courseId)
                 .orElseThrow(() -> new BusinessException("Course introuvable."));
 
         // Vérifie que l'auteur est bien participant
@@ -66,8 +70,11 @@ public class DisputeService {
             throw new BusinessException("Un litige est déjà ouvert pour cette course (#" + existing.getId() + ").");
         });
 
-        // Bloque l'escrow
-        course.setEscrowStatus("DISPUTED");
+        // Gèle le séquestre via EscrowService (seul autorisé à modifier escrowStatus — TICK-061).
+        // Les règles d'ouverture selon le statut de la course relèvent de TICK-062.
+        if ("HELD".equals(course.getEscrowStatus())) {
+            escrowService.markDisputed(course);
+        }
         course.setStatus("DISPUTED");
         courseRepository.save(course);
 
@@ -111,8 +118,9 @@ public class DisputeService {
     // ─── Résolution (admin) ───────────────────────────────────────────────
 
     @Transactional
-    public DisputeResponse resolveDispute(Long disputeId, Long adminId, String decision) {
-        if (!VALID_DECISIONS.contains(decision.toUpperCase())) {
+    public DisputeResponse resolveDispute(Long disputeId, Long adminId, String decision,
+                                          BigDecimal refundAmount) {
+        if (decision == null || !VALID_DECISIONS.contains(decision.toUpperCase())) {
             throw new BusinessException("Décision invalide. Valeurs acceptées : " + VALID_DECISIONS);
         }
 
@@ -123,31 +131,35 @@ public class DisputeService {
             throw new BusinessException("Ce litige est déjà résolu.");
         }
 
+        // Verrou de ligne : la décision et une éventuelle autre action ne peuvent pas se croiser
+        Course course = courseRepository.findByIdForUpdate(dispute.getCourseId())
+                .orElseThrow(() -> new BusinessException("Course introuvable."));
+
+        // ── Appliquer la décision via EscrowService (TICK-061) ────────────────
+        switch (decision.toUpperCase()) {
+            case "REMBOURSEMENT_TOTAL" -> {
+                boolean refundFees = escrowService.shouldRefundPlatformFeesOnFullRefund();
+                escrowService.refundTotal(course, refundFees);
+            }
+            // Partage : refundAmount au client, frais plateforme puis solde au coursier (ledger équilibré)
+            case "REMBOURSEMENT_PARTIEL" -> escrowService.split(course, refundAmount);
+            case "LIBERATION" -> escrowService.release(course);
+            case "SANCTION"   -> escrowService.release(course); // libération malgré sanction (admin décide)
+        }
+
         dispute.setDecision(decision.toUpperCase());
+        dispute.setRefundAmount("REMBOURSEMENT_PARTIEL".equalsIgnoreCase(decision) ? refundAmount : null);
         dispute.setDecidedBy(adminId);
         dispute.setDecidedAt(LocalDateTime.now());
         dispute.setStatus("RESOLVED");
 
-        // Applique la décision sur la course
-        Course course = courseRepository.findById(dispute.getCourseId()).orElse(null);
-        if (course != null) {
-            course.setStatus("COMPLETED");
-            String escrowStatus = switch (decision.toUpperCase()) {
-                case "REMBOURSEMENT_TOTAL", "REMBOURSEMENT_PARTIEL" -> "REFUNDED";
-                case "LIBERATION" -> "RELEASED";
-                default -> "RELEASED";
-            };
-            course.setEscrowStatus(escrowStatus);
-            courseRepository.save(course);
-        }
-
         Dispute resolved = disputeRepository.save(dispute);
-        log.info("Litige {} résolu par admin {} — décision : {}", disputeId, adminId, decision);
+        log.info("Litige {} résolu par admin {} — décision : {} refundAmount={}",
+                disputeId, adminId, decision, refundAmount);
 
         // Notification email client + coursier
-        if (course != null) {
-            notificationService.notifyDisputeResolved(course.getClientId(), course.getCourierId(), decision.toUpperCase());
-        }
+        notificationService.notifyDisputeResolved(
+                course.getClientId(), course.getCourierId(), decision.toUpperCase());
 
         return DisputeResponse.from(resolved);
     }

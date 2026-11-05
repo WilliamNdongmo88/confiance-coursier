@@ -41,6 +41,17 @@ public class ChatMessage {
     @Column(name = "offer_amount", precision = 12, scale = 2)
     private java.math.BigDecimal offerAmount;
 
+    /** CourseOffer associée à un message OFFER (TICK-058) — permet d'accepter l'offre après rechargement. */
+    @Column(name = "offer_id")
+    private Long offerId;
+
+    /**
+     * Statut courant de l'offre (ACTIVE | SUPERSEDED | ACCEPTED | REJECTED), renseigné à la lecture
+     * de l'historique et à la diffusion. Non persisté : la source de vérité est {@code course_offers}.
+     */
+    @Transient
+    private String offerStatus;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 

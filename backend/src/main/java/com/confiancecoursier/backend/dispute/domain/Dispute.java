@@ -41,6 +41,10 @@ public class Dispute {
     /** REMBOURSEMENT_TOTAL | REMBOURSEMENT_PARTIEL | LIBERATION | SANCTION */
     private String decision;
 
+    /** Montant remboursé au client (utilisé pour REMBOURSEMENT_PARTIEL). */
+    @Column(name = "refund_amount", precision = 12, scale = 2)
+    private java.math.BigDecimal refundAmount;
+
     @Column(name = "decided_by")
     private Long decidedBy;
 

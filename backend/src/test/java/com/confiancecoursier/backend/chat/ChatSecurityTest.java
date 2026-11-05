@@ -10,6 +10,11 @@ import com.confiancecoursier.backend.chat.repository.ChatMessageRepository;
 import com.confiancecoursier.backend.chat.repository.ChatRoomRepository;
 import com.confiancecoursier.backend.chat.service.ChatAccessService;
 import com.confiancecoursier.backend.config.StompAuthChannelInterceptor;
+import com.confiancecoursier.backend.course.domain.CourseOffer;
+import com.confiancecoursier.backend.course.repository.CourseRepository;
+import com.confiancecoursier.backend.course.service.OfferService;
+import com.confiancecoursier.backend.shared.exception.BusinessException;
+import com.confiancecoursier.backend.shared.exception.ForbiddenException;
 import com.confiancecoursier.backend.user.domain.User;
 import com.confiancecoursier.backend.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,10 +42,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
-/** TICK-055 — WebSocket STOMP : authentification, abonnements, expéditeur et types de messages. */
+/** TICK-055 / TICK-058 — WebSocket STOMP : authentification, abonnements, destinations, expéditeur, types et offres. */
 class ChatSecurityTest {
 
     private static final String SECRET = "dGVzdC1zZWNyZXQta2V5LWZvci11bml0LXRlc3RzLTEyMzQ1Njc4OTA=";
@@ -58,7 +64,7 @@ class ChatSecurityTest {
     void setUp() {
         users = mock(UserRepository.class);
         rooms = mock(ChatRoomRepository.class);
-        access = new ChatAccessService(rooms, users);
+        access = new ChatAccessService(rooms, users, mock(CourseRepository.class));
 
         jwt = new JwtService();
         ReflectionTestUtils.setField(jwt, "secretKey", SECRET);
@@ -178,6 +184,24 @@ class ChatSecurityTest {
     }
 
     @Test
+    void directSendToBrokerDestinationsIsRefused() {
+        // Sans ce contrôle, le simple broker diffuserait le message tel quel (faux senderId, SYSTEM, fausse offre)
+        Principal p = principal("client@test.com");
+        for (String dest : List.of("/topic/chat/10", "/topic/chat/99", "/queue/errors", "/user/queue/errors")) {
+            assertThatThrownBy(() -> send(frame(StompCommand.SEND, dest, null, p)))
+                    .as(dest).isInstanceOf(AccessDeniedException.class);
+        }
+        assertThatThrownBy(() -> send(frame(StompCommand.SEND, null, null, p)))
+                .isInstanceOf(AccessDeniedException.class);
+    }
+
+    @Test
+    void sendToApplicationDestinationIsAllowed() {
+        assertThatCode(() -> send(frame(StompCommand.SEND, "/app/chat.send", null, principal("client@test.com"))))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
     void sendOrSubscribeWithoutSessionIsRefused() {
         assertThatThrownBy(() -> send(frame(StompCommand.SEND, "/app/chat.send", null, null)))
                 .isInstanceOf(AccessDeniedException.class);
@@ -189,12 +213,14 @@ class ChatSecurityTest {
 
     private ChatMessageRepository messages;
     private SimpMessagingTemplate template;
+    private OfferService offers;
 
     private ChatController controller() {
         messages = mock(ChatMessageRepository.class);
         when(messages.save(any(ChatMessage.class))).thenAnswer(i -> i.getArgument(0));
         template = mock(SimpMessagingTemplate.class);
-        return new ChatController(messages, template, access);
+        offers = mock(OfferService.class);
+        return new ChatController(messages, template, access, offers);
     }
 
     private static ChatMessageDto dto(Long senderId, String type, String content, BigDecimal amount) {
@@ -254,6 +280,9 @@ class ChatSecurityTest {
     @Test
     void courierOfTheRoomCanSendAnOffer() {
         ChatController c = controller();
+        when(offers.submitOffer(100L, 2L, new BigDecimal("6000"), "Je propose 6000")).thenReturn(
+                CourseOffer.builder().id(77L).courseId(100L).courierId(2L).amount(new BigDecimal("6000")).status("ACTIVE").build());
+
         c.sendMessage(dto(null, "offer", "Je propose 6000", new BigDecimal("6000")), principal("courier@test.com"));
 
         ArgumentCaptor<ChatMessage> saved = ArgumentCaptor.forClass(ChatMessage.class);
@@ -261,11 +290,38 @@ class ChatSecurityTest {
         assertThat(saved.getValue().getMessageType()).isEqualTo("OFFER");
         assertThat(saved.getValue().getSenderId()).isEqualTo(2L);
         assertThat(saved.getValue().getOfferAmount()).isEqualByComparingTo("6000");
+        // L'id de l'offre est enregistré avec le message (acceptation possible après rechargement)
+        assertThat(saved.getValue().getOfferId()).isEqualTo(77L);
+    }
+
+    @Test
+    void offerRefusedByBusinessRulesIsReportedToSender() {
+        ChatController c = controller();
+        when(offers.submitOffer(anyLong(), anyLong(), any(), anyString()))
+                .thenThrow(new BusinessException("Le montant minimum est de 5000 XAF."));
+        assertThatThrownBy(() -> c.sendMessage(dto(null, "OFFER", "", new BigDecimal("3000")), principal("courier@test.com")))
+                .isInstanceOf(ChatRejectedException.class)
+                .hasMessageContaining("minimum");
+        verifyNoInteractions(messages);
+        verifyNoInteractions(template);
+    }
+
+    @Test
+    void offerFromCourierWithoutKycIsRefused() {
+        ChatController c = controller();
+        when(offers.submitOffer(anyLong(), anyLong(), any(), anyString()))
+                .thenThrow(new ForbiddenException("Votre identité doit être vérifiée (KYC)."));
+        assertThatThrownBy(() -> c.sendMessage(dto(null, "OFFER", "", new BigDecimal("6000")), principal("courier@test.com")))
+                .isInstanceOf(ChatRejectedException.class)
+                .hasMessageContaining("KYC");
+        verifyNoInteractions(messages);
     }
 
     @Test
     void invalidOfferAmountOrEmptyTextIsRefused() {
         ChatController c = controller();
+        when(offers.submitOffer(anyLong(), anyLong(), any(), anyString()))
+                .thenThrow(new BusinessException("Montant de l'offre invalide."));
         assertThatThrownBy(() -> c.sendMessage(dto(null, "OFFER", "", BigDecimal.ZERO), principal("courier@test.com")))
                 .isInstanceOf(ChatRejectedException.class);
         assertThatThrownBy(() -> c.sendMessage(dto(null, "TEXT", "   ", null), principal("client@test.com")))

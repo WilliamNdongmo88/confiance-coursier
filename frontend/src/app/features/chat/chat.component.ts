@@ -44,6 +44,7 @@ interface ChatMsg {
   messageType: string;  // TEXT | OFFER | SYSTEM
   offerAmount?: number | null;
   offerId?: number | null;  // TICK-059 : ID de la CourseOffer associée (pour acceptation)
+  offerStatus?: string | null; // ACTIVE | SUPERSEDED | ACCEPTED | REJECTED (lu du serveur)
   createdAt?: string;
 }
 
@@ -686,23 +687,22 @@ interface ChatMsg {
                       <span>{{ msg.offerAmount | number:'1.0-0' }} XAF</span>
                     </div>
                     <p class="offer-note">🔒 Le coût des achats sera ajouté sur la page de paiement sécurisée.</p>
-                    @if (isCLIENT) {
-                      @if (courseStatus === 'PUBLISHED') {
-                        <button class="btn btn-primary" style="width:100%;margin-top:4px;" (click)="acceptOffer(msg)">
-                          Accepter et payer <svg lucideArrowRight size="16" style="margin-left:4px;"></svg>
+                    @if (canAccept(msg)) {
+                      <button class="btn btn-primary" style="width:100%;margin-top:4px;" (click)="acceptOffer(msg)" [disabled]="accepting">
+                        Accepter et payer <svg lucideArrowRight size="16" style="margin-left:4px;"></svg>
+                      </button>
+                    } @else if (msg.offerStatus === 'ACCEPTED') {
+                      <div style="font-size:0.78rem;color:var(--cc-success,#17634f);text-align:center;padding:4px 0;font-weight:600;">
+                        ✓ Offre acceptée{{ courseStatus === 'ASSIGNED' ? ' — en attente de paiement' : '' }}
+                      </div>
+                      @if (isCLIENT && courseStatus === 'ASSIGNED') {
+                        <button class="btn btn-primary" style="width:100%;margin-top:4px;" (click)="goToPayment()">
+                          Payer maintenant <svg lucideArrowRight size="16" style="margin-left:4px;"></svg>
                         </button>
-                      } @else if (courseStatus === 'ASSIGNED' && msg.offerId === messages.filter(m => m.messageType === 'OFFER').slice(-1)[0]?.offerId) {
-                        <div style="font-size:0.78rem;color:var(--cc-success,#17634f);text-align:center;padding:4px 0;font-weight:600;">
-                          ✓ Offre acceptée — en attente de paiement
-                        </div>
-                      } @else {
-                        <div style="font-size:0.78rem;color:var(--cc-muted);text-align:center;padding:4px 0;">
-                          Offre remplacée ou expirée
-                        </div>
                       }
                     } @else {
                       <div style="font-size:0.78rem;color:var(--cc-muted);text-align:center;padding:4px 0;">
-                        En attente de réponse du client
+                        {{ offerStatusLabel(msg) }}
                       </div>
                     }
                   </div>
@@ -749,7 +749,7 @@ interface ChatMsg {
         </div>
 
         <p style="font-size:.88rem;color:var(--cc-muted);margin-bottom:16px;">
-          Saisissez votre tarif pour cette course. Les frais de service ({{ commissionRateCourier }}%) seront déduits de ce montant.
+          Saisissez votre tarif pour cette course. Les frais de service ({{ commissionRateCourier ?? '…' }}%) seront déduits de ce montant.
         </p>
 
         <div class="form-group">
@@ -759,10 +759,12 @@ interface ChatMsg {
               [(ngModel)]="offerAmountInput"
               (ngModelChange)="updateOfferPreview()"
               placeholder="Ex : 10000"
-              [min]="tarifMinimum" required>
+              [min]="tarifMinimum ?? 0" required>
             <span class="currency-suffix">XAF</span>
           </div>
-          <p class="form-hint">Le tarif minimum autorisé est de {{ tarifMinimum | number:'1.0-0' }} XAF.</p>
+          @if (tarifMinimum !== null) {
+            <p class="form-hint">Le tarif minimum autorisé est de {{ tarifMinimum | number:'1.0-0' }} XAF.</p>
+          }
         </div>
 
         <!-- Récapitulatif financier en temps réel -->
@@ -772,7 +774,7 @@ interface ChatMsg {
             <span class="value">{{ previewTarif | number:'1.0-0' }} XAF</span>
           </div>
           <div class="offer-preview-row">
-            <span class="label">Frais plateforme déduits ({{ commissionRateCourier }}%) :</span>
+            <span class="label">Frais plateforme déduits ({{ commissionRateCourier ?? '…' }}%) :</span>
             <span class="value" style="color:var(--danger,#dc2626);">- {{ previewFrais | number:'1.0-0' }} XAF</span>
           </div>
           <hr class="offer-preview-divider">
@@ -783,7 +785,7 @@ interface ChatMsg {
         </div>
 
         <button class="btn btn-primary btn-block"
-          [disabled]="!offerAmountInput || offerAmountInput < tarifMinimum"
+          [disabled]="!canSendOffer()"
           (click)="sendOffer()">
           Envoyer l'offre dans le chat
         </button>
@@ -803,8 +805,9 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   offerAmountInput: number | null = null;
 
   // Paramètres de commission chargés depuis l'API (TICK-058 : plus de valeurs en dur)
-  tarifMinimum = 5000;           // valeur par défaut affichée avant le chargement
-  commissionRateCourier = 20;    // idem
+  tarifMinimum: number | null = null;          // null tant que /api/commissions/public n'a pas répondu
+  commissionRateCourier: number | null = null; // idem — aucune valeur métier codée en dur
+  accepting = false;
 
   // Signaux UI
   showOfferModal  = signal(false);
@@ -817,7 +820,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   correspondentName     = 'Correspondant';
   correspondentInitials = 'C';
-  courseStatus = 'PUBLISHED'; // chargé depuis getRoomInfo, pilote la visibilité des boutons
+  courseStatus = ''; // chargé depuis getRoomInfo, pilote la visibilité des boutons (vide = inconnu)
 
   private chatSubscription: Subscription | null = null;
   private chatErrorsSubscription: Subscription | null = null;
@@ -860,7 +863,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         // Stocker le courseId — nécessaire pour la navigation vers /client/pay
         this.courseId = room.courseId ?? 0;
         // Stocker le statut de la course (pilote la visibilité des boutons TICK-059)
-        this.courseStatus = room.courseStatus ?? 'PUBLISHED';
+        this.courseStatus = room.courseStatus ?? '';
         // Le correspondant = l'autre participant (pas soi-même)
         if (this.isCOURIER) {
           // Côté coursier → le correspondant est le client
@@ -899,6 +902,12 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.chatSubscription = this.chatService.subscribeToRoom(this.roomId).subscribe({
       next: (msg: any) => {
         const chatMsg: ChatMsg = { ...msg, messageType: msg.messageType ?? 'TEXT' };
+        if (chatMsg.messageType === 'OFFER' && chatMsg.offerId) {
+          // Une nouvelle offre du coursier remplace la précédente (un seul coursier par salon)
+          this.messages.forEach(m => {
+            if (m.offerId && m.offerStatus === 'ACTIVE') m.offerStatus = 'SUPERSEDED';
+          });
+        }
         if (!this.messages.find(m => m.id === chatMsg.id)) {
           this.messages.push(chatMsg);
           this.shouldScrollToBottom = true;
@@ -908,11 +917,12 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     // ── 4. Charger le tarif minimum et la commission coursier (TICK-058) ──
     this.http.get<any>('/api/commissions/public').subscribe({
       next: (data) => {
-        this.tarifMinimum         = data.tarifMinimumCoursier  ?? 5000;
-        this.commissionRateCourier = data.commissionRateCourier ?? 20;
+        this.tarifMinimum          = data.tarifMinimumCoursier  ?? null;
+        this.commissionRateCourier = data.commissionRateCourier ?? null;
       },
       error: () => {
-        // Pas bloquant : les valeurs par défaut (5000 / 20%) restent actives
+        // Sans paramètres serveur, l'envoi d'offre reste désactivé (le serveur revérifie de toute façon)
+        this.toast.error('Impossible de charger le tarif minimum. Réessayez plus tard.');
       }
     });
   }
@@ -960,15 +970,15 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   /** Mise à jour temps réel du récapitulatif financier */
   updateOfferPreview(): void {
     const tarif = this.offerAmountInput ?? 0;
-    const frais = tarif * (this.commissionRateCourier / 100);
+    const frais = Math.round(tarif * ((this.commissionRateCourier ?? 0) / 100));
     this.previewTarif = tarif;
     this.previewFrais = frais;
     this.previewNet   = tarif - frais;
   }
 
   sendOffer(): void {
-    if (!this.offerAmountInput || this.offerAmountInput < this.tarifMinimum) return;
-    const amount = this.offerAmountInput;
+    if (!this.canSendOffer()) return;
+    const amount = this.offerAmountInput!;
     const sent = this.chatService.sendOffer(
       this.roomId,
       amount,
@@ -980,21 +990,49 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   // ── Accepter l'offre (client) ──────────────────────────────────────────────
+  /** « Accepter » : client, offre ACTIVE, course encore PUBLISHED (TICK-059). */
+  canAccept(msg: ChatMsg): boolean {
+    return this.isCLIENT && this.courseStatus === 'PUBLISHED'
+        && !!msg.offerId && msg.offerStatus === 'ACTIVE';
+  }
+
+  offerStatusLabel(msg: ChatMsg): string {
+    switch (msg.offerStatus) {
+      case 'ACTIVE':     return this.isCLIENT ? 'Offre en cours' : 'En attente de réponse du client';
+      case 'SUPERSEDED': return 'Offre remplacée';
+      case 'REJECTED':   return 'Offre non retenue';
+      default:           return 'Offre expirée';
+    }
+  }
+
+  canSendOffer(): boolean {
+    return this.tarifMinimum !== null
+        && !!this.offerAmountInput
+        && this.offerAmountInput >= this.tarifMinimum;
+  }
+
   acceptOffer(msg: ChatMsg): void {
-    if (!msg.offerAmount || !msg.offerId) return;
-    this.courseService.acceptOffer(this.courseId, msg.offerId).subscribe({
+    if (!this.canAccept(msg) || this.accepting) return;
+    this.accepting = true;
+    this.courseService.acceptOffer(this.courseId, msg.offerId!).subscribe({
       next: () => {
         this.courseStatus = 'ASSIGNED'; // bloquer tout nouveau "Accepter"
+        this.messages.forEach(m => {
+          if (m.offerId && m.offerStatus === 'ACTIVE') m.offerStatus = 'SUPERSEDED';
+        });
+        msg.offerStatus = 'ACCEPTED';
         this.toast.success('Offre acceptée ! Vous allez être redirigé vers le paiement.');
-        setTimeout(() => {
-          this.router.navigate(['/client/pay', this.courseId]);
-        }, 1200);
+        setTimeout(() => this.goToPayment(), 1200);
       },
       error: (err) => {
-        const msg = err?.error?.message ?? 'Impossible d\'accepter cette offre.';
-        this.toast.error(msg);
+        this.accepting = false;
+        this.toast.error(err?.error?.message ?? "Impossible d'accepter cette offre.");
       }
     });
+  }
+
+  goToPayment(): void {
+    this.router.navigate(['/client/pay', this.courseId]);
   }
 
   // ── Navigation ─────────────────────────────────────────────────────────────

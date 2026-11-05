@@ -9,6 +9,7 @@ import com.confiancecoursier.backend.payment.api.dto.PaymentInitiateResponse;
 import com.confiancecoursier.backend.payment.domain.EscrowEntry;
 import com.confiancecoursier.backend.payment.repository.EscrowRepository;
 import com.confiancecoursier.backend.shared.exception.BusinessException;
+import com.confiancecoursier.backend.shared.exception.ConflictException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -52,15 +53,18 @@ public class PaymentService {
     private final EscrowRepository escrowRepository;
     private final NotificationService notificationService;
     private final CommissionService commissionService;
+    private final EscrowService escrowService;
 
     public PaymentService(CourseRepository courseRepository,
                           EscrowRepository escrowRepository,
                           NotificationService notificationService,
-                          CommissionService commissionService) {
+                          CommissionService commissionService,
+                          EscrowService escrowService) {
         this.courseRepository    = courseRepository;
         this.escrowRepository    = escrowRepository;
         this.notificationService = notificationService;
         this.commissionService   = commissionService;
+        this.escrowService       = escrowService;
     }
 
     // ─── Initiation du paiement ───────────────────────────────────────────────
@@ -74,11 +78,15 @@ public class PaymentService {
             EscrowEntry existingEntry = existing.get();
             Course existingCourse = courseRepository.findById(existingEntry.getCourseId())
                     .orElseThrow(() -> new BusinessException("Course introuvable"));
-            log.info("[PAYMENT IDEMPOTENT] courseId={} ref={} idempotencyKey={}",
-                    existingEntry.getCourseId(), existingEntry.getProviderRef(), req.getIdempotencyKey());
+            // Une clé rejouée n'est valable que pour le même client et la même course
+            if (!existingCourse.getClientId().equals(clientId)
+                    || !existingEntry.getCourseId().equals(req.getCourseId())) {
+                throw new ConflictException("Cette clé d'idempotence est déjà utilisée pour un autre paiement.");
+            }
+            log.info("[PAYMENT IDEMPOTENT] courseId={} ref={}", existingEntry.getCourseId(), existingEntry.getProviderRef());
             return PaymentInitiateResponse.builder()
                     .paymentRef(existingEntry.getProviderRef())
-                    .totalAmount(existingCourse.getTotalAmount())
+                    .totalAmount(existingEntry.getAmount())
                     .status(existingEntry.getStatus())
                     .courseId(existingEntry.getCourseId())
                     .build();
@@ -94,7 +102,7 @@ public class PaymentService {
 
         // Préconditions strictes (TICK-060)
         if (!"ASSIGNED".equals(course.getStatus())) {
-            throw new com.confiancecoursier.backend.shared.exception.ConflictException(
+            throw new ConflictException(
                     "Le paiement n'est possible qu'après acceptation d'une offre (statut actuel : "
                     + course.getStatus() + ").");
         }
@@ -130,7 +138,6 @@ public class PaymentService {
         String ref = "PAY-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
 
         course.setStatus("IN_PROGRESS");
-        course.setEscrowStatus("HELD");
         course.setPaidAt(LocalDateTime.now());
         course.setRealCosts(fraisReels);
         course.setCommissionRate(clientRate);
@@ -142,16 +149,8 @@ public class PaymentService {
         course.setIdempotencyKey(req.getIdempotencyKey());
         courseRepository.save(course);
 
-        EscrowEntry entry = EscrowEntry.builder()
-                .courseId(req.getCourseId())
-                .entryType("HOLD")
-                .amount(total)
-                .provider(req.getPaymentMethod().toUpperCase())
-                .providerRef(ref)
-                .status("CONFIRMED")
-                .idempotencyKey(req.getIdempotencyKey())
-                .build();
-        escrowRepository.save(entry);
+        // HOLD écrit par EscrowService (seul autorisé à toucher au séquestre — TICK-061)
+        escrowService.hold(course, total, req.getPaymentMethod().toUpperCase(), ref, req.getIdempotencyKey());
 
         log.info("[PAYMENT] courseId={} total={} XAF (fraisReels={} + tarif={} + fraisClient={}) | " +
                  "coursier recevra={} XAF | gainsPlateforme={} XAF | method={} ref={}",
@@ -181,7 +180,8 @@ public class PaymentService {
      */
     @Transactional
     public void validateCourse(Long courseId, Long clientId) {
-        Course course = courseRepository.findById(courseId)
+        // Verrou de ligne : empêche une double libération (clic + scheduler 72 h)
+        Course course = courseRepository.findByIdForUpdate(courseId)
                 .orElseThrow(() -> new BusinessException("Course introuvable."));
 
         if (!course.getClientId().equals(clientId)) {
@@ -213,71 +213,37 @@ public class PaymentService {
     @Transactional
     public int autoValidateExpiredCourses() {
         LocalDateTime now = LocalDateTime.now();
-        var courses = courseRepository.findByStatusOrderByCreatedAtDesc("PROOFS_SUBMITTED")
+        var candidates = courseRepository.findByStatusOrderByCreatedAtDesc("PROOFS_SUBMITTED")
                 .stream()
                 .filter(c -> c.getAutoValidateAt() != null && !c.getAutoValidateAt().isAfter(now))
+                .map(Course::getId)
                 .toList();
 
-        for (Course course : courses) {
+        int count = 0;
+        for (Long id : candidates) {
+            // Rechargée sous verrou : une validation manuelle concurrente a pu passer avant
+            Course course = courseRepository.findByIdForUpdate(id).orElse(null);
+            if (course == null || !"PROOFS_SUBMITTED".equals(course.getStatus())) {
+                continue;
+            }
             applyValidation(course);
-
-            // Notification email client + coursier
             notificationService.notifyAutoValidation(course.getClientId(), course.getCourierId(), course.getId());
-
             log.info("[AUTO-VALIDATION] courseId={} validée automatiquement (autoValidateAt={})",
                     course.getId(), course.getAutoValidateAt());
+            count++;
         }
-        return courses.size();
+        return count;
     }
 
     // ─── Logique de validation commune ────────────────────────────────────────
 
     /**
-     * Transition COMPLETED + RELEASED sur la course.
-     *
-     * <p>Crée deux entrées dans {@code escrow_ledger} :
-     * <ul>
-     *   <li>{@code COURIER_PAYOUT}  — montant net reversé au coursier</li>
-     *   <li>{@code PLATFORM_FEE}    — gains de la plateforme (frais client + commission coursier)</li>
-     * </ul>
+     * Délègue la libération de l'escrow à {@link EscrowService} (TICK-061).
+     * EscrowService écrit les entrées COURIER_PAYOUT + PLATFORM_FEE et passe la course en COMPLETED.
      */
     private void applyValidation(Course course) {
-        course.setStatus("COMPLETED");
-        course.setEscrowStatus("RELEASED");
         course.setCompletedAt(LocalDateTime.now());
-        courseRepository.save(course);
-
-        BigDecimal montantCoursier = course.getCourierAmount() != null
-                ? course.getCourierAmount()
-                : BigDecimal.ZERO;
-
-        BigDecimal gainsPlateforme = course.getPlatformFeeAmount() != null
-                ? course.getPlatformFeeAmount()
-                : BigDecimal.ZERO;
-
-        // Entrée 1 : versement au coursier
-        String refPayout = "CPO-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-        escrowRepository.save(EscrowEntry.builder()
-                .courseId(course.getId())
-                .entryType("COURIER_PAYOUT")
-                .amount(montantCoursier)
-                .provider("SIMULATED")
-                .providerRef(refPayout)
-                .status("CONFIRMED")
-                .build());
-
-        // Entrée 2 : gains de la plateforme
-        String refFee = "PFE-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-        escrowRepository.save(EscrowEntry.builder()
-                .courseId(course.getId())
-                .entryType("PLATFORM_FEE")
-                .amount(gainsPlateforme)
-                .provider("SIMULATED")
-                .providerRef(refFee)
-                .status("CONFIRMED")
-                .build());
-
-        log.info("[ESCROW RELEASE] courseId={} | coursier={} XAF ref={} | plateforme={} XAF ref={}",
-                course.getId(), montantCoursier, refPayout, gainsPlateforme, refFee);
+        escrowService.release(course);
+        log.info("[VALIDATION] courseId={} → COMPLETED via EscrowService", course.getId());
     }
 }

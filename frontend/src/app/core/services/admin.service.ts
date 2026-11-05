@@ -163,10 +163,10 @@ export class AdminService {
     return this.http.get<DisputeResponse[]>('/api/admin/disputes', { params });
   }
 
-  resolveDispute(id: number, decision: string): Observable<DisputeResponse> {
-    return this.http.post<DisputeResponse>(`/api/admin/disputes/${id}/resolve`, null, {
-      params: { decision },
-    });
+  resolveDispute(id: number, decision: string, refundAmount?: number): Observable<DisputeResponse> {
+    return this.http.post<DisputeResponse>(`/api/admin/disputes/${id}/resolve`,
+      { decision, refundAmount: refundAmount ?? null }
+    );
   }
 
   // ─── Reports ──────────────────────────────────────────────────────────────

@@ -4,6 +4,7 @@ import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -39,5 +40,6 @@ public class PaymentInitiateRequest {
      * Si la même clé est rejouée, la réponse existante est renvoyée sans double débit.
      */
     @NotBlank(message = "idempotencyKey est obligatoire")
+    @Size(max = 64, message = "idempotencyKey : 64 caractères maximum")
     private String idempotencyKey;
 }

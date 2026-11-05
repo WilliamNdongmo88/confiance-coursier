@@ -4,6 +4,8 @@ import com.confiancecoursier.backend.chat.domain.ChatMessage;
 import com.confiancecoursier.backend.chat.domain.ChatRoom;
 import com.confiancecoursier.backend.chat.repository.ChatMessageRepository;
 import com.confiancecoursier.backend.chat.service.ChatAccessService;
+import com.confiancecoursier.backend.course.domain.CourseOffer;
+import com.confiancecoursier.backend.course.repository.CourseOfferRepository;
 import com.confiancecoursier.backend.course.repository.CourseRepository;
 import com.confiancecoursier.backend.shared.exception.BusinessException;
 import com.confiancecoursier.backend.shared.exception.ForbiddenException;
@@ -15,6 +17,8 @@ import org.springframework.web.bind.annotation.*;
 import java.security.Principal;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * API REST du chat.
@@ -33,15 +37,18 @@ public class ChatRestController {
     private final ChatAccessService chatAccessService;
     private final UserRepository userRepository;
     private final CourseRepository courseRepository;
+    private final CourseOfferRepository offerRepository;
 
     public ChatRestController(ChatMessageRepository chatMessageRepository,
                               ChatAccessService chatAccessService,
                               UserRepository userRepository,
-                              CourseRepository courseRepository) {
+                              CourseRepository courseRepository,
+                              CourseOfferRepository offerRepository) {
         this.chatMessageRepository = chatMessageRepository;
         this.chatAccessService     = chatAccessService;
         this.userRepository        = userRepository;
         this.courseRepository      = courseRepository;
+        this.offerRepository       = offerRepository;
     }
 
     /**
@@ -52,7 +59,18 @@ public class ChatRestController {
     public ResponseEntity<List<ChatMessage>> getMessages(@PathVariable Long roomId,
                                                          Principal principal) {
         requireParticipant(roomId, principal);
-        return ResponseEntity.ok(chatMessageRepository.findByRoomIdOrderByCreatedAtAsc(roomId));
+        List<ChatMessage> messages = chatMessageRepository.findByRoomIdOrderByCreatedAtAsc(roomId);
+
+        // Statut courant de chaque offre (TICK-059) : seule l'offre ACTIVE d'une course PUBLISHED est acceptable
+        List<Long> offerIds = messages.stream().map(ChatMessage::getOfferId).filter(Objects::nonNull).toList();
+        if (!offerIds.isEmpty()) {
+            Map<Long, String> statusById = offerRepository.findAllById(offerIds).stream()
+                    .collect(Collectors.toMap(CourseOffer::getId, CourseOffer::getStatus));
+            messages.forEach(m -> {
+                if (m.getOfferId() != null) m.setOfferStatus(statusById.get(m.getOfferId()));
+            });
+        }
+        return ResponseEntity.ok(messages);
     }
 
     /**

@@ -1211,6 +1211,42 @@ Aucun moyen de créer un compte ADMIN — l'inscription ne permet que CLIENT et 
 
 ---
 
+### Session 51 — Revue de conformité TICK-055 → TICK-061 et corrections (2026-11-05)
+
+Revue du code des tickets 055 à 061 contre `PLAN_AMELIORATION.md`, puis correction de tous les écarts.
+
+**Défauts bloquants trouvés et corrigés**
+- `V12__escrow_service.sql` ne s'appliquait pas (`updated_by` BIGINT recevait `'SYSTEM'`) → le backend ne démarrait plus. V12 corrigée (`NULL`) — elle n'avait jamais été appliquée.
+- `courses.real_costs` NOT NULL (V11) mais `Course.builder()` laissait `null` → création de course en échec. `@Builder.Default` = 0 + garde `@PrePersist`.
+- `ChatSecurityTest` ne compilait plus depuis TICK-058 → `mvnw test` cassé.
+- Deuxième offre d'un coursier refusée par l'index UNIQUE partiel (INSERT IDENTITY avant l'UPDATE SUPERSEDED) → `saveAndFlush` de l'ancienne offre.
+- STOMP : un SEND direct vers `/topic/chat/{id}` était diffusé tel quel par le simple broker (faux expéditeur, SYSTEM, fausse offre) → SEND limité à `/app/**`.
+
+**Escrow / argent (TICK-060/061)**
+- Convention de signe : HOLD +, toutes les sorties − ; `EscrowService.close()` vérifie « somme du ledger = 0 » et annule sinon.
+- `EscrowService` est désormais le seul à écrire le ledger et `escrowStatus` (`hold`, `markDisputed`, `release`, `refundTotal`, `split`). `refundPartial` supprimé.
+- Partage : x au client (0 < x < total), z = min(frais plateforme, total − x), y = total − x − z au coursier ; course COMPLETED, escrow SPLIT.
+- `refund_platform_fees` figé sur la course au remboursement ; `@Version` sur `Course` ; 409 sur conflit optimiste.
+- Verrou `findByIdForUpdate` sur acceptation d'offre, soumission d'offre, validation client, auto-validation (course par course), ouverture et résolution de litige.
+- Idempotence : rejeu refusé si autre client/course ; `@Size(max=64)` sur la clé.
+- `GainsService` lit uniquement les lignes `PLATFORM_FEE` du ledger (`EscrowRepository`).
+
+**Offres / chat (TICK-057/058/059)**
+- Règles d'offre centralisées dans `OfferService.submitOffer` (rôle COURIER + KYC APPROVED + compte actif, course PUBLISHED sous verrou, entier XAF ≥ minimum). `ChatController` délègue.
+- `chat_messages.offer_id` persisté ; l'historique expose `offerStatus` (transient) → « Accepter » seulement sur l'offre ACTIVE d'une course PUBLISHED, y compris après rechargement.
+- Ancien `POST /api/courses/{id}/offers` + DTOs supprimés (contournaient le minimum).
+- `POST /conversations` côté client : correspondant = coursier actif KYC APPROVED, course PUBLISHED (salon existant renvoyé tel quel).
+
+**Migration V13** (`V13__ledger_signs_offers_cleanup.sql`) : normalisation des signes du ledger, `courses.refund_platform_fees`, `courses.version`, `chat_messages.offer_id`, offres < 1 XAF → REJECTED, offres PENDING résiduelles → SUPERSEDED.
+
+**Frontend** : carte d'offre pilotée par `offerStatus` (+ bouton « Payer maintenant » si ASSIGNED), plus de 5000 / 20 % en dur dans le chat, page de paiement bloquée hors ASSIGNED, clé d'idempotence unique par visite, bouton « Partager » + confirmations dans l'admin Litiges, `createOffer` retiré du service.
+
+**Tests** : 106 tests unitaires verts — nouveaux `EscrowServiceTest` (invariant ledger = 0, E2E-1/E2E-3), `OfferServiceTest`, `PaymentServiceTest`, `ChatAndOfferIdorTest` (MockMvc, rôles × ressources), `ChatSecurityTest` étendu (SEND direct refusé, KYC). `BackendApplicationTests` vert (schéma validé avec V13). `AuthControllerTest` en échec préexistant : `userRepository.deleteAll()` sur la base de dev bloqué par les FK (A-38 → TICK-096).
+
+**Commandes** : tests unitaires `mvnw test "-Dtest=!BackendApplicationTests,!AuthControllerTest" "-Dsurefire.failIfNoSpecifiedTests=false"` ; `ng build --configuration development` OK ; `ng build` (prod) échoue sur les budgets (bundle 1,11 Mo > 1 Mo, style chat 9,1 ko > 8 ko), déjà le cas avant ces corrections.
+
+---
+
 ## 9. DOMAINES À IMPLÉMENTER (par ordre de priorité métier)
 
 ### 1. Guards Angular (prérequis avant tout)
@@ -1438,7 +1474,20 @@ Les CSS `main.css`, `app-layout.css`, `refonte.css` doivent être copiés/adapt�
 |----------|----------|---------|
 | 🟢 | Note moyenne dans dashboard client affiche `—` | Sera rempli après module reviews |
 
-#### TICK-060 [FULL] — Paiement fiable côté serveur (session 50)
+#### TICK-061 [BE] — EscrowService et ledger équilibré (session 50)
+
+- **`db/migration/V12__escrow_service.sql`** : seed `refund_platform_fees_on_full_refund=false` dans `platform_settings` ; colonne `refund_amount` sur `disputes` ; commentaire types ledger
+- **`payment/service/EscrowService.java`** : créé — point d'entrée unique pour toutes les opérations escrow : `release()` (COURIER_PAYOUT + PLATFORM_FEE), `refundTotal()` (avec paramètre `refundPlatformFees`), `refundPartial()` (REFUND_CLIENT + SPLIT_COURIER + PLATFORM_FEE), `split()` (délègue), `shouldRefundPlatformFeesOnFullRefund()` lit `platform_settings`
+- **`admin/service/CommissionService.java`** : ajout `getBooleanSetting(key, default)`
+- **`payment/service/PaymentService.java`** : injection `EscrowService` ; `applyValidation()` délègue à `escrowService.release()` + met `completedAt`
+- **`dispute/domain/Dispute.java`** : ajout champ `refundAmount`
+- **`dispute/service/DisputeService.java`** : injection `EscrowService` ; `resolveDispute()` accepte `refundAmount` et appelle `EscrowService` selon la décision (REMBOURSEMENT_TOTAL/PARTIEL/LIBERATION/SANCTION) — le ledger est maintenant écrit à chaque résolution
+- **`admin/api/AdminDisputeController.java`** : endpoint accepte désormais un body JSON `{decision, refundAmount}` (plus de queryParam) ; record `ResolveDisputeRequest` inline
+- **`core/services/admin.service.ts`** : `resolveDispute()` envoie un body JSON avec `refundAmount` optionnel
+- **`features/admin/disputes/disputes.component.ts`** : `resolve()` accepte `refundAmount?`
+- **Build** : backend `mvnw compile` → exit 0 ; frontend `ng build` → exit 0
+
+
 
 - **`db/migration/V11__payment_robustness.sql`** : colonnes `real_costs` et `idempotency_key` sur `courses` ; `idempotency_key` UNIQUE sur `escrow_ledger`
 - **`course/domain/Course.java`** : ajout `realCosts` + `idempotencyKey`

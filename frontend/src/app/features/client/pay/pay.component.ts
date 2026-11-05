@@ -161,6 +161,22 @@ type PaymentMethod = 'STRIPE' | 'MTN' | 'ORANGE';
           Récapitulatif de l'offre
         </div>
 
+        <!-- Course non payable (déjà payée, offre non acceptée…) — TICK-060 -->
+        @if (courseLoaded && courseStatus !== 'ASSIGNED') {
+          <div class="vigilance-box">
+            <svg lucideAlertTriangle size="18"></svg>
+            <span>
+              <strong>Paiement indisponible :</strong>
+              @if (courseStatus === 'PUBLISHED') {
+                acceptez d'abord une offre dans le chat.
+              } @else {
+                cette course a déjà été payée ou n'est plus payable.
+              }
+              <a [routerLink]="['/client/course-detail', courseId]">Voir la course</a>
+            </span>
+          </div>
+        }
+
         <!-- Encart vigilance -->
         <div class="vigilance-box">
           <svg lucideAlertTriangle size="18"></svg>
@@ -296,6 +312,14 @@ export class PayComponent implements OnInit {
   tarifCoursier = 0;
   courseLoaded = false;
   courseError = false;
+  /** Statut de la course : le paiement n'est possible qu'en ASSIGNED (TICK-060). */
+  courseStatus = '';
+
+  /**
+   * Clé d'idempotence générée une seule fois par visite de la page : un nouvel essai après
+   * une erreur réseau rejoue la même clé, le serveur renvoie alors le même paiement sans double débit.
+   */
+  private readonly idempotencyKey = crypto.randomUUID();
 
   /** Frais réels saisis par le client (0 autorisé) */
   fraisReels: number | null = 0;
@@ -336,6 +360,7 @@ export class PayComponent implements OnInit {
       this.http.get<any>(`/api/courses/${this.courseId}`).subscribe({
         next: (course) => {
           this.tarifCoursier = course.courseAmount ?? 0;
+          this.courseStatus = course.status ?? '';
           this.courseLoaded = true;
           this.updateTotals();
         },
@@ -366,6 +391,7 @@ export class PayComponent implements OnInit {
 
   canPay(): boolean {
     return this.courseLoaded
+        && this.courseStatus === 'ASSIGNED'
         && this.tarifCoursier > 0
         && this.total > 0
         && !this.courseError;
@@ -378,14 +404,11 @@ export class PayComponent implements OnInit {
     }
 
     this.isLoading = true;
-    // Générer une clé d'idempotence unique pour cette tentative de paiement
-    const idempotencyKey = crypto.randomUUID();
-
     this.paymentService.initiate({
       courseId:        this.courseId,
       fraisReels:      this.fraisReels ?? 0,
       paymentMethod:   this.selectedMethod,
-      idempotencyKey:  idempotencyKey,
+      idempotencyKey:  this.idempotencyKey,
     }).subscribe({
       next: (res) => {
         this.isLoading = false;

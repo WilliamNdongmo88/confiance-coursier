@@ -43,17 +43,25 @@ public class AdminDisputeController {
     }
 
     /**
-     * POST /api/admin/disputes/{id}/resolve?decision=LIBERATION
+     * POST /api/admin/disputes/{id}/resolve
      *
-     * Résout un litige. Décisions acceptées :
-     * {@code REMBOURSEMENT_TOTAL}, {@code REMBOURSEMENT_PARTIEL}, {@code LIBERATION}, {@code SANCTION}.
+     * Résout un litige. Body JSON : { "decision": "LIBERATION", "refundAmount": 5000 }
+     * Décisions : REMBOURSEMENT_TOTAL | REMBOURSEMENT_PARTIEL | LIBERATION | SANCTION.
+     * refundAmount est obligatoire pour REMBOURSEMENT_PARTIEL.
      */
     @PostMapping("/{id}/resolve")
     public ResponseEntity<DisputeResponse> resolve(@PathVariable Long id,
-                                                   @RequestParam String decision) {
+                                                   @RequestBody ResolveDisputeRequest body) {
         Long adminId = getCurrentAdminId();
-        return ResponseEntity.ok(disputeService.resolveDispute(id, adminId, decision));
+        return ResponseEntity.ok(
+                disputeService.resolveDispute(id, adminId, body.decision(), body.refundAmount()));
     }
+
+    /** DTO inline pour la résolution d'un litige. */
+    public record ResolveDisputeRequest(
+            String decision,
+            java.math.BigDecimal refundAmount
+    ) {}
 
     // ─── Utilitaires ──────────────────────────────────────────────────────────
 
