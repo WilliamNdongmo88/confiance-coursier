@@ -1,15 +1,26 @@
 package com.confiancecoursier.backend.course.repository;
 
 import com.confiancecoursier.backend.course.domain.Course;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface CourseRepository extends JpaRepository<Course, Long> {
+
+    /**
+     * Charge une course avec un verrou pessimiste (SELECT … FOR UPDATE).
+     * Utilisé par PaymentService pour éviter le double paiement concurrent.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT c FROM Course c WHERE c.id = :id")
+    Optional<Course> findByIdForUpdate(Long id);
     // Récupère toutes les courses avec un statut donné (ex: PUBLISHED)
     List<Course> findByStatusOrderByCreatedAtDesc(String status);
 

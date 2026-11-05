@@ -66,7 +66,7 @@ export const routes: Routes = [
     data: { role: 'CLIENT' }
   },
   {
-    path: 'client/pay/:roomId',
+    path: 'client/pay/:courseId',
     component: PayComponent,
     canActivate: [authGuard, roleGuard],
     data: { role: 'CLIENT' }

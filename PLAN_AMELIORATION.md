@@ -603,6 +603,7 @@ Contrôles :
 **Validation :** E2E-1 jusqu'à l'écran de paiement ; vérification en base.
 
 #### TICK-060 🔴 [FULL] Paiement fiable côté serveur — 6 h
+**Statut :** ✅ (2026-11-05, session 50)
 **Anomalies :** A-05, A-06, A-09, A-31, CL-10, CL-23 · **Fichiers :** `PaymentService`, `PaymentInitiateRequest`, `Course` (+ `real_costs`, `@Version`), `CourseRepository` (verrou), `FE/pay.component.ts`, `app.routes.ts`
 **Description :**
 - Requête `{courseId, fraisReels ≥ 0, paymentMethod ∈ STRIPE|MTN|ORANGE, idempotencyKey}`.

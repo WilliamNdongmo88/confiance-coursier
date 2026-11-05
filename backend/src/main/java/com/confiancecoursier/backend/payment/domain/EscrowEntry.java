@@ -38,6 +38,10 @@ public class EscrowEntry {
     /** PENDING | CONFIRMED | FAILED */
     private String status;
 
+    /** Clé d'idempotence — UNIQUE en base pour éviter le double HOLD. */
+    @Column(name = "idempotency_key")
+    private String idempotencyKey;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 

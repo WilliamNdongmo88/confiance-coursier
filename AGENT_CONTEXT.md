@@ -1438,7 +1438,23 @@ Les CSS `main.css`, `app-layout.css`, `refonte.css` doivent être copiés/adapt�
 |----------|----------|---------|
 | 🟢 | Note moyenne dans dashboard client affiche `—` | Sera rempli après module reviews |
 
-#### TICK-059 [FULL] — Acceptation de l'offre et assignation du coursier (session 50)
+#### TICK-060 [FULL] — Paiement fiable côté serveur (session 50)
+
+- **`db/migration/V11__payment_robustness.sql`** : colonnes `real_costs` et `idempotency_key` sur `courses` ; `idempotency_key` UNIQUE sur `escrow_ledger`
+- **`course/domain/Course.java`** : ajout `realCosts` + `idempotencyKey`
+- **`payment/domain/EscrowEntry.java`** : ajout `idempotencyKey`
+- **`payment/api/dto/PaymentInitiateRequest.java`** : suppression `tarifCoursier` (plus de confiance au front) ; ajout `idempotencyKey` `@NotBlank` ; validation `@Pattern` sur `paymentMethod`
+- **`payment/repository/EscrowRepository.java`** : ajout `findByIdempotencyKey()`
+- **`course/repository/CourseRepository.java`** : ajout `findByIdForUpdate()` avec `@Lock(PESSIMISTIC_WRITE)`
+- **`shared/exception/ConflictException.java`** : créée → HTTP 409
+- **`shared/exception/GlobalExceptionHandler.java`** : handler `ConflictException` → 409
+- **`payment/service/PaymentService.java`** : `initiate()` entièrement réécrit — idempotence (cherche la clé avant tout), verrou pessimiste, préconditions strictes (`ASSIGNED` + `courierId != null`), tarif lu de `course.courseAmount`, frais réels 0 autorisé, arrondi XAF entier, `paidAt` + `realCosts` + `idempotencyKey` persistés, HOLD `CONFIRMED` (non plus PENDING)
+- **`core/services/payment.service.ts`** : suppression `tarifCoursier` ; ajout `idempotencyKey`
+- **`features/client/pay/pay.component.ts`** : route `:courseId` (plus `:roomId`) ; tarif chargé depuis `GET /api/courses/{id}` (read-only) ; `fraisReels` initialisé à 0 ; `idempotencyKey` généré via `crypto.randomUUID()` ; `canPay()` actif dès que la course est chargée
+- **`app.routes.ts`** : `client/pay/:roomId` → `client/pay/:courseId`
+- **Build** : backend `mvnw compile` → exit 0 ; frontend `ng build` → exit 0
+
+
 
 - **`course/service/OfferService.java`** : `acceptOffer()` accepte désormais les offres `ACTIVE` (TICK-058) ; exige `status=PUBLISHED` ; rejette les autres offres ACTIVE → `REJECTED` ; notifie les coursiers non retenus via `notifyCourierNotRetained()`
 - **`notify/service/NotificationService.java`** : ajout `notifyCourierNotRetained(courierId, courseId)` — email "Offre non retenue"

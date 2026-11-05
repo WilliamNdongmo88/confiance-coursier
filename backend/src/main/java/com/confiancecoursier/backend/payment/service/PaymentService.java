@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -66,75 +67,103 @@ public class PaymentService {
 
     @Transactional
     public PaymentInitiateResponse initiate(PaymentInitiateRequest req, Long clientId) {
-        Course course = courseRepository.findById(req.getCourseId())
+
+        // ── Idempotence : si la clé existe déjà, renvoyer la réponse sans double débit ──
+        Optional<EscrowEntry> existing = escrowRepository.findByIdempotencyKey(req.getIdempotencyKey());
+        if (existing.isPresent()) {
+            EscrowEntry existingEntry = existing.get();
+            Course existingCourse = courseRepository.findById(existingEntry.getCourseId())
+                    .orElseThrow(() -> new BusinessException("Course introuvable"));
+            log.info("[PAYMENT IDEMPOTENT] courseId={} ref={} idempotencyKey={}",
+                    existingEntry.getCourseId(), existingEntry.getProviderRef(), req.getIdempotencyKey());
+            return PaymentInitiateResponse.builder()
+                    .paymentRef(existingEntry.getProviderRef())
+                    .totalAmount(existingCourse.getTotalAmount())
+                    .status(existingEntry.getStatus())
+                    .courseId(existingEntry.getCourseId())
+                    .build();
+        }
+
+        // ── Verrou pessimiste — empêche le double paiement concurrent ──────────
+        Course course = courseRepository.findByIdForUpdate(req.getCourseId())
                 .orElseThrow(() -> new BusinessException("Course introuvable"));
 
         if (!course.getClientId().equals(clientId)) {
             throw new BusinessException("Cette course ne vous appartient pas");
         }
 
-        if ("IN_PROGRESS".equals(course.getStatus()) || "COMPLETED".equals(course.getStatus())) {
-            throw new BusinessException("Cette course a déjà été payée");
+        // Préconditions strictes (TICK-060)
+        if (!"ASSIGNED".equals(course.getStatus())) {
+            throw new com.confiancecoursier.backend.shared.exception.ConflictException(
+                    "Le paiement n'est possible qu'après acceptation d'une offre (statut actuel : "
+                    + course.getStatus() + ").");
         }
+        if (course.getCourierId() == null) {
+            throw new BusinessException("Aucun coursier assigné à cette course.");
+        }
+        if (course.getCourseAmount() == null) {
+            throw new BusinessException("Le montant de l'offre acceptée est introuvable.");
+        }
+
+        // ── Tarif lu du serveur — jamais du frontend ───────────────────────────
+        BigDecimal tarifCoursier = course.getCourseAmount().setScale(0, RoundingMode.HALF_UP);
+        BigDecimal fraisReels    = req.getFraisReels().setScale(0, RoundingMode.HALF_UP);
 
         // ── Lire les taux dynamiquement depuis platform_settings ──────────────
         var settings = commissionService.getCommissionSettings();
         BigDecimal clientRate  = settings.getCommissionRateClient();   // ex. 5.00
         BigDecimal courierRate = settings.getCommissionRateCourier();  // ex. 20.00
 
-        // ── Calcul côté serveur (ne pas faire confiance au frontend) ──────────
-        // Ce que paie le client
-        BigDecimal base               = req.getFraisReels().add(req.getTarifCoursier());
+        // ── Calcul côté serveur ───────────────────────────────────────────────
+        BigDecimal base               = fraisReels.add(tarifCoursier);
         BigDecimal fraisServiceClient = base.multiply(clientRate)
-                                            .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+                                            .divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP);
         BigDecimal total              = base.add(fraisServiceClient);
 
-        // Ce que recevra le coursier (calculé maintenant, snapshot du taux)
-        BigDecimal commissionCoursier = req.getTarifCoursier()
-                                           .multiply(courierRate)
-                                           .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-        BigDecimal montantCoursier    = req.getTarifCoursier().subtract(commissionCoursier);
-
-        // Gains totaux de la plateforme = frais client + commission coursier
+        BigDecimal commissionCoursier = tarifCoursier
+                                            .multiply(courierRate)
+                                            .divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP);
+        BigDecimal montantCoursier    = tarifCoursier.subtract(commissionCoursier).add(fraisReels);
         BigDecimal gainsPlateforme    = fraisServiceClient.add(commissionCoursier);
 
         // ── Persistance ───────────────────────────────────────────────────────
+        String ref = "PAY-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+
         course.setStatus("IN_PROGRESS");
         course.setEscrowStatus("HELD");
-        course.setCourseAmount(req.getTarifCoursier());
+        course.setPaidAt(LocalDateTime.now());
+        course.setRealCosts(fraisReels);
         course.setCommissionRate(clientRate);
         course.setCommissionAmount(fraisServiceClient);
         course.setTotalAmount(total);
         course.setCommissionRateCourier(courierRate);
         course.setCourierAmount(montantCoursier);
         course.setPlatformFeeAmount(gainsPlateforme);
+        course.setIdempotencyKey(req.getIdempotencyKey());
         courseRepository.save(course);
 
-        String ref = "PAY-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
         EscrowEntry entry = EscrowEntry.builder()
                 .courseId(req.getCourseId())
                 .entryType("HOLD")
                 .amount(total)
                 .provider(req.getPaymentMethod().toUpperCase())
                 .providerRef(ref)
-                .status("PENDING")
+                .status("CONFIRMED")
+                .idempotencyKey(req.getIdempotencyKey())
                 .build();
         escrowRepository.save(entry);
 
-        log.info("[PAYMENT] courseId={} total={} XAF (base={} + fraisClient={}) | " +
-                 "coursier recevra={} XAF (déduit commissionCoursier={}) | " +
-                 "gainsPlateforme={} XAF | method={} ref={}",
-                req.getCourseId(), total, base, fraisServiceClient,
-                montantCoursier, commissionCoursier, gainsPlateforme,
-                req.getPaymentMethod(), ref);
+        log.info("[PAYMENT] courseId={} total={} XAF (fraisReels={} + tarif={} + fraisClient={}) | " +
+                 "coursier recevra={} XAF | gainsPlateforme={} XAF | method={} ref={}",
+                req.getCourseId(), total, fraisReels, tarifCoursier, fraisServiceClient,
+                montantCoursier, gainsPlateforme, req.getPaymentMethod(), ref);
 
-        // Notification email au client + coursier
         notificationService.notifyPaymentReceived(course.getClientId(), course.getCourierId(), total);
 
         return PaymentInitiateResponse.builder()
                 .paymentRef(ref)
                 .totalAmount(total)
-                .status("PENDING")
+                .status("CONFIRMED")
                 .courseId(req.getCourseId())
                 .build();
     }

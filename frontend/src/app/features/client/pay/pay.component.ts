@@ -149,7 +149,7 @@ type PaymentMethod = 'STRIPE' | 'MTN' | 'ORANGE';
           <h1>Paiement sécurisé</h1>
           <p>Finalisez la transaction pour lancer la course.</p>
         </div>
-        <a [routerLink]="['/chat', roomId]" class="btn btn-secondary btn-sm">
+        <a [routerLink]="['/client/dashboard']" class="btn btn-secondary btn-sm">
           <svg lucideArrowLeft size="15"></svg> Retour
         </a>
       </section>
@@ -169,7 +169,7 @@ type PaymentMethod = 'STRIPE' | 'MTN' | 'ORANGE';
 
         <!-- Frais réels (saisis par le client) -->
         <div class="invoice-line">
-          <span>Frais réels (achats convenus avec le coursier) *</span>
+          <span>Frais réels (achats convenus avec le coursier, 0 si aucun) :</span>
           <div class="frais-input">
             <input
               type="number"
@@ -184,10 +184,16 @@ type PaymentMethod = 'STRIPE' | 'MTN' | 'ORANGE';
           </div>
         </div>
 
-        <!-- Tarif coursier (read-only) -->
+        <!-- Tarif coursier (read-only — chargé depuis le serveur) -->
         <div class="invoice-line" style="margin-top:12px">
-          <span>Tarif du coursier (fixé dans le chat) :</span>
-          <span style="font-weight:600;">{{ tarifCoursier | number:'1.0-0' }} XAF</span>
+          <span>Tarif du coursier (offre acceptée) :</span>
+          @if (courseLoaded) {
+            <span style="font-weight:600;">{{ tarifCoursier | number:'1.0-0' }} XAF</span>
+          } @else if (courseError) {
+            <span style="color:var(--danger,#dc2626)">Erreur de chargement</span>
+          } @else {
+            <span style="color:var(--cc-muted)">Chargement…</span>
+          }
         </div>
 
         <!-- Frais de service — affiché uniquement si taux > 0, comme dans la maquette -->
@@ -283,21 +289,21 @@ type PaymentMethod = 'STRIPE' | 'MTN' | 'ORANGE';
 })
 export class PayComponent implements OnInit {
 
-  /** ID de la salle de chat (passé dans l'URL : /client/pay/:roomId) */
-  roomId = 0;
-  /** ID de la course (récupéré depuis queryParams ou stocké localement) */
+  /** ID de la course (passé dans l'URL : /client/pay/:courseId) */
   courseId = 0;
 
-  /** Tarif du coursier transmis depuis la carte d'offre du chat */
+  /** Tarif du coursier — chargé depuis la course (read-only, non falsifiable) */
   tarifCoursier = 0;
+  courseLoaded = false;
+  courseError = false;
 
-  /** Frais réels saisis par le client */
-  fraisReels: number | null = null;
+  /** Frais réels saisis par le client (0 autorisé) */
+  fraisReels: number | null = 0;
 
   /** Résultats calculés */
   fraisService = 0;
   total = 0;
-  /** Taux de frais client — chargé depuis l'API admin (0 = pas de frais affichés) */
+  /** Taux de frais client — chargé depuis l'API (0 = pas de frais affichés) */
   feeRate = 0;
 
   /** Méthode sélectionnée */
@@ -314,24 +320,31 @@ export class PayComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.roomId   = Number(this.route.snapshot.paramMap.get('roomId') ?? 0);
-    this.courseId = Number(this.route.snapshot.queryParamMap.get('courseId') ?? 0);
+    this.courseId = Number(this.route.snapshot.paramMap.get('courseId') ?? 0);
 
-    const amountParam = this.route.snapshot.queryParamMap.get('amount');
-    this.tarifCoursier = amountParam ? Number(amountParam) : 0;
-
-    // Charger le taux client via l'endpoint public (accessible à tous les rôles authentifiés)
-    // L'ancien endpoint /api/admin/commissions retournait 403 pour les clients → feeRate restait à 0
+    // Charger le taux client depuis l'endpoint public
     this.http.get<any>('/api/commissions/public').subscribe({
       next: (settings) => {
         this.feeRate = settings.commissionRateClient ?? 0;
         this.updateTotals();
       },
-      error: () => {
-        // En cas d'erreur réseau, on reste à 0 (pas de frais affichés)
-        this.feeRate = 0;
-      }
+      error: () => { this.feeRate = 0; }
     });
+
+    // Charger la course pour récupérer le tarifCoursier (courseAmount) côté serveur
+    if (this.courseId) {
+      this.http.get<any>(`/api/courses/${this.courseId}`).subscribe({
+        next: (course) => {
+          this.tarifCoursier = course.courseAmount ?? 0;
+          this.courseLoaded = true;
+          this.updateTotals();
+        },
+        error: () => {
+          this.courseError = true;
+          this.toast.error('Impossible de charger les informations de la course.');
+        }
+      });
+    }
   }
 
   selectMethod(method: PaymentMethod): void {
@@ -340,34 +353,39 @@ export class PayComponent implements OnInit {
 
   updateTotals(): void {
     const fr = this.fraisReels ?? 0;
-    if (fr <= 0 || this.tarifCoursier <= 0) {
+    const tarif = this.tarifCoursier;
+    if (tarif <= 0) {
       this.fraisService = 0;
       this.total = 0;
       return;
     }
-    const base = fr + this.tarifCoursier;
+    const base = fr + tarif;
     this.fraisService = Math.round(base * this.feeRate / 100);
     this.total = base + this.fraisService;
   }
 
   canPay(): boolean {
-    return (this.fraisReels ?? 0) > 0 && this.tarifCoursier > 0 && this.total > 0;
+    return this.courseLoaded
+        && this.tarifCoursier > 0
+        && this.total > 0
+        && !this.courseError;
   }
 
   pay(): void {
     if (!this.canPay() || !this.courseId) {
-      if (!this.courseId) {
-        this.toast.error('Course introuvable. Veuillez revenir depuis le chat.');
-      }
+      if (!this.courseId) this.toast.error('Course introuvable. Veuillez revenir depuis le chat.');
       return;
     }
 
     this.isLoading = true;
+    // Générer une clé d'idempotence unique pour cette tentative de paiement
+    const idempotencyKey = crypto.randomUUID();
+
     this.paymentService.initiate({
-      courseId:      this.courseId,
-      tarifCoursier: this.tarifCoursier,
-      fraisReels:    this.fraisReels!,
-      paymentMethod: this.selectedMethod,
+      courseId:        this.courseId,
+      fraisReels:      this.fraisReels ?? 0,
+      paymentMethod:   this.selectedMethod,
+      idempotencyKey:  idempotencyKey,
     }).subscribe({
       next: (res) => {
         this.isLoading = false;

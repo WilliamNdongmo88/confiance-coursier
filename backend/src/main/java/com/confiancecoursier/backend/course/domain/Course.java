@@ -69,6 +69,14 @@ public class Course {
     @Column(name = "paid_at")
     private LocalDateTime paidAt;
 
+    /** Frais réels déclarés par le client (achats avancés par le coursier). */
+    @Column(name = "real_costs")
+    private BigDecimal realCosts;
+
+    /** Clé d'idempotence pour éviter le double paiement (UNIQUE en base). */
+    @Column(name = "idempotency_key")
+    private String idempotencyKey;
+
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
 

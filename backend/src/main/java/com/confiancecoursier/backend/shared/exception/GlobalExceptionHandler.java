@@ -1,6 +1,7 @@
 package com.confiancecoursier.backend.shared.exception;
 
 import com.confiancecoursier.backend.shared.util.FileStorageService;
+import com.confiancecoursier.backend.shared.exception.ConflictException;
 import com.confiancecoursier.backend.shared.exception.ForbiddenException;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
@@ -82,6 +83,17 @@ public class GlobalExceptionHandler {
                 LocalDateTime.now()
         );
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+    }
+
+    // Conflit d'état (ex: course déjà payée, double paiement) → 409 — TICK-060
+    @ExceptionHandler(ConflictException.class)
+    public ResponseEntity<ErrorResponse> handleConflict(ConflictException ex) {
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.CONFLICT.value(),
+                ex.getMessage(),
+                LocalDateTime.now()
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
     }
 
     // Compte suspendu / bloqué (login après mot de passe correct, ou refresh) → 403 — TICK-053
