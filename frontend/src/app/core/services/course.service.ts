@@ -65,6 +65,16 @@ export class CourseService {
   }
 
   /**
+   * TICK-057 — Ouvre (ou récupère) un salon de chat SANS créer d'offre fictive.
+   * Appelé par le client avec courierId, ou par le coursier sans body.
+   * Retourne { chatRoomId: number }.
+   */
+  openConversation(courseId: number, courierId?: number): Observable<{ chatRoomId: number }> {
+    const body = courierId != null ? { courierId } : {};
+    return this.http.post<{ chatRoomId: number }>(`${this.apiUrl}/${courseId}/conversations`, body);
+  }
+
+  /**
    * Soumet une preuve (photo, vidéo ou reçu) pour une course.
    * Retourne un Observable d'événements HTTP pour la barre de progression.
    */

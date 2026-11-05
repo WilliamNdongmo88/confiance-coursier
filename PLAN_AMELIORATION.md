@@ -530,8 +530,9 @@ Ordre imposé : Sprint 7 entièrement (il débloque tout), puis 8, puis 9 / 10 /
 - Un access token envoyé à `/refresh` → 400.
 **Validation :** test d'intégration + parcours de connexion normal intact.
 
-#### TICK-055 🔴 [BE] Sécuriser le WebSocket STOMP — 5 h
-**Anomalie :** A-03 · **Fichiers :** `config/WebSocketConfig.java`, nouveau `config/StompAuthInterceptor.java`, `chat/api/ChatController.java`, `FE/core/services/chat.service.ts`
+#### TICK-055 ✅ [BE+FE] Sécuriser le WebSocket STOMP — 5 h
+**Statut :** ✅ (2026-11-05, session précédente)
+**Anomalie :** A-03 · **Fichiers :** `config/WebSocketConfig.java`, `config/StompAuthChannelInterceptor.java`, `chat/service/ChatAccessService.java`, `chat/api/ChatController.java`, `FE/core/services/chat.service.ts`
 **Description :**
 - `ChannelInterceptor` qui valide le JWT au CONNECT (header `Authorization`) et pose le `Principal`.
 - SUBSCRIBE `/topic/chat/{roomId}` autorisé seulement si l'appelant est participant (ou admin).
@@ -546,16 +547,18 @@ Ordre imposé : Sprint 7 entièrement (il débloque tout), puis 8, puis 9 / 10 /
 - Le chat client ↔ coursier fonctionne en temps réel.
 **Validation :** deux navigateurs (client et coursier) qui échangent ; un 3ᵉ compte ne reçoit rien.
 
-#### TICK-056 🔴 [BE] Contrôle de participation sur les API REST du chat et des offres — 2 h
-**Anomalie :** A-12 · **Fichiers :** `ChatRestController`, `OfferController`, `OfferService`
+#### TICK-056 ✅ [BE] Contrôle de participation sur les API REST du chat et des offres — 2 h
+**Statut :** ✅ (2026-11-05, session 49)
+**Anomalie :** A-12 · **Fichiers modifiés :** `ChatRestController.java`, `OfferController.java`, `GlobalExceptionHandler.java`, nouveau `ForbiddenException.java`
 **Critères d'acceptation :**
 - `GET /api/chat/rooms/{id}/messages` et `/info` → 403 si l'appelant n'est pas participant ni admin.
 - `GET /courses/{id}/offers` réservé au propriétaire (le coursier ne voit que sa propre offre).
 - `resolveName` n'expose plus l'email.
 **Validation :** test MockMvc IDOR (3 rôles × 2 ressources).
 
-#### TICK-057 🔴 [FULL] Ouvrir une conversation sans offre fictive — 4 h
-**Anomalies :** A-07, CO-14 · **Fichiers :** `course/api/CourseController` (ou `chat/api`), `ChatRoomRepository`, `FE/select-courier`, `FE/courier/dashboard`
+#### TICK-057 ✅ [FULL] Ouvrir une conversation sans offre fictive — 4 h
+**Statut :** ✅ (2026-11-05, session 49)
+**Anomalies :** A-07, CO-14 · **Fichiers modifiés :** `CourseController.java`, `CourseService.ts`, `select-courier.component.ts`, `courier/dashboard.component.ts`
 **Description :**
 - Nouvel endpoint `POST /api/courses/{id}/conversations` avec `{courierId}` pour le client, ou sans corps pour le coursier (KYC APPROVED requis). Il crée ou récupère le salon `(courseId, courierId)` **sans créer d'offre**.
 - Suppression de tous les appels `createOffer(…, 0.01, …)`.

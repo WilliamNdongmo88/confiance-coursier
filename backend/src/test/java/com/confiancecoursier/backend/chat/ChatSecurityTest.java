@@ -1,0 +1,294 @@
+package com.confiancecoursier.backend.chat;
+
+import com.confiancecoursier.backend.auth.service.JwtService;
+import com.confiancecoursier.backend.chat.api.ChatController;
+import com.confiancecoursier.backend.chat.api.ChatController.ChatRejectedException;
+import com.confiancecoursier.backend.chat.api.dto.ChatMessageDto;
+import com.confiancecoursier.backend.chat.domain.ChatMessage;
+import com.confiancecoursier.backend.chat.domain.ChatRoom;
+import com.confiancecoursier.backend.chat.repository.ChatMessageRepository;
+import com.confiancecoursier.backend.chat.repository.ChatRoomRepository;
+import com.confiancecoursier.backend.chat.service.ChatAccessService;
+import com.confiancecoursier.backend.config.StompAuthChannelInterceptor;
+import com.confiancecoursier.backend.user.domain.User;
+import com.confiancecoursier.backend.user.repository.UserRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.MessageChannel;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.messaging.simp.stomp.StompCommand;
+import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
+import org.springframework.messaging.support.MessageBuilder;
+import org.springframework.messaging.support.MessageHeaderAccessor;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.test.util.ReflectionTestUtils;
+
+import java.math.BigDecimal;
+import java.security.Principal;
+import java.util.List;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.*;
+
+/** TICK-055 — WebSocket STOMP : authentification, abonnements, expéditeur et types de messages. */
+class ChatSecurityTest {
+
+    private static final String SECRET = "dGVzdC1zZWNyZXQta2V5LWZvci11bml0LXRlc3RzLTEyMzQ1Njc4OTA=";
+
+    private UserRepository users;
+    private ChatRoomRepository rooms;
+    private ChatAccessService access;
+    private JwtService jwt;
+    private StompAuthChannelInterceptor interceptor;
+
+    private User client, courier, intruder, admin;
+    private ChatRoom room;
+
+    @BeforeEach
+    void setUp() {
+        users = mock(UserRepository.class);
+        rooms = mock(ChatRoomRepository.class);
+        access = new ChatAccessService(rooms, users);
+
+        jwt = new JwtService();
+        ReflectionTestUtils.setField(jwt, "secretKey", SECRET);
+        ReflectionTestUtils.setField(jwt, "jwtExpiration", 900_000L);
+        ReflectionTestUtils.setField(jwt, "refreshExpiration", 604_800_000L);
+
+        client = user(1, "client@test.com", "CLIENT", "ACTIVE");
+        courier = user(2, "courier@test.com", "COURIER", "ACTIVE");
+        intruder = user(3, "intruder@test.com", "CLIENT", "ACTIVE");
+        admin = user(4, "admin@test.com", "ADMIN", "ACTIVE");
+        user(5, "suspended@test.com", "CLIENT", "SUSPENDED");
+
+        room = ChatRoom.builder().id(10L).courseId(100L).clientId(1L).courierId(2L).isArchived(false).build();
+        when(rooms.findById(10L)).thenReturn(Optional.of(room));
+
+        UserDetailsService uds = email -> users.findByEmail(email)
+                .map(u -> org.springframework.security.core.userdetails.User.withUsername(u.getEmail())
+                        .password("x").authorities("ROLE_" + u.getRole()).accountLocked(!u.isActive()).build())
+                .orElseThrow(() -> new org.springframework.security.core.userdetails.UsernameNotFoundException(email));
+        interceptor = new StompAuthChannelInterceptor(jwt, uds, access);
+    }
+
+    private User user(long id, String email, String role, String status) {
+        User u = User.builder().id(id).email(email).passwordHash("x").role(role).status(status).build();
+        when(users.findByEmail(email)).thenReturn(Optional.of(u));
+        return u;
+    }
+
+    private UserDetails details(String email) {
+        return org.springframework.security.core.userdetails.User.withUsername(email).password("x").authorities("ROLE_X").build();
+    }
+
+    private static Principal principal(String email) {
+        return new UsernamePasswordAuthenticationToken(email, null, List.of());
+    }
+
+    private Message<byte[]> frame(StompCommand cmd, String destination, String authorization, Principal user) {
+        StompHeaderAccessor acc = StompHeaderAccessor.create(cmd);
+        if (destination != null) acc.setDestination(destination);
+        if (authorization != null) acc.setNativeHeader("Authorization", authorization);
+        if (user != null) acc.setUser(user);
+        acc.setLeaveMutable(true);
+        return MessageBuilder.createMessage(new byte[0], acc.getMessageHeaders());
+    }
+
+    private Message<?> send(Message<byte[]> msg) {
+        return interceptor.preSend(msg, mock(MessageChannel.class));
+    }
+
+    // ── CONNECT ──────────────────────────────────────────────────────────────
+
+    @Test
+    void connectWithoutTokenIsRefused() {
+        assertThatThrownBy(() -> send(frame(StompCommand.CONNECT, null, null, null)))
+                .isInstanceOf(AccessDeniedException.class);
+    }
+
+    @Test
+    void connectWithGarbageTokenIsRefused() {
+        assertThatThrownBy(() -> send(frame(StompCommand.CONNECT, null, "Bearer not.a.jwt", null)))
+                .isInstanceOf(AccessDeniedException.class);
+    }
+
+    @Test
+    void connectWithRefreshTokenIsRefused() {
+        String refresh = jwt.generateRefreshToken(details("client@test.com"));
+        assertThatThrownBy(() -> send(frame(StompCommand.CONNECT, null, "Bearer " + refresh, null)))
+                .isInstanceOf(AccessDeniedException.class);
+    }
+
+    @Test
+    void connectOfSuspendedUserIsRefused() {
+        String token = jwt.generateToken(details("suspended@test.com"));
+        assertThatThrownBy(() -> send(frame(StompCommand.CONNECT, null, "Bearer " + token, null)))
+                .isInstanceOf(AccessDeniedException.class);
+    }
+
+    @Test
+    void connectWithValidAccessTokenSetsPrincipal() {
+        String token = jwt.generateToken(details("client@test.com"));
+        Message<?> out = send(frame(StompCommand.CONNECT, null, "Bearer " + token, null));
+        StompHeaderAccessor acc = MessageHeaderAccessor.getAccessor(out, StompHeaderAccessor.class);
+        assertThat(acc.getUser()).isNotNull();
+        assertThat(acc.getUser().getName()).isEqualTo("client@test.com");
+    }
+
+    // ── SUBSCRIBE ────────────────────────────────────────────────────────────
+
+    @Test
+    void participantsAndAdminCanSubscribeToTheirRoom() {
+        for (String email : List.of("client@test.com", "courier@test.com", "admin@test.com")) {
+            assertThatCode(() -> send(frame(StompCommand.SUBSCRIBE, "/topic/chat/10", null, principal(email))))
+                    .as(email).doesNotThrowAnyException();
+        }
+    }
+
+    @Test
+    void outsiderCannotSubscribeToRoom() {
+        assertThatThrownBy(() -> send(frame(StompCommand.SUBSCRIBE, "/topic/chat/10", null, principal("intruder@test.com"))))
+                .isInstanceOf(AccessDeniedException.class);
+    }
+
+    @Test
+    void unknownRoomOrOtherTopicIsRefused() {
+        assertThatThrownBy(() -> send(frame(StompCommand.SUBSCRIBE, "/topic/chat/999", null, principal("client@test.com"))))
+                .isInstanceOf(AccessDeniedException.class);
+        assertThatThrownBy(() -> send(frame(StompCommand.SUBSCRIBE, "/topic/chat/*", null, principal("client@test.com"))))
+                .isInstanceOf(AccessDeniedException.class);
+        assertThatThrownBy(() -> send(frame(StompCommand.SUBSCRIBE, "/topic/anything", null, principal("client@test.com"))))
+                .isInstanceOf(AccessDeniedException.class);
+    }
+
+    @Test
+    void anyAuthenticatedUserCanSubscribeToOwnErrorQueue() {
+        assertThatCode(() -> send(frame(StompCommand.SUBSCRIBE, "/user/queue/errors", null, principal("intruder@test.com"))))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    void sendOrSubscribeWithoutSessionIsRefused() {
+        assertThatThrownBy(() -> send(frame(StompCommand.SEND, "/app/chat.send", null, null)))
+                .isInstanceOf(AccessDeniedException.class);
+        assertThatThrownBy(() -> send(frame(StompCommand.SUBSCRIBE, "/topic/chat/10", null, null)))
+                .isInstanceOf(AccessDeniedException.class);
+    }
+
+    // ── @MessageMapping /chat.send ───────────────────────────────────────────
+
+    private ChatMessageRepository messages;
+    private SimpMessagingTemplate template;
+
+    private ChatController controller() {
+        messages = mock(ChatMessageRepository.class);
+        when(messages.save(any(ChatMessage.class))).thenAnswer(i -> i.getArgument(0));
+        template = mock(SimpMessagingTemplate.class);
+        return new ChatController(messages, template, access);
+    }
+
+    private static ChatMessageDto dto(Long senderId, String type, String content, BigDecimal amount) {
+        ChatMessageDto d = new ChatMessageDto();
+        d.setRoomId(10L);
+        d.setSenderId(senderId);
+        d.setMessageType(type);
+        d.setContent(content);
+        d.setOfferAmount(amount);
+        return d;
+    }
+
+    @Test
+    void spoofedSenderIdIsReplacedByAuthenticatedUser() {
+        ChatController c = controller();
+        c.sendMessage(dto(2L /* se fait passer pour le coursier */, "TEXT", "Bonjour", null), principal("client@test.com"));
+
+        ArgumentCaptor<ChatMessage> saved = ArgumentCaptor.forClass(ChatMessage.class);
+        verify(messages).save(saved.capture());
+        assertThat(saved.getValue().getSenderId()).isEqualTo(1L);
+        verify(template).convertAndSend(eq("/topic/chat/10"), any(Object.class));
+    }
+
+    @Test
+    void outsiderCannotPostInRoom() {
+        ChatController c = controller();
+        assertThatThrownBy(() -> c.sendMessage(dto(1L, "TEXT", "spam", null), principal("intruder@test.com")))
+                .isInstanceOf(ChatRejectedException.class);
+        verifyNoInteractions(messages);
+        verifyNoInteractions(template);
+    }
+
+    @Test
+    void adminCanReadButNotPost() {
+        ChatController c = controller();
+        assertThatThrownBy(() -> c.sendMessage(dto(null, "TEXT", "hello", null), principal("admin@test.com")))
+                .isInstanceOf(ChatRejectedException.class);
+    }
+
+    @Test
+    void systemMessagesFromClientsAreRefused() {
+        ChatController c = controller();
+        assertThatThrownBy(() -> c.sendMessage(dto(null, "SYSTEM", "Offre acceptée", null), principal("client@test.com")))
+                .isInstanceOf(ChatRejectedException.class);
+        verifyNoInteractions(messages);
+    }
+
+    @Test
+    void clientCannotSendAnOffer() {
+        ChatController c = controller();
+        assertThatThrownBy(() -> c.sendMessage(dto(null, "OFFER", "", new BigDecimal("1")), principal("client@test.com")))
+                .isInstanceOf(ChatRejectedException.class)
+                .hasMessageContaining("coursier");
+        verifyNoInteractions(messages);
+    }
+
+    @Test
+    void courierOfTheRoomCanSendAnOffer() {
+        ChatController c = controller();
+        c.sendMessage(dto(null, "offer", "Je propose 6000", new BigDecimal("6000")), principal("courier@test.com"));
+
+        ArgumentCaptor<ChatMessage> saved = ArgumentCaptor.forClass(ChatMessage.class);
+        verify(messages).save(saved.capture());
+        assertThat(saved.getValue().getMessageType()).isEqualTo("OFFER");
+        assertThat(saved.getValue().getSenderId()).isEqualTo(2L);
+        assertThat(saved.getValue().getOfferAmount()).isEqualByComparingTo("6000");
+    }
+
+    @Test
+    void invalidOfferAmountOrEmptyTextIsRefused() {
+        ChatController c = controller();
+        assertThatThrownBy(() -> c.sendMessage(dto(null, "OFFER", "", BigDecimal.ZERO), principal("courier@test.com")))
+                .isInstanceOf(ChatRejectedException.class);
+        assertThatThrownBy(() -> c.sendMessage(dto(null, "TEXT", "   ", null), principal("client@test.com")))
+                .isInstanceOf(ChatRejectedException.class);
+        assertThatThrownBy(() -> c.sendMessage(dto(null, "TEXT", "x".repeat(2001), null), principal("client@test.com")))
+                .isInstanceOf(ChatRejectedException.class);
+    }
+
+    @Test
+    void archivedRoomIsReadOnly() {
+        room.setIsArchived(true);
+        ChatController c = controller();
+        assertThatThrownBy(() -> c.sendMessage(dto(null, "TEXT", "hello", null), principal("client@test.com")))
+                .isInstanceOf(ChatRejectedException.class);
+    }
+
+    @Test
+    void rejectionIsReportedToSender() {
+        assertThat(controller().handleRejected(new ChatRejectedException("Refusé")))
+                .containsEntry("message", "Refusé");
+    }
+
+    private static <T> T eq(T v) {
+        return org.mockito.ArgumentMatchers.eq(v);
+    }
+}

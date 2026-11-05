@@ -592,19 +592,19 @@ export class CourierDashboardComponent implements OnInit {
     if (!this.selectedCourse) return;
     this.isAccepting = true;
 
-    this.courseService.createOffer(this.selectedCourse.id, 0.01, 'Contact initial').subscribe({
-      next: (res: any) => {
+    // TICK-057 : ouvre la conversation sans créer d'offre fictive
+    this.courseService.openConversation(this.selectedCourse.id).subscribe({
+      next: (res) => {
         this.isAccepting = false;
         this.modalOpen.set(false);
-        this.toast.success('Mission acceptée. Vous pouvez échanger avec le client.');
-        const chatRoomId = res?.chatRoomId;
-        if (chatRoomId) {
-          this.router.navigate(['/chat', chatRoomId]);
+        this.toast.success('Conversation ouverte. Proposez votre tarif au client.');
+        if (res?.chatRoomId) {
+          this.router.navigate(['/chat', res.chatRoomId]);
         }
       },
       error: (err: any) => {
         this.isAccepting = false;
-        this.toast.error(err.error?.message || 'Impossible d\'accepter cette mission.');
+        this.toast.error(err.error?.message || 'Impossible d\'ouvrir la conversation.');
       }
     });
   }

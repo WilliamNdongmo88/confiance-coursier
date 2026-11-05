@@ -1,6 +1,7 @@
 package com.confiancecoursier.backend.shared.exception;
 
 import com.confiancecoursier.backend.shared.util.FileStorageService;
+import com.confiancecoursier.backend.shared.exception.ForbiddenException;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -70,6 +71,17 @@ public class GlobalExceptionHandler {
                 LocalDateTime.now()
         );
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+    }
+
+    // Accès refusé (IDOR, ressource appartenant à un autre utilisateur) → 403 — TICK-056/067
+    @ExceptionHandler(ForbiddenException.class)
+    public ResponseEntity<ErrorResponse> handleForbidden(ForbiddenException ex) {
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.FORBIDDEN.value(),
+                ex.getMessage(),
+                LocalDateTime.now()
+        );
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
     }
 
     // Compte suspendu / bloqué (login après mot de passe correct, ou refresh) → 403 — TICK-053

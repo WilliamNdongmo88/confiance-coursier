@@ -364,13 +364,12 @@ export class SelectCourierComponent implements OnInit {
     if (!this.courseId) return;
     this.choosingCourierId = courier.id;
 
-    // Crée une offre draft (amount minimal) pour ouvrir/récupérer le chatRoom
-    this.courseService.createOffer(this.courseId, 0.01, `Contact initial avec ${courier.fullName}`).subscribe({
-      next: (response: any) => {
+    // TICK-057 : ouvre la conversation sans créer d'offre fictive
+    this.courseService.openConversation(this.courseId, courier.id).subscribe({
+      next: (response) => {
         this.choosingCourierId = null;
-        const chatRoomId: number = response?.chatRoomId;
-        if (chatRoomId) {
-          this.router.navigate(['/chat', chatRoomId]);
+        if (response?.chatRoomId) {
+          this.router.navigate(['/chat', response.chatRoomId]);
         } else {
           this.toast.error('Impossible d\'ouvrir le chat. Veuillez réessayer.');
         }

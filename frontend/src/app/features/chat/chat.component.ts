@@ -802,6 +802,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   correspondentInitials = 'C';
 
   private chatSubscription: Subscription | null = null;
+  private chatErrorsSubscription: Subscription | null = null;
   private shouldScrollToBottom = false;
 
   constructor(
@@ -869,6 +870,8 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     });
 
     // ── 3. Connexion WebSocket et abonnement à la room ──
+    // Refus du serveur (non participant, offre non autorisée…) — TICK-055
+    this.chatErrorsSubscription = this.chatService.errors$.subscribe(msg => this.toast.error(msg));
     this.chatService.connect();
 
     this.chatSubscription = this.chatService.subscribeToRoom(this.roomId).subscribe({
@@ -891,6 +894,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   ngOnDestroy(): void {
     this.chatSubscription?.unsubscribe();
+    this.chatErrorsSubscription?.unsubscribe();
     this.chatService.disconnect();
   }
 
@@ -902,8 +906,10 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   sendMessage(): void {
     const content = this.newMessage.trim();
     if (!content) return;
-    this.chatService.sendMessage(this.roomId, this.currentUserId, content);
-    this.newMessage = '';
+    // Le texte n'est effacé que si l'envoi a bien été transmis (sinon un toast s'affiche).
+    if (this.chatService.sendMessage(this.roomId, content)) {
+      this.newMessage = '';
+    }
   }
 
   // ── Modale offre (coursier) ────────────────────────────────────────────────
@@ -931,12 +937,12 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   sendOffer(): void {
     if (!this.offerAmountInput || this.offerAmountInput < 5000) return;
     const amount = this.offerAmountInput;
-    this.chatService.sendOffer(
+    const sent = this.chatService.sendOffer(
       this.roomId,
-      this.currentUserId,
       amount,
       `Je vous propose un tarif de ${amount.toLocaleString('fr-FR')} XAF pour cette course.`
     );
+    if (!sent) return;
     this.closeOfferModal();
     this.toast.success('Offre envoyée ! En attente du paiement du client.');
   }

@@ -1090,6 +1090,9 @@ Le flux d'offre doit passer par le chat (spec fonctionnelle §2.1). Le coursier 
 | TICK-052 | 🔴 [BE] Fermer les endpoints de décision hors `/api/admin` | ✅ |
 | TICK-053 | 🔴 [BE] Rendre la suspension effective | ✅ |
 | TICK-054 | 🔴 [BE] Distinguer jeton d'accès et refresh token | ✅ |
+| TICK-055 | 🔴 [BE+FE] Sécuriser le WebSocket STOMP | ✅ |
+| TICK-056 | 🔴 [BE] Contrôle de participation sur les API REST du chat et des offres | ✅ |
+| TICK-057 | 🔴 [FULL] Ouvrir une conversation sans offre fictive | ✅ |
 
 ---
 

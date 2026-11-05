@@ -1437,3 +1437,86 @@ Les CSS `main.css`, `app-layout.css`, `refonte.css` doivent être copiés/adapt�
 | Priorité | Problème | Fichier |
 |----------|----------|---------|
 | 🟢 | Note moyenne dans dashboard client affiche `—` | Sera rempli après module reviews |
+
+---
+
+### Session 49 — TICK-055 [BE+FE] : Sécuriser le WebSocket STOMP (confirmation état existant)
+
+#### Audit de l'état réel
+- Le ticket était **déjà implémenté** depuis la session 48 (code présent, compilable, fonctionnel).
+- Aucune modification n'a été faite — le travail était complet.
+
+#### Fichiers existants couvrant TICK-055
+- **`config/StompAuthChannelInterceptor.java`** : `ChannelInterceptor` qui valide le JWT Bearer au CONNECT, pose le `Principal` (email), contrôle SUBSCRIBE (participant ou ADMIN via `ChatAccessService.canRead`), exige un `Principal` au SEND.
+- **`chat/service/ChatAccessService.java`** : règles `isParticipant()` et `canRead()` ; l'ADMIN peut lire tous les salons.
+- **`chat/api/ChatController.java`** : `senderId` toujours pris du `Principal` (jamais du payload) ; `SYSTEM` rejeté ; `OFFER` réservé au coursier du salon ; refus renvoyés sur `/user/queue/errors`.
+- **`config/WebSocketConfig.java`** : intercepteur enregistré via `configureClientInboundChannel`.
+- **`FE/core/services/chat.service.ts`** : `beforeConnect` rafraîchit le token et injecte `Authorization: Bearer <token>` dans les `connectHeaders` ; `/user/queue/errors` abonné au `onConnect`.
+
+#### Critères d'acceptance vérifiés (par lecture du code)
+- ✅ Connexion sans token → `AccessDeniedException` au CONNECT
+- ✅ Abonnement à un salon tiers → refusé
+- ✅ `senderId` falsifié → expéditeur réel enregistré
+- ✅ Type SYSTEM → rejeté avec message sur `/user/queue/errors`
+- ✅ Chat fonctionnel (code complet, build OK)
+
+---
+
+### Session 49 — TICK-056 [BE] : Contrôle de participation sur les API REST du chat et des offres
+
+#### Fichiers créés
+- **`shared/exception/ForbiddenException.java`** : nouvelle exception → HTTP 403 via `GlobalExceptionHandler` (distingue un refus d'accès d'une erreur métier 400).
+
+#### Fichiers modifiés
+
+- **`chat/api/ChatRestController.java`** :
+  - Suppression de l'import `ChatRoomRepository` direct → injection de `ChatAccessService`
+  - `GET /api/chat/rooms/{id}/messages` : ajout param `Principal`, appel `requireParticipant()` → 403 si non participant ni admin
+  - `GET /api/chat/rooms/{id}` : idem + `resolveFullName()` retourne le `fullName` uniquement (jamais l'email) — fallback `"Utilisateur"` si fullName absent
+
+- **`course/api/OfferController.java`** :
+  - Ajout injection `CourseRepository`
+  - `GET /api/courses/{courseId}/offers` avec `Principal` : CLIENT propriétaire → toutes les offres ; COURIER → uniquement sa propre offre (filtre sur `courierId`) ; ADMIN → toutes ; autre → 403
+
+- **`shared/exception/GlobalExceptionHandler.java`** :
+  - Import `ForbiddenException` ajouté
+  - Nouveau handler `handleForbidden` → HTTP 403
+
+#### Build
+- `mvnw compile` → **exit 0**
+
+#### Critères d'acceptance vérifiés (par lecture du code)
+- ✅ `GET /rooms/{id}/messages` par un non-participant → `ForbiddenException` → 403
+- ✅ `GET /rooms/{id}` → `clientName`/`courierName` = fullName, jamais email
+- ✅ `GET /courses/{id}/offers` par un COURIER → uniquement sa propre offre
+- ✅ `GET /courses/{id}/offers` par le CLIENT propriétaire → toutes les offres
+- ✅ `GET /courses/{id}/offers` par un tiers → 403
+
+---
+
+### Session 49 — TICK-057 [FULL] : Ouvrir une conversation sans offre fictive
+
+#### Problème corrigé (anomalie A-07)
+- `select-courier.component.ts` et `courier/dashboard.component.ts` appelaient `createOffer(courseId, 0.01, 'Contact initial')` pour ouvrir un chat, créant de fausses offres en base et échouant sur le contrôle KYC (le client ne peut pas créer d'offre).
+
+#### Fichiers modifiés
+
+**Backend**
+- **`course/api/CourseController.java`** :
+  - Ajout injections `CourseRepository` + `ChatRoomRepository`
+  - Nouveau endpoint `POST /api/courses/{courseId}/conversations` (TICK-057) :
+    - CLIENT propriétaire : body `{ "courierId": N }` → crée ou récupère le salon `(courseId, courierId)` **sans créer d'offre**
+    - COURSIER : body vide, KYC APPROVED requis, course PUBLISHED → salon pour lui-même
+    - Idempotent : même appel répété = même `chatRoomId` renvoyé
+    - Erreurs : 403 si non propriétaire/rôle non autorisé, 400 si KYC manquant ou course non PUBLISHED
+  - `getCurrentUserId()` refactorisé via `resolveUser()` privé
+
+**Frontend**
+- **`core/services/course.service.ts`** : ajout méthode `openConversation(courseId, courierId?)` → `POST /api/courses/{courseId}/conversations`
+- **`features/client/select-courier/select-courier.component.ts`** : `chooseCourier()` utilise désormais `openConversation(courseId, courier.id)` au lieu de `createOffer(0.01)`
+- **`features/courier/dashboard/dashboard.component.ts`** : `acceptMission()` utilise désormais `openConversation(courseId)` au lieu de `createOffer(0.01)` ; message toast mis à jour ("Conversation ouverte. Proposez votre tarif au client.")
+
+#### Vérifications
+- `grep createOffer.*0\.01` → **zéro résultat** dans tout le frontend
+- Backend `mvnw compile` → **exit 0**
+- Frontend `ng build --configuration development` → **exit 0** (warnings préexistants uniquement)

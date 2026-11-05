@@ -2,60 +2,119 @@ package com.confiancecoursier.backend.chat.api;
 
 import com.confiancecoursier.backend.chat.api.dto.ChatMessageDto;
 import com.confiancecoursier.backend.chat.domain.ChatMessage;
+import com.confiancecoursier.backend.chat.domain.ChatRoom;
 import com.confiancecoursier.backend.chat.repository.ChatMessageRepository;
+import com.confiancecoursier.backend.chat.service.ChatAccessService;
+import com.confiancecoursier.backend.user.domain.User;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.messaging.handler.annotation.MessageExceptionHandler;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.messaging.simp.annotation.SendToUser;
 import org.springframework.stereotype.Controller;
 
 import java.math.BigDecimal;
+import java.security.Principal;
+import java.util.Map;
 
+/**
+ * Réception des messages STOMP sur {@code /app/chat.send} (TICK-055).
+ *
+ * <p>Règles imposées par le serveur :
+ * <ul>
+ *   <li>l'expéditeur est <b>toujours</b> l'utilisateur authentifié (le {@code senderId} du payload est ignoré) ;</li>
+ *   <li>seuls le client et le coursier du salon peuvent écrire (salon non archivé) ;</li>
+ *   <li>types acceptés depuis le client : {@code TEXT} et {@code OFFER} — {@code SYSTEM} est réservé au serveur ;</li>
+ *   <li>{@code OFFER} : uniquement le coursier du salon, montant &gt; 0
+ *       (KYC, statut de course et tarif minimum : TICK-058).</li>
+ * </ul>
+ * Tout refus est renvoyé à l'émetteur seul sur {@code /user/queue/errors}.
+ */
 @Controller
 public class ChatController {
 
+    private static final Logger log = LoggerFactory.getLogger(ChatController.class);
+    static final int MAX_CONTENT_LENGTH = 2000;
+
     private final ChatMessageRepository chatMessageRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final ChatAccessService chatAccessService;
 
     public ChatController(ChatMessageRepository chatMessageRepository,
-                          SimpMessagingTemplate messagingTemplate) {
+                          SimpMessagingTemplate messagingTemplate,
+                          ChatAccessService chatAccessService) {
         this.chatMessageRepository = chatMessageRepository;
         this.messagingTemplate = messagingTemplate;
+        this.chatAccessService = chatAccessService;
     }
 
-    /**
-     * Reçoit un message STOMP sur /app/chat.send, le persiste et le diffuse.
-     *
-     * Types acceptés :
-     *   TEXT  — message texte classique
-     *   OFFER — carte d'offre du coursier (offerAmount obligatoire)
-     *   SYSTEM — message système (ex : "offre acceptée")
-     *
-     * Validation OFFER : offerAmount doit être > 0.
-     * Les messages invalides sont ignorés (pas de diffusion).
-     */
     @MessageMapping("/chat.send")
-    public void sendMessage(@Payload ChatMessageDto dto) {
-        String type = dto.getMessageType() == null ? "TEXT" : dto.getMessageType().toUpperCase();
+    public void sendMessage(@Payload ChatMessageDto dto, Principal principal) {
+        User sender = chatAccessService.findUser(principal == null ? null : principal.getName())
+                .filter(User::isActive)
+                .orElseThrow(() -> new ChatRejectedException("Session invalide. Reconnectez-vous."));
 
-        // Validation pour les messages de type OFFER
-        if ("OFFER".equals(type)) {
-            if (dto.getOfferAmount() == null || dto.getOfferAmount().compareTo(BigDecimal.ZERO) <= 0) {
-                // Offre invalide — on ignore silencieusement
-                return;
-            }
+        ChatRoom room = chatAccessService.findRoom(dto.getRoomId())
+                .orElseThrow(() -> new ChatRejectedException("Conversation introuvable."));
+
+        if (!ChatAccessService.isParticipant(room, sender)) {
+            log.warn("[CHAT] Envoi refusé : user={} n'est pas participant du salon {}", sender.getId(), room.getId());
+            throw new ChatRejectedException("Vous ne participez pas à cette conversation.");
+        }
+        if (Boolean.TRUE.equals(room.getIsArchived())) {
+            throw new ChatRejectedException("Cette conversation est archivée.");
         }
 
-        // Persiste le message
+        String type = dto.getMessageType() == null ? "TEXT" : dto.getMessageType().trim().toUpperCase();
+        String content = dto.getContent() == null ? "" : dto.getContent().trim();
+        BigDecimal offerAmount = null;
+
+        switch (type) {
+            case "TEXT" -> {
+                if (content.isEmpty()) {
+                    throw new ChatRejectedException("Le message est vide.");
+                }
+            }
+            case "OFFER" -> {
+                if (!sender.getId().equals(room.getCourierId())) {
+                    throw new ChatRejectedException("Seul le coursier peut proposer un tarif.");
+                }
+                if (dto.getOfferAmount() == null || dto.getOfferAmount().compareTo(BigDecimal.ZERO) <= 0) {
+                    throw new ChatRejectedException("Montant de l'offre invalide.");
+                }
+                offerAmount = dto.getOfferAmount();
+            }
+            default -> throw new ChatRejectedException("Type de message non autorisé.");
+        }
+        if (content.length() > MAX_CONTENT_LENGTH) {
+            throw new ChatRejectedException("Message trop long (" + MAX_CONTENT_LENGTH + " caractères maximum).");
+        }
+
         ChatMessage message = ChatMessage.builder()
-                .roomId(dto.getRoomId())
-                .senderId(dto.getSenderId())
-                .content(dto.getContent())
+                .roomId(room.getId())
+                .senderId(sender.getId())          // jamais le senderId du payload
+                .content(content)
                 .messageType(type)
-                .offerAmount("OFFER".equals(type) ? dto.getOfferAmount() : null)
+                .offerAmount(offerAmount)
                 .build();
         message = chatMessageRepository.save(message);
 
-        // Diffuse à tous les abonnés du salon
-        messagingTemplate.convertAndSend("/topic/chat/" + dto.getRoomId(), message);
+        messagingTemplate.convertAndSend("/topic/chat/" + room.getId(), message);
+    }
+
+    /** Renvoie le motif du refus à l'émetteur uniquement. */
+    @MessageExceptionHandler(ChatRejectedException.class)
+    @SendToUser(destinations = "/queue/errors", broadcast = false)
+    public Map<String, String> handleRejected(ChatRejectedException ex) {
+        return Map.of("message", ex.getMessage());
+    }
+
+    /** Refus métier d'un message de chat (renvoyé sur /user/queue/errors). */
+    public static class ChatRejectedException extends RuntimeException {
+        public ChatRejectedException(String message) {
+            super(message);
+        }
     }
 }
