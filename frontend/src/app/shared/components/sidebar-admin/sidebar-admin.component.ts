@@ -8,6 +8,8 @@ import {
   LucideFlag,
   LucidePercent,
   LucideUsers,
+  LucideTrendingUp,
+  LucideCreditCard,
   LucideLogOut,
 } from '@lucide/angular';
 
@@ -31,6 +33,8 @@ import {
     LucideFlag,
     LucidePercent,
     LucideUsers,
+    LucideTrendingUp,
+    LucideCreditCard,
     LucideLogOut,
   ],
   template: `
@@ -60,6 +64,12 @@ import {
         </a>
         <a routerLink="/admin/users" routerLinkActive="active" ariaCurrentWhenActive="page">
           <svg lucideUsers size="16"></svg> Utilisateurs
+        </a>
+        <a routerLink="/admin/gains" routerLinkActive="active" ariaCurrentWhenActive="page">
+          <svg lucideTrendingUp size="16"></svg> Gains
+        </a>
+        <a routerLink="/admin/payout-settings" routerLinkActive="active" ariaCurrentWhenActive="page">
+          <svg lucideCreditCard size="16"></svg> Reversements
         </a>
       </nav>
 

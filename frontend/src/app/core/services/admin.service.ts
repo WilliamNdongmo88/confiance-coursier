@@ -77,6 +77,60 @@ export interface UpdateCommissionRequest {
   tarifMinimumCoursier: number;
 }
 
+// ─── Gains ────────────────────────────────────────────────────────────────────
+
+export interface MonthlyGain {
+  month: string;
+  gains: number;
+  volume: number;
+  nbCourses: number;
+}
+
+export interface CourseGainEntry {
+  courseId: number;
+  completedAt: string | null;
+  totalAmount: number;
+  commissionAmount: number;
+  platformFeeAmount: number;
+  courierAmount: number;
+  commissionRate: number;
+  commissionRateCourier: number;
+}
+
+export interface GainsStatsResponse {
+  totalGains: number;
+  totalVolume: number;
+  totalCourses: number;
+  gainsThisMonth: number;
+  gainsLastMonth: number;
+  monthly: MonthlyGain[];
+  recentCourses: CourseGainEntry[];
+}
+
+// ─── Payout Settings ──────────────────────────────────────────────────────────
+
+export interface PayoutSettingsResponse {
+  mtnNumber: string | null;
+  mtnName: string | null;
+  orangeNumber: string | null;
+  orangeName: string | null;
+  bankIban: string | null;
+  bankName: string | null;
+  bankAccountName: string | null;
+  preferredMethod: string | null;
+}
+
+export interface UpdatePayoutSettingsRequest {
+  mtnNumber?: string;
+  mtnName?: string;
+  orangeNumber?: string;
+  orangeName?: string;
+  bankIban?: string;
+  bankName?: string;
+  bankAccountName?: string;
+  preferredMethod?: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AdminService {
   private http = inject(HttpClient);
@@ -154,5 +208,21 @@ export class AdminService {
 
   updateCommissions(data: UpdateCommissionRequest): Observable<CommissionSettings> {
     return this.http.put<CommissionSettings>('/api/admin/commissions', data);
+  }
+
+  // ─── Gains ────────────────────────────────────────────────────────────────
+
+  getGains(): Observable<GainsStatsResponse> {
+    return this.http.get<GainsStatsResponse>('/api/admin/gains');
+  }
+
+  // ─── Payout Settings ──────────────────────────────────────────────────────
+
+  getPayoutSettings(): Observable<PayoutSettingsResponse> {
+    return this.http.get<PayoutSettingsResponse>('/api/admin/payout-settings');
+  }
+
+  updatePayoutSettings(data: UpdatePayoutSettingsRequest): Observable<PayoutSettingsResponse> {
+    return this.http.put<PayoutSettingsResponse>('/api/admin/payout-settings', data);
   }
 }

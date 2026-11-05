@@ -26,6 +26,8 @@ import { AdminDisputesComponent } from './features/admin/disputes/disputes.compo
 import { AdminReportsComponent } from './features/admin/reports/reports.component';
 import { AdminCommissionsComponent } from './features/admin/commissions/commissions.component';
 import { AdminUsersComponent } from './features/admin/users/users.component';
+import { AdminGainsComponent } from './features/admin/gains/gains.component';
+import { AdminPayoutSettingsComponent } from './features/admin/payout-settings/payout-settings.component';
 import { authGuard } from './core/guards/auth.guard';
 import { roleGuard } from './core/guards/role.guard';
 
@@ -204,6 +206,18 @@ export const routes: Routes = [
   {
     path: 'admin/users',
     component: AdminUsersComponent,
+    canActivate: [authGuard, roleGuard],
+    data: { role: 'ADMIN' }
+  },
+  {
+    path: 'admin/gains',
+    component: AdminGainsComponent,
+    canActivate: [authGuard, roleGuard],
+    data: { role: 'ADMIN' }
+  },
+  {
+    path: 'admin/payout-settings',
+    component: AdminPayoutSettingsComponent,
     canActivate: [authGuard, roleGuard],
     data: { role: 'ADMIN' }
   },
