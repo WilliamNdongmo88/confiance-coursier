@@ -154,6 +154,15 @@ public class NotificationService {
                         "Rendez-vous dans votre espace pour discuter des détails et commencer la mission."));
     }
 
+    public void notifyCourierNotRetained(Long courierId, Long courseId) {
+        String email = resolveEmail(courierId);
+        if (email != null) sendEmail(email,
+                "Résultat de votre offre — " + appName,
+                buildTemplate("Offre non retenue",
+                        "Le client a choisi un autre coursier pour la course #" + courseId + ".",
+                        "Ne vous découragez pas ! D'autres courses sont disponibles dans votre espace."));
+    }
+
     public void notifyPaymentReceived(Long clientId, Long courierId, BigDecimal totalAmount) {
         String amount = formatXaf(totalAmount);
         // Client

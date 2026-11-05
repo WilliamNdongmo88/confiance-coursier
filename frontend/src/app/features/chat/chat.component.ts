@@ -32,6 +32,7 @@ import {
   LucideWallet,
   LucidePlusCircle,
 } from '@lucide/angular';
+import { CourseService } from '../../core/services/course.service';
 import { HttpClient } from '@angular/common/http';
 import { Subscription } from 'rxjs';
 
@@ -42,6 +43,7 @@ interface ChatMsg {
   content: string;
   messageType: string;  // TEXT | OFFER | SYSTEM
   offerAmount?: number | null;
+  offerId?: number | null;  // TICK-059 : ID de la CourseOffer associée (pour acceptation)
   createdAt?: string;
 }
 
@@ -685,9 +687,19 @@ interface ChatMsg {
                     </div>
                     <p class="offer-note">🔒 Le coût des achats sera ajouté sur la page de paiement sécurisée.</p>
                     @if (isCLIENT) {
-                      <button class="btn btn-primary" style="width:100%;margin-top:4px;" (click)="acceptOffer(msg)">
-                        Accepter et payer <svg lucideArrowRight size="16" style="margin-left:4px;"></svg>
-                      </button>
+                      @if (courseStatus === 'PUBLISHED') {
+                        <button class="btn btn-primary" style="width:100%;margin-top:4px;" (click)="acceptOffer(msg)">
+                          Accepter et payer <svg lucideArrowRight size="16" style="margin-left:4px;"></svg>
+                        </button>
+                      } @else if (courseStatus === 'ASSIGNED' && msg.offerId === messages.filter(m => m.messageType === 'OFFER').slice(-1)[0]?.offerId) {
+                        <div style="font-size:0.78rem;color:var(--cc-success,#17634f);text-align:center;padding:4px 0;font-weight:600;">
+                          ✓ Offre acceptée — en attente de paiement
+                        </div>
+                      } @else {
+                        <div style="font-size:0.78rem;color:var(--cc-muted);text-align:center;padding:4px 0;">
+                          Offre remplacée ou expirée
+                        </div>
+                      }
                     } @else {
                       <div style="font-size:0.78rem;color:var(--cc-muted);text-align:center;padding:4px 0;">
                         En attente de réponse du client
@@ -708,7 +720,7 @@ interface ChatMsg {
 
         <!-- Barre de saisie -->
         <div class="chat-input-bar">
-          @if (isCOURIER) {
+          @if (isCOURIER && courseStatus === 'PUBLISHED') {
             <!-- Bouton "Proposer une offre" identique à la maquette coursier -->
             <button class="offer-trigger-btn" type="button" (click)="openOfferModal()">
               <svg lucideFileText size="18"></svg>
@@ -737,7 +749,7 @@ interface ChatMsg {
         </div>
 
         <p style="font-size:.88rem;color:var(--cc-muted);margin-bottom:16px;">
-          Saisissez votre tarif pour cette course. Les frais de service (20%) seront déduits de ce montant.
+          Saisissez votre tarif pour cette course. Les frais de service ({{ commissionRateCourier }}%) seront déduits de ce montant.
         </p>
 
         <div class="form-group">
@@ -750,7 +762,7 @@ interface ChatMsg {
               [min]="tarifMinimum" required>
             <span class="currency-suffix">XAF</span>
           </div>
-          <p class="form-hint">Le tarif minimum autorisé est de 5 000 XAF.</p>
+          <p class="form-hint">Le tarif minimum autorisé est de {{ tarifMinimum | number:'1.0-0' }} XAF.</p>
         </div>
 
         <!-- Récapitulatif financier en temps réel -->
@@ -760,7 +772,7 @@ interface ChatMsg {
             <span class="value">{{ previewTarif | number:'1.0-0' }} XAF</span>
           </div>
           <div class="offer-preview-row">
-            <span class="label">Frais plateforme déduits (20%) :</span>
+            <span class="label">Frais plateforme déduits ({{ commissionRateCourier }}%) :</span>
             <span class="value" style="color:var(--danger,#dc2626);">- {{ previewFrais | number:'1.0-0' }} XAF</span>
           </div>
           <hr class="offer-preview-divider">
@@ -805,6 +817,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   correspondentName     = 'Correspondant';
   correspondentInitials = 'C';
+  courseStatus = 'PUBLISHED'; // chargé depuis getRoomInfo, pilote la visibilité des boutons
 
   private chatSubscription: Subscription | null = null;
   private chatErrorsSubscription: Subscription | null = null;
@@ -817,6 +830,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     private authService: AuthService,
     private toast: ToastService,
     private http: HttpClient,
+    private courseService: CourseService,
   ) {}
 
   get isCLIENT(): boolean  { return this.userRole === 'CLIENT'; }
@@ -845,6 +859,8 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       next: (room: any) => {
         // Stocker le courseId — nécessaire pour la navigation vers /client/pay
         this.courseId = room.courseId ?? 0;
+        // Stocker le statut de la course (pilote la visibilité des boutons TICK-059)
+        this.courseStatus = room.courseStatus ?? 'PUBLISHED';
         // Le correspondant = l'autre participant (pas soi-même)
         if (this.isCOURIER) {
           // Côté coursier → le correspondant est le client
@@ -965,9 +981,19 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   // ── Accepter l'offre (client) ──────────────────────────────────────────────
   acceptOffer(msg: ChatMsg): void {
-    if (!msg.offerAmount) return;
-    this.router.navigate(['/client/pay', this.roomId], {
-      queryParams: { amount: msg.offerAmount, courseId: this.courseId }
+    if (!msg.offerAmount || !msg.offerId) return;
+    this.courseService.acceptOffer(this.courseId, msg.offerId).subscribe({
+      next: () => {
+        this.courseStatus = 'ASSIGNED'; // bloquer tout nouveau "Accepter"
+        this.toast.success('Offre acceptée ! Vous allez être redirigé vers le paiement.');
+        setTimeout(() => {
+          this.router.navigate(['/client/pay', this.courseId]);
+        }, 1200);
+      },
+      error: (err) => {
+        const msg = err?.error?.message ?? 'Impossible d\'accepter cette offre.';
+        this.toast.error(msg);
+      }
     });
   }
 

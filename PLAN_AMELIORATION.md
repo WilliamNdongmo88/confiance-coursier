@@ -589,6 +589,7 @@ Contrôles :
 **Validation :** le coursier propose 3000 (minimum 5000) → refus ; propose 6000 puis 5500 → la carte 6000 apparaît « remplacée ».
 
 #### TICK-059 🔴 [FULL] Acceptation de l'offre et assignation du coursier — 5 h
+**Statut :** ✅ (2026-11-05, session 50)
 **Anomalies :** A-04, A-18, CL-02, CO-01 · **Fichiers :** `OfferService.acceptOffer`, `CourseController`, `FE/chat.component.ts`, `FE/core/services/course.service.ts`
 **Description :**
 - « Accepter et payer » appelle `POST /api/courses/{id}/offers/{offerId}/accept`, qui passe la course en ASSIGNED, fixe `courierId`, `acceptedOfferId` et `courseAmount`, et rejette les autres offres. Le front navigue ensuite vers `/client/pay/{courseId}` (sans montant dans l'URL).

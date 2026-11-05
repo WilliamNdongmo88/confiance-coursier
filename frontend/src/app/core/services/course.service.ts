@@ -64,6 +64,11 @@ export class CourseService {
     return this.http.get<CourierSummary[]>('/api/users/couriers');
   }
 
+  /** TICK-059 — Le client accepte une offre ACTIVE → course passe en ASSIGNED. */
+  acceptOffer(courseId: number, offerId: number): Observable<void> {
+    return this.http.post<void>(`${this.apiUrl}/${courseId}/offers/${offerId}/accept`, {});
+  }
+
   /**
    * TICK-057 — Ouvre (ou récupère) un salon de chat SANS créer d'offre fictive.
    * Appelé par le client avec courierId, ou par le coursier sans body.

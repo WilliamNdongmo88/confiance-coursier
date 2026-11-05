@@ -1438,7 +1438,24 @@ Les CSS `main.css`, `app-layout.css`, `refonte.css` doivent être copiés/adapt�
 |----------|----------|---------|
 | 🟢 | Note moyenne dans dashboard client affiche `—` | Sera rempli après module reviews |
 
-#### TICK-058 [BE+FE] — Offre persistée depuis le chat, avec règles métier (session 50)
+#### TICK-059 [FULL] — Acceptation de l'offre et assignation du coursier (session 50)
+
+- **`course/service/OfferService.java`** : `acceptOffer()` accepte désormais les offres `ACTIVE` (TICK-058) ; exige `status=PUBLISHED` ; rejette les autres offres ACTIVE → `REJECTED` ; notifie les coursiers non retenus via `notifyCourierNotRetained()`
+- **`notify/service/NotificationService.java`** : ajout `notifyCourierNotRetained(courierId, courseId)` — email "Offre non retenue"
+- **`course/api/OfferController.java`** : nouveau endpoint `POST /api/courses/{courseId}/offers/{offerId}/accept` (CLIENT uniquement) → 204 No Content
+- **`chat/api/ChatRestController.java`** : ajout `CourseRepository` ; `getRoomInfo()` expose désormais `courseStatus` (pilote la visibilité du bouton "Accepter et payer")
+- **`core/services/course.service.ts`** : ajout `acceptOffer(courseId, offerId)` → `POST /api/courses/{courseId}/offers/{offerId}/accept`
+- **`features/chat/chat.component.ts`** :
+  - Interface `ChatMsg` : ajout `offerId`
+  - Propriété `courseStatus` initialisée depuis `getRoomInfo`
+  - Injection `CourseService`
+  - `acceptOffer()` : appel API → toast + redirect `/client/pay/:courseId` après 1,2 s
+  - Bouton "Accepter et payer" : visible uniquement si `courseStatus === 'PUBLISHED'` ; affiché "Offre acceptée" si ASSIGNED ; "Remplacée" sinon
+  - Bouton "Proposer une offre" : masqué si `courseStatus !== 'PUBLISHED'`
+  - Labels "20%" → `{{ commissionRateCourier }}%` dans la modal
+- **Build** : backend `mvnw compile` → exit 0 ; frontend `ng build` → exit 0
+
+
 
 - **`db/migration/V10__offer_status_active_superseded.sql`** : nouveaux statuts ACTIVE/SUPERSEDED ; migration PENDING → ACTIVE ; UNIQUE partiel `(course_id, courier_id)` WHERE `status='ACTIVE'`
 - **`course/repository/CourseOfferRepository.java`** : `findByCourseIdAndCourierIdAndStatus()` + `findByCourseIdAndStatus()`

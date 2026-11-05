@@ -53,6 +53,22 @@ public class OfferController {
     }
 
     /**
+     * POST /api/courses/{courseId}/offers/{offerId}/accept
+     * TICK-059 — Le CLIENT accepte une offre ACTIVE → course passe en ASSIGNED.
+     */
+    @PostMapping("/{offerId}/accept")
+    public ResponseEntity<Void> acceptOffer(@PathVariable Long courseId,
+                                            @PathVariable Long offerId,
+                                            Principal principal) {
+        User caller = resolveUser(principal);
+        if (!"CLIENT".equalsIgnoreCase(caller.getRole())) {
+            throw new com.confiancecoursier.backend.shared.exception.ForbiddenException("Seul le client peut accepter une offre.");
+        }
+        offerService.acceptOffer(courseId, offerId, caller.getId());
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
      * GET /api/courses/{courseId}/offers
      * <p>Le client voit toutes les offres de sa course.
      * Le coursier ne voit que la sienne (TICK-056).

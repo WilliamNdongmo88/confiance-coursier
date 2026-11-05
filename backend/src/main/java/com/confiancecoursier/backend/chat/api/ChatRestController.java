@@ -4,6 +4,7 @@ import com.confiancecoursier.backend.chat.domain.ChatMessage;
 import com.confiancecoursier.backend.chat.domain.ChatRoom;
 import com.confiancecoursier.backend.chat.repository.ChatMessageRepository;
 import com.confiancecoursier.backend.chat.service.ChatAccessService;
+import com.confiancecoursier.backend.course.repository.CourseRepository;
 import com.confiancecoursier.backend.shared.exception.BusinessException;
 import com.confiancecoursier.backend.shared.exception.ForbiddenException;
 import com.confiancecoursier.backend.user.domain.User;
@@ -31,13 +32,16 @@ public class ChatRestController {
     private final ChatMessageRepository chatMessageRepository;
     private final ChatAccessService chatAccessService;
     private final UserRepository userRepository;
+    private final CourseRepository courseRepository;
 
     public ChatRestController(ChatMessageRepository chatMessageRepository,
                               ChatAccessService chatAccessService,
-                              UserRepository userRepository) {
+                              UserRepository userRepository,
+                              CourseRepository courseRepository) {
         this.chatMessageRepository = chatMessageRepository;
         this.chatAccessService     = chatAccessService;
         this.userRepository        = userRepository;
+        this.courseRepository      = courseRepository;
     }
 
     /**
@@ -68,13 +72,19 @@ public class ChatRestController {
         String clientName  = resolveFullName(room.getClientId());
         String courierName = resolveFullName(room.getCourierId());
 
+        // Statut de la course (TICK-059 : pilote la visibilité du bouton "Accepter et payer")
+        String courseStatus = courseRepository.findById(room.getCourseId())
+                .map(c -> c.getStatus())
+                .orElse("UNKNOWN");
+
         return ResponseEntity.ok(Map.of(
-                "roomId",      room.getId(),
-                "courseId",    room.getCourseId(),
-                "clientId",    room.getClientId(),
-                "clientName",  clientName,
-                "courierId",   room.getCourierId(),
-                "courierName", courierName
+                "roomId",       room.getId(),
+                "courseId",     room.getCourseId(),
+                "clientId",     room.getClientId(),
+                "clientName",   clientName,
+                "courierId",    room.getCourierId(),
+                "courierName",  courierName,
+                "courseStatus", courseStatus
         ));
     }
 

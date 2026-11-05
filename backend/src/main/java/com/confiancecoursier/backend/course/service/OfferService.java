@@ -99,11 +99,11 @@ public class OfferService {
             throw new BusinessException("Vous n'êtes pas le propriétaire de cette course.");
         }
 
-        if (!"PUBLISHED".equals(course.getStatus()) && !"NEGOTIATING".equals(course.getStatus())) {
-            throw new BusinessException("Cette course ne peut plus être attribuée.");
+        if (!"PUBLISHED".equals(course.getStatus())) {
+            throw new BusinessException("Cette course ne peut plus être attribuée (statut : " + course.getStatus() + ").");
         }
 
-        // 2. Vérifier que l'offre existe et correspond à la course
+        // 2. Vérifier que l'offre existe, correspond à la course et est ACTIVE
         CourseOffer offerToAccept = offerRepository.findById(offerId)
                 .orElseThrow(() -> new BusinessException("Offre non trouvée."));
 
@@ -111,20 +111,26 @@ public class OfferService {
             throw new BusinessException("Cette offre ne correspond pas à la course.");
         }
 
+        if (!"ACTIVE".equals(offerToAccept.getStatus())) {
+            throw new BusinessException("Cette offre n'est plus active.");
+        }
+
         // 3. Accepter l'offre choisie
         offerToAccept.setStatus("ACCEPTED");
         offerRepository.save(offerToAccept);
 
-        // 4. Rejeter toutes les autres offres pour cette course
-        List<CourseOffer> allOffers = offerRepository.findByCourseId(courseId);
-        for (CourseOffer offer : allOffers) {
-            if (!offer.getId().equals(offerId) && "PENDING".equals(offer.getStatus())) {
+        // 4. Rejeter toutes les autres offres ACTIVE pour cette course
+        List<CourseOffer> activeOffers = offerRepository.findByCourseIdAndStatus(courseId, "ACTIVE");
+        for (CourseOffer offer : activeOffers) {
+            if (!offer.getId().equals(offerId)) {
                 offer.setStatus("REJECTED");
                 offerRepository.save(offer);
+                // Notifier le coursier non retenu
+                notificationService.notifyCourierNotRetained(offer.getCourierId(), courseId);
             }
         }
 
-        // 5. Mettre à jour la course
+        // 5. Mettre à jour la course → ASSIGNED avec le coursier et le montant de l'offre
         course.setCourierId(offerToAccept.getCourierId());
         course.setAcceptedOfferId(offerToAccept.getId());
         course.setCourseAmount(offerToAccept.getAmount());
