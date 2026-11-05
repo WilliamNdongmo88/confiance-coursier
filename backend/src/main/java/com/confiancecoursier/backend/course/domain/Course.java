@@ -48,6 +48,18 @@ public class Course {
     @Column(name = "total_amount")
     private BigDecimal totalAmount;
 
+    /** Taux de commission coursier (snapshot au moment du paiement). */
+    @Column(name = "commission_rate_courier")
+    private BigDecimal commissionRateCourier;
+
+    /** Montant net reversé au coursier = tarifCoursier - commissionCoursier. */
+    @Column(name = "courier_amount")
+    private BigDecimal courierAmount;
+
+    /** Gains totaux de la plateforme = fraisServiceClient + commissionCoursier. */
+    @Column(name = "platform_fee_amount")
+    private BigDecimal platformFeeAmount;
+
     @Builder.Default
     private String currency = "XAF";
 

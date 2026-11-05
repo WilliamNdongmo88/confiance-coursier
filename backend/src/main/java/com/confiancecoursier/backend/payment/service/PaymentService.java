@@ -1,5 +1,6 @@
 package com.confiancecoursier.backend.payment.service;
 
+import com.confiancecoursier.backend.admin.service.CommissionService;
 import com.confiancecoursier.backend.course.domain.Course;
 import com.confiancecoursier.backend.course.repository.CourseRepository;
 import com.confiancecoursier.backend.notify.service.NotificationService;
@@ -21,14 +22,24 @@ import java.util.UUID;
 /**
  * Service de paiement et de validation des courses.
  *
- * <p>Taux de commission client par défaut : 5 %
- * (sera lu depuis {@code platform_settings} quand l'admin sera implémenté — TICK-038)
+ * <p>Les taux de commission sont lus dynamiquement depuis {@code platform_settings} :
+ * <ul>
+ *   <li>{@code commission_rate_client}  — % ajouté au total payé par le client (défaut 0 %)</li>
+ *   <li>{@code commission_rate_courier} — % déduit du tarif reversé au coursier (défaut 20 %)</li>
+ * </ul>
  *
- * <p>Calcul du total lors du paiement initial :
+ * <p>Calcul au moment du paiement initial :
  * <pre>
- *   base          = fraisReels + tarifCoursier
- *   fraisService  = base × 5 / 100
- *   total         = base + fraisService
+ *   base               = fraisReels + tarifCoursier
+ *   fraisServiceClient = base × commissionRateClient / 100
+ *   total              = base + fraisServiceClient          ← ce que paie le client
+ * </pre>
+ *
+ * <p>Calcul au moment de la libération (validation) :
+ * <pre>
+ *   commissionCoursier = tarifCoursier × commissionRateCourier / 100
+ *   montantCoursier    = tarifCoursier - commissionCoursier  ← ce que reçoit le coursier
+ *   gainsPlateforme    = fraisServiceClient + commissionCoursier ← gains du système
  * </pre>
  */
 @Service
@@ -36,18 +47,19 @@ public class PaymentService {
 
     private static final Logger log = LoggerFactory.getLogger(PaymentService.class);
 
-    /** Taux de frais de service côté client (5 %). Configurable via platform_settings (TICK-038). */
-    private static final BigDecimal CLIENT_FEE_RATE = new BigDecimal("5.00");
-
     private final CourseRepository courseRepository;
     private final EscrowRepository escrowRepository;
     private final NotificationService notificationService;
+    private final CommissionService commissionService;
 
-    public PaymentService(CourseRepository courseRepository, EscrowRepository escrowRepository,
-                          NotificationService notificationService) {
-        this.courseRepository = courseRepository;
-        this.escrowRepository = escrowRepository;
+    public PaymentService(CourseRepository courseRepository,
+                          EscrowRepository escrowRepository,
+                          NotificationService notificationService,
+                          CommissionService commissionService) {
+        this.courseRepository    = courseRepository;
+        this.escrowRepository    = escrowRepository;
         this.notificationService = notificationService;
+        this.commissionService   = commissionService;
     }
 
     // ─── Initiation du paiement ───────────────────────────────────────────────
@@ -65,18 +77,37 @@ public class PaymentService {
             throw new BusinessException("Cette course a déjà été payée");
         }
 
-        // Calcul côté serveur (ne pas faire confiance au frontend)
-        BigDecimal base         = req.getFraisReels().add(req.getTarifCoursier());
-        BigDecimal fraisService = base.multiply(CLIENT_FEE_RATE)
-                                      .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-        BigDecimal total        = base.add(fraisService);
+        // ── Lire les taux dynamiquement depuis platform_settings ──────────────
+        var settings = commissionService.getCommissionSettings();
+        BigDecimal clientRate  = settings.getCommissionRateClient();   // ex. 5.00
+        BigDecimal courierRate = settings.getCommissionRateCourier();  // ex. 20.00
 
+        // ── Calcul côté serveur (ne pas faire confiance au frontend) ──────────
+        // Ce que paie le client
+        BigDecimal base               = req.getFraisReels().add(req.getTarifCoursier());
+        BigDecimal fraisServiceClient = base.multiply(clientRate)
+                                            .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        BigDecimal total              = base.add(fraisServiceClient);
+
+        // Ce que recevra le coursier (calculé maintenant, snapshot du taux)
+        BigDecimal commissionCoursier = req.getTarifCoursier()
+                                           .multiply(courierRate)
+                                           .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        BigDecimal montantCoursier    = req.getTarifCoursier().subtract(commissionCoursier);
+
+        // Gains totaux de la plateforme = frais client + commission coursier
+        BigDecimal gainsPlateforme    = fraisServiceClient.add(commissionCoursier);
+
+        // ── Persistance ───────────────────────────────────────────────────────
         course.setStatus("IN_PROGRESS");
         course.setEscrowStatus("HELD");
         course.setCourseAmount(req.getTarifCoursier());
-        course.setCommissionRate(CLIENT_FEE_RATE);
-        course.setCommissionAmount(fraisService);
+        course.setCommissionRate(clientRate);
+        course.setCommissionAmount(fraisServiceClient);
         course.setTotalAmount(total);
+        course.setCommissionRateCourier(courierRate);
+        course.setCourierAmount(montantCoursier);
+        course.setPlatformFeeAmount(gainsPlateforme);
         courseRepository.save(course);
 
         String ref = "PAY-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
@@ -90,8 +121,12 @@ public class PaymentService {
                 .build();
         escrowRepository.save(entry);
 
-        log.info("[PAYMENT SIMULÉ] courseId={} total={} XAF method={} ref={}",
-                req.getCourseId(), total, req.getPaymentMethod(), ref);
+        log.info("[PAYMENT] courseId={} total={} XAF (base={} + fraisClient={}) | " +
+                 "coursier recevra={} XAF (déduit commissionCoursier={}) | " +
+                 "gainsPlateforme={} XAF | method={} ref={}",
+                req.getCourseId(), total, base, fraisServiceClient,
+                montantCoursier, commissionCoursier, gainsPlateforme,
+                req.getPaymentMethod(), ref);
 
         // Notification email au client + coursier
         notificationService.notifyPaymentReceived(course.getClientId(), course.getCourierId(), total);
@@ -169,7 +204,13 @@ public class PaymentService {
     // ─── Logique de validation commune ────────────────────────────────────────
 
     /**
-     * Transition COMPLETED + RELEASED sur la course et entrée RELEASE en escrow.
+     * Transition COMPLETED + RELEASED sur la course.
+     *
+     * <p>Crée deux entrées dans {@code escrow_ledger} :
+     * <ul>
+     *   <li>{@code COURIER_PAYOUT}  — montant net reversé au coursier</li>
+     *   <li>{@code PLATFORM_FEE}    — gains de la plateforme (frais client + commission coursier)</li>
+     * </ul>
      */
     private void applyValidation(Course course) {
         course.setStatus("COMPLETED");
@@ -177,22 +218,37 @@ public class PaymentService {
         course.setCompletedAt(LocalDateTime.now());
         courseRepository.save(course);
 
-        BigDecimal releaseAmount = course.getTotalAmount() != null
-                ? course.getTotalAmount()
+        BigDecimal montantCoursier = course.getCourierAmount() != null
+                ? course.getCourierAmount()
                 : BigDecimal.ZERO;
 
-        String ref = "REL-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-        EscrowEntry release = EscrowEntry.builder()
-                .courseId(course.getId())
-                .entryType("RELEASE")
-                .amount(releaseAmount)
-                .provider("SIMULATED")
-                .providerRef(ref)
-                .status("CONFIRMED")
-                .build();
-        escrowRepository.save(release);
+        BigDecimal gainsPlateforme = course.getPlatformFeeAmount() != null
+                ? course.getPlatformFeeAmount()
+                : BigDecimal.ZERO;
 
-        log.info("[ESCROW SIMULÉ] RELEASE courseId={} montant={} XAF ref={}",
-                course.getId(), releaseAmount, ref);
+        // Entrée 1 : versement au coursier
+        String refPayout = "CPO-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        escrowRepository.save(EscrowEntry.builder()
+                .courseId(course.getId())
+                .entryType("COURIER_PAYOUT")
+                .amount(montantCoursier)
+                .provider("SIMULATED")
+                .providerRef(refPayout)
+                .status("CONFIRMED")
+                .build());
+
+        // Entrée 2 : gains de la plateforme
+        String refFee = "PFE-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        escrowRepository.save(EscrowEntry.builder()
+                .courseId(course.getId())
+                .entryType("PLATFORM_FEE")
+                .amount(gainsPlateforme)
+                .provider("SIMULATED")
+                .providerRef(refFee)
+                .status("CONFIRMED")
+                .build());
+
+        log.info("[ESCROW RELEASE] courseId={} | coursier={} XAF ref={} | plateforme={} XAF ref={}",
+                course.getId(), montantCoursier, refPayout, gainsPlateforme, refFee);
     }
 }
