@@ -782,6 +782,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   @ViewChild('chatBody') private chatBodyRef!: ElementRef<HTMLDivElement>;
 
   roomId = 0;
+  courseId = 0;
   currentUserId = 0;
   userRole = '';
   messages: ChatMsg[] = [];
@@ -835,6 +836,8 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     // ── 1. Charger les infos de la room pour afficher le nom du correspondant ──
     this.chatService.getRoomInfo(this.roomId).subscribe({
       next: (room: any) => {
+        // Stocker le courseId — nécessaire pour la navigation vers /client/pay
+        this.courseId = room.courseId ?? 0;
         // Le correspondant = l'autre participant (pas soi-même)
         if (this.isCOURIER) {
           // Côté coursier → le correspondant est le client
@@ -941,7 +944,9 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   // ── Accepter l'offre (client) ──────────────────────────────────────────────
   acceptOffer(msg: ChatMsg): void {
     if (!msg.offerAmount) return;
-    this.router.navigate(['/client/pay', this.roomId], { queryParams: { amount: msg.offerAmount } });
+    this.router.navigate(['/client/pay', this.roomId], {
+      queryParams: { amount: msg.offerAmount, courseId: this.courseId }
+    });
   }
 
   // ── Navigation ─────────────────────────────────────────────────────────────
