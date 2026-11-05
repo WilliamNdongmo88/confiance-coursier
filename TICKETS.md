@@ -1093,6 +1093,7 @@ Le flux d'offre doit passer par le chat (spec fonctionnelle §2.1). Le coursier 
 | TICK-055 | 🔴 [BE+FE] Sécuriser le WebSocket STOMP | ✅ |
 | TICK-056 | 🔴 [BE] Contrôle de participation sur les API REST du chat et des offres | ✅ |
 | TICK-057 | 🔴 [FULL] Ouvrir une conversation sans offre fictive | ✅ |
+| TICK-058 | 🔴 [BE+FE] Offre persistée depuis le chat, avec règles métier | ✅ |
 
 ---
 

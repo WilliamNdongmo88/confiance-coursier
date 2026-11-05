@@ -2,6 +2,8 @@ package com.confiancecoursier.backend.chat.service;
 
 import com.confiancecoursier.backend.chat.domain.ChatRoom;
 import com.confiancecoursier.backend.chat.repository.ChatRoomRepository;
+import com.confiancecoursier.backend.course.domain.Course;
+import com.confiancecoursier.backend.course.repository.CourseRepository;
 import com.confiancecoursier.backend.user.domain.User;
 import com.confiancecoursier.backend.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
@@ -10,20 +12,20 @@ import java.util.Optional;
 
 /**
  * Règles d'accès aux salons de chat (TICK-055).
- * <ul>
- *   <li><b>Lecture</b> (abonnement temps réel) : client ou coursier du salon, ou ADMIN (spec : chat lisible par l'admin).</li>
- *   <li><b>Écriture</b> : uniquement le client ou le coursier du salon, compte ACTIVE, salon non archivé.</li>
- * </ul>
  */
 @Service
 public class ChatAccessService {
 
     private final ChatRoomRepository chatRoomRepository;
     private final UserRepository userRepository;
+    private final CourseRepository courseRepository;
 
-    public ChatAccessService(ChatRoomRepository chatRoomRepository, UserRepository userRepository) {
+    public ChatAccessService(ChatRoomRepository chatRoomRepository,
+                             UserRepository userRepository,
+                             CourseRepository courseRepository) {
         this.chatRoomRepository = chatRoomRepository;
-        this.userRepository = userRepository;
+        this.userRepository     = userRepository;
+        this.courseRepository   = courseRepository;
     }
 
     public Optional<User> findUser(String email) {
@@ -32,6 +34,11 @@ public class ChatAccessService {
 
     public Optional<ChatRoom> findRoom(Long roomId) {
         return roomId == null ? Optional.empty() : chatRoomRepository.findById(roomId);
+    }
+
+    /** Récupère la course associée à un salon — utilisé par TICK-058 pour vérifier le statut. */
+    public Optional<Course> findCourse(Long courseId) {
+        return courseId == null ? Optional.empty() : courseRepository.findById(courseId);
     }
 
     public static boolean isParticipant(ChatRoom room, User user) {

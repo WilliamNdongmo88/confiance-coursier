@@ -26,7 +26,10 @@ public class CommissionPublicController {
 
     /**
      * GET /api/commissions/public
-     * Retourne uniquement {@code commissionRateClient} — suffisant pour la page pay.
+     * Retourne les paramètres publics nécessaires au frontend :
+     * - commissionRateClient  : frais de service client (%)
+     * - commissionRateCourier : commission prélevée sur le tarif coursier (%)
+     * - tarifMinimumCoursier  : montant minimum d'une offre (XAF)
      * Accessible à tous les utilisateurs authentifiés (CLIENT, COURIER, ADMIN).
      */
     @GetMapping("/public")
@@ -34,7 +37,8 @@ public class CommissionPublicController {
         var settings = commissionService.getCommissionSettings();
         return ResponseEntity.ok(Map.of(
                 "commissionRateClient",  settings.getCommissionRateClient(),
-                "tarifMinimumCoursier", settings.getTarifMinimumCoursier()
+                "commissionRateCourier", settings.getCommissionRateCourier(),
+                "tarifMinimumCoursier",  settings.getTarifMinimumCoursier()
         ));
     }
 }

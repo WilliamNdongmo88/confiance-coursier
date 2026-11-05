@@ -1438,6 +1438,16 @@ Les CSS `main.css`, `app-layout.css`, `refonte.css` doivent être copiés/adapt�
 |----------|----------|---------|
 | 🟢 | Note moyenne dans dashboard client affiche `—` | Sera rempli après module reviews |
 
+#### TICK-058 [BE+FE] — Offre persistée depuis le chat, avec règles métier (session 50)
+
+- **`db/migration/V10__offer_status_active_superseded.sql`** : nouveaux statuts ACTIVE/SUPERSEDED ; migration PENDING → ACTIVE ; UNIQUE partiel `(course_id, courier_id)` WHERE `status='ACTIVE'`
+- **`course/repository/CourseOfferRepository.java`** : `findByCourseIdAndCourierIdAndStatus()` + `findByCourseIdAndStatus()`
+- **`chat/api/ChatController.java`** : un message OFFER crée/met à jour la `CourseOffer` ACTIVE du coursier (SUPERSEDED l'ancienne) ; contrôles : coursier du salon, KYC, course PUBLISHED, amount ≥ tarifMin (lu depuis `platform_settings`), arrondi XAF entier ; `offerId` inclus dans le payload STOMP
+- **`chat/service/ChatAccessService.java`** : ajout `findCourse(courseId)`
+- **`payment/api/CommissionPublicController.java`** : ajout `commissionRateCourier` dans la réponse
+- **`features/chat/chat.component.ts`** : import `HttpClient` ; chargement `tarifMinimum` + `commissionRateCourier` depuis `/api/commissions/public` au `ngOnInit` ; suppression des 3 valeurs codées en dur (`5000` × 2, `0.20` × 1) remplacées par les propriétés chargées dynamiquement
+- **Build** : backend `mvnw compile` → exit 0 ; frontend `ng build` → exit 0
+
 ---
 
 ### Session 49 — TICK-055 [BE+FE] : Sécuriser le WebSocket STOMP (confirmation état existant)

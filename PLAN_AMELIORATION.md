@@ -571,6 +571,7 @@ Ordre imposé : Sprint 7 entièrement (il débloque tout), puis 8, puis 9 / 10 /
 **Validation :** client → choisir un coursier → chat OK ; le coursier voit la conversation dans ses missions.
 
 #### TICK-058 🔴 [BE] Offre persistée depuis le chat, avec règles métier — 5 h
+**Statut :** ✅ (2026-11-05, session 50)
 **Anomalies :** A-14, CO-02, CO-05 · **Fichiers :** `ChatController`, `OfferService`, `CourseOffer`, `CommissionService`, migration `V10__offers_and_escrow.sql`
 **Description :** un message `OFFER` du coursier du salon crée ou met à jour **sa** `CourseOffer` active (une seule par coursier et par course). L'ancienne est marquée `SUPERSEDED`. Le message porte `offerId`.
 Contrôles :

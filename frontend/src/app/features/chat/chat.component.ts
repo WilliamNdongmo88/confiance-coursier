@@ -32,6 +32,7 @@ import {
   LucideWallet,
   LucidePlusCircle,
 } from '@lucide/angular';
+import { HttpClient } from '@angular/common/http';
 import { Subscription } from 'rxjs';
 
 interface ChatMsg {
@@ -746,7 +747,7 @@ interface ChatMsg {
               [(ngModel)]="offerAmountInput"
               (ngModelChange)="updateOfferPreview()"
               placeholder="Ex : 10000"
-              min="5000" required>
+              [min]="tarifMinimum" required>
             <span class="currency-suffix">XAF</span>
           </div>
           <p class="form-hint">Le tarif minimum autorisé est de 5 000 XAF.</p>
@@ -770,7 +771,7 @@ interface ChatMsg {
         </div>
 
         <button class="btn btn-primary btn-block"
-          [disabled]="!offerAmountInput || offerAmountInput < 5000"
+          [disabled]="!offerAmountInput || offerAmountInput < tarifMinimum"
           (click)="sendOffer()">
           Envoyer l'offre dans le chat
         </button>
@@ -788,6 +789,10 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   messages: ChatMsg[] = [];
   newMessage = '';
   offerAmountInput: number | null = null;
+
+  // Paramètres de commission chargés depuis l'API (TICK-058 : plus de valeurs en dur)
+  tarifMinimum = 5000;           // valeur par défaut affichée avant le chargement
+  commissionRateCourier = 20;    // idem
 
   // Signaux UI
   showOfferModal  = signal(false);
@@ -811,6 +816,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     private chatService: ChatService,
     private authService: AuthService,
     private toast: ToastService,
+    private http: HttpClient,
   ) {}
 
   get isCLIENT(): boolean  { return this.userRole === 'CLIENT'; }
@@ -883,6 +889,16 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         }
       }
     });
+    // ── 4. Charger le tarif minimum et la commission coursier (TICK-058) ──
+    this.http.get<any>('/api/commissions/public').subscribe({
+      next: (data) => {
+        this.tarifMinimum         = data.tarifMinimumCoursier  ?? 5000;
+        this.commissionRateCourier = data.commissionRateCourier ?? 20;
+      },
+      error: () => {
+        // Pas bloquant : les valeurs par défaut (5000 / 20%) restent actives
+      }
+    });
   }
 
   ngAfterViewChecked(): void {
@@ -928,14 +944,14 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   /** Mise à jour temps réel du récapitulatif financier */
   updateOfferPreview(): void {
     const tarif = this.offerAmountInput ?? 0;
-    const frais = tarif * 0.20;
+    const frais = tarif * (this.commissionRateCourier / 100);
     this.previewTarif = tarif;
     this.previewFrais = frais;
     this.previewNet   = tarif - frais;
   }
 
   sendOffer(): void {
-    if (!this.offerAmountInput || this.offerAmountInput < 5000) return;
+    if (!this.offerAmountInput || this.offerAmountInput < this.tarifMinimum) return;
     const amount = this.offerAmountInput;
     const sent = this.chatService.sendOffer(
       this.roomId,
