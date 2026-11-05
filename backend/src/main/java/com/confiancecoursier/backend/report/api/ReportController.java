@@ -15,8 +15,9 @@ import org.springframework.web.bind.annotation.*;
  * Controller REST pour les signalements.
  * <ul>
  *   <li>{@code POST /api/reports}                — Soumettre un signalement</li>
- *   <li>{@code POST /api/reports/{id}/process}   — Traiter (admin)</li>
  * </ul>
+ * Le traitement est réservé à l'admin : {@code POST /api/admin/reports/{id}/process}
+ * (voir {@code AdminReportController}, protégé par hasRole(ADMIN)) — TICK-052.
  */
 @RestController
 @RequestMapping("/api/reports")
@@ -34,13 +35,6 @@ public class ReportController {
     public ResponseEntity<ReportResponse> submit(@Valid @RequestBody SubmitReportRequest req) {
         Long reporterId = getCurrentUserId();
         return ResponseEntity.ok(reportService.submitReport(reporterId, req));
-    }
-
-    @PostMapping("/{id}/process")
-    public ResponseEntity<ReportResponse> process(@PathVariable Long id,
-                                                  @RequestParam String decision) {
-        Long adminId = getCurrentUserId();
-        return ResponseEntity.ok(reportService.processReport(id, adminId, decision));
     }
 
     private Long getCurrentUserId() {

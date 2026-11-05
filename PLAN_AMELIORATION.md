@@ -502,6 +502,7 @@ Ordre imposé : Sprint 7 entièrement (il débloque tout), puis 8, puis 9 / 10 /
 **Validation :** tenter l'inscription ADMIN via Postman → refusée.
 
 #### TICK-052 🔴 [BE] Fermer les endpoints de décision hors `/api/admin` — 1 h
+**Statut :** ✅ (2026-11-05)
 **Anomalie :** A-02 · **Fichiers :** `dispute/api/DisputeController.java`, `report/api/ReportController.java`
 **Description :** supprimer `POST /api/disputes/{id}/resolve` et `POST /api/reports/{id}/process`. Vérifier que le front admin utilise les routes `/api/admin/...`.
 **Critères d'acceptation :**

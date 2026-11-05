@@ -1181,6 +1181,15 @@ Aucun moyen de créer un compte ADMIN — l'inscription ne permet que CLIENT et 
 
 ---
 
+### Session 48 (suite) — TICK-052 [BE] : décisions réservées à l'admin
+- `dispute/api/DisputeController.java` : suppression de `POST /api/disputes/{id}/resolve` (ouvert à tout authentifié)
+- `report/api/ReportController.java` : suppression de `POST /api/reports/{id}/process`
+- Seules routes de décision restantes : `/api/admin/disputes/{id}/resolve` et `/api/admin/reports/{id}/process` (hasRole ADMIN) — déjà utilisées par `admin.service.ts`
+- `GlobalExceptionHandler` : `NoResourceFoundException` → 404 et `HttpRequestMethodNotSupportedException` → 405 (avant : 500 via le handler générique)
+- Test : `security/DecisionEndpointsAdminOnlyTest` (4) ; vérif runtime avec un token CLIENT : anciennes routes → 404, routes admin → 401 (refus ; le 403 propre est l'objet de TICK-067)
+
+---
+
 ## 9. DOMAINES À IMPLÉMENTER (par ordre de priorité métier)
 
 ### 1. Guards Angular (prérequis avant tout)

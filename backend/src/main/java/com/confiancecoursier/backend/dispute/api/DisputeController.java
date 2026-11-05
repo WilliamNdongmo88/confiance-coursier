@@ -16,8 +16,9 @@ import org.springframework.web.bind.annotation.*;
  * <ul>
  *   <li>{@code POST /api/disputes}              — Ouvrir un litige</li>
  *   <li>{@code GET  /api/disputes/{id}}         — Lire un litige</li>
- *   <li>{@code POST /api/disputes/{id}/resolve} — Résoudre (admin)</li>
  * </ul>
+ * La résolution est réservée à l'admin : {@code POST /api/admin/disputes/{id}/resolve}
+ * (voir {@code AdminDisputeController}, protégé par hasRole(ADMIN)) — TICK-052.
  */
 @RestController
 @RequestMapping("/api/disputes")
@@ -42,13 +43,6 @@ public class DisputeController {
     public ResponseEntity<DisputeResponse> get(@PathVariable Long id) {
         Long userId = getCurrentUserId();
         return ResponseEntity.ok(disputeService.getDispute(id, userId));
-    }
-
-    @PostMapping("/{id}/resolve")
-    public ResponseEntity<DisputeResponse> resolve(@PathVariable Long id,
-                                                   @RequestParam String decision) {
-        Long adminId = getCurrentUserId();
-        return ResponseEntity.ok(disputeService.resolveDispute(id, adminId, decision));
     }
 
     private Long getCurrentUserId() {
