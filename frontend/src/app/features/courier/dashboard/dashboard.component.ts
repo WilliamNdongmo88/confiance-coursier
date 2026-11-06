@@ -5,7 +5,6 @@ import { HttpClient } from '@angular/common/http';
 import { CourseService } from '../../../core/services/course.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { ToastService } from '../../../core/services/toast.service';
-import { AppShellComponent } from '../../../shared/components/app-shell/app-shell.component';
 import {
   LucideWallet,
   LucidePackageCheck,
@@ -29,7 +28,6 @@ import {
     DatePipe,
     NgClass,
     SlicePipe,
-    AppShellComponent,
     LucideWallet,
     LucidePackageCheck,
     LucideStar,
@@ -239,7 +237,6 @@ import {
     [data-theme="dark"] .modal-detail strong            { color: #c8ddd0; }
   `],
   template: `
-    <app-shell pageTitle="Vue d'ensemble">
 
       <!-- En-tête -->
       <section class="page-head">
@@ -477,7 +474,6 @@ import {
         </aside>
 
       </div>
-    </app-shell>
 
     <!-- ── Modal demande de mission ── -->
     @if (selectedCourse) {

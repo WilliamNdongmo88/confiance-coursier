@@ -1112,6 +1112,12 @@ Le flux d'offre doit passer par le chat (spec fonctionnelle §2.1). Le coursier 
 | TICK-073 | 🟠 [FULL] Notation accessible et obligatoire | ✅ |
 | TICK-074 | 🟡 [BE] Vérification d'email effective | ✅ |
 
+> Sprint 8 — Socle UI mobile-first
+
+| Ticket | Titre | Statut |
+|--------|-------|--------|
+| TICK-075 | 🟠 [FE] Shell unique et barre de navigation basse par rôle | ✅ |
+
 > 2026-11-05 — TICK-055 → TICK-061 revus et corrigés (session 51, voir `AGENT_CONTEXT.md` §7 et `PLAN_AMELIORATION.md` §1.4).
 
 ---

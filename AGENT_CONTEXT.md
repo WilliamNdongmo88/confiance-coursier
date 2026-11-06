@@ -1429,6 +1429,17 @@ Revue du code des tickets 055 à 061 contre `PLAN_AMELIORATION.md`, puis correct
 
 ---
 
+### Session 66 — TICK-075 [FE] : shell unique et barre de navigation basse (2026-11-06)
+
+- `app.routes.ts` : routes parentes `client`, `courier`, `admin` (et `report-user`) avec `AppShellComponent` + `<router-outlet>` ; garde de rôle sur le parent ; titre et largeur dans `data.title` / `data.narrow` de chaque enfant. Le shell n'est plus recréé à chaque page. Chat : hors shell (plein écran, sans barre basse).
+- 23 pages : balise `<app-shell>` et import `AppShellComponent` retirés (script contrôlant 1 ouverture / 1 fermeture par fichier).
+- `AppShellComponent` : titre/largeur lus dans la route active (mis à jour à chaque navigation), `padding-bottom` mobile pour la barre basse.
+- Nouveau `BottomNavComponent` (< 768 px, 4 onglets, onglet actif, cibles 56 px, zone sûre) avec badge : client = courses à traiter (PROOFS_SUBMITTED, ASSIGNED, OVERDUE, avis dû) ; coursier = nouvelles demandes ; admin = litiges ouverts ; rafraîchi au plus toutes les 30 s à la navigation.
+- Onglets provisoires (pages existantes) : client Accueil / Nouvelle / Historique / Moi ; coursier Demandes / Gains / Historique / Moi ; admin Accueil / Litiges / Utilisateurs / Paramètres. Les onglets « Messages », « Missions », « Courses » du plan viendront avec leurs écrans (Sprints 9–11).
+- Build front OK ; vérification visuelle 390×844 / desktop à faire par l'utilisateur (pas de navigateur piloté dans cette session).
+
+---
+
 ## 9. DOMAINES À IMPLÉMENTER (par ordre de priorité métier)
 
 ### 1. Guards Angular (prérequis avant tout)

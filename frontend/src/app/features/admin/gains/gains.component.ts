@@ -4,7 +4,6 @@ import {
   AdminService, GainsStatsResponse, MonthlyGain, CourseGainEntry
 } from '../../../core/services/admin.service';
 import { ToastService } from '../../../core/services/toast.service';
-import { AppShellComponent } from '../../../shared/components/app-shell/app-shell.component';
 import {
   LucideTrendingUp, LucideBanknote, LucidePackage,
   LucideCalendar, LucideArrowUp, LucideArrowDown,
@@ -15,13 +14,12 @@ import {
   selector: 'app-admin-gains',
   standalone: true,
   imports: [
-    AppShellComponent, DecimalPipe,
+    DecimalPipe,
     LucideTrendingUp, LucideBanknote, LucidePackage,
     LucideCalendar, LucideArrowUp, LucideArrowDown,
     LucideChevronDown, LucideChevronUp,
   ],
   template: `
-    <app-shell pageTitle="Gains">
 
       <!-- ── En-tête ── -->
       <section class="page-head">
@@ -198,7 +196,6 @@ import {
         </div>
       }
 
-    </app-shell>
   `,
   styles: [`
     /* ── Grille métriques ── */

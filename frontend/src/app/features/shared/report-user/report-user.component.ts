@@ -3,7 +3,6 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { NgFor, NgIf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
-import { AppShellComponent } from '../../../shared/components/app-shell/app-shell.component';
 import { ToastService } from '../../../core/services/toast.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { homeForRole } from '../../../core/auth/session';
@@ -23,7 +22,7 @@ const MOTIF_OPTIONS = [
 @Component({
   selector: 'app-report-user',
   standalone: true,
-  imports: [NgFor, NgIf, FormsModule, AppShellComponent, LucideAlertTriangle, LucideArrowLeft],
+  imports: [NgFor, NgIf, FormsModule, LucideAlertTriangle, LucideArrowLeft],
   styles: [`
     .alert-warning {
       background: #fffbeb; border: 1px solid #fcd34d;
@@ -39,7 +38,6 @@ const MOTIF_OPTIONS = [
     @media (max-width: 480px) { .btn-row { flex-direction: column-reverse; } .btn-row .btn { width: 100%; } }
   `],
   template: `
-<app-shell pageTitle="Signaler un utilisateur">
   <div class="app-main-inner">
 
     <div class="page-head">
@@ -111,7 +109,6 @@ const MOTIF_OPTIONS = [
       </form>
     </div>
   </div>
-</app-shell>
   `
 })
 export class ReportUserComponent implements OnInit {

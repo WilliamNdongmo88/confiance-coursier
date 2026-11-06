@@ -4,7 +4,6 @@ import { DatePipe, DecimalPipe } from '@angular/common';
 import { CourseService } from '../../../core/services/course.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { ToastService } from '../../../core/services/toast.service';
-import { AppShellComponent } from '../../../shared/components/app-shell/app-shell.component';
 import {
   LucidePlus,
   LucideArrowLeft,
@@ -51,14 +50,12 @@ function statusLabel(status: string): string {
     RouterLink,
     DatePipe,
     DecimalPipe,
-    AppShellComponent,
     LucidePlus,
     LucideArrowLeft,
     LucideArrowRight,
     LucidePackageOpen,
   ],
   template: `
-    <app-shell [pageTitle]="isClient ? 'Historique' : 'Historique'">
 
       <!-- ── En-tête de page ── -->
       <section class="page-head">
@@ -256,7 +253,6 @@ function statusLabel(status: string): string {
         </section>
       }
 
-    </app-shell>
   `,
   styles: `
     /* ── Filtres ── */

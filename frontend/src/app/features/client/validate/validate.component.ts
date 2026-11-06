@@ -2,7 +2,6 @@ import { Component, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { NgFor, NgIf, DatePipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { AppShellComponent } from '../../../shared/components/app-shell/app-shell.component';
 import { MediaViewerComponent, MediaItem } from '../../../shared/components/media-viewer/media-viewer.component';
 import { ToastService } from '../../../core/services/toast.service';
 import { CourseService } from '../../../core/services/course.service';
@@ -27,7 +26,6 @@ interface ProofItem {
   imports: [
     RouterLink,
     NgFor, NgIf, DatePipe,
-    AppShellComponent,
     MediaViewerComponent,
     LucideCamera, LucideCheckCircle, LucideAlertTriangle, LucideArrowLeft,
     LucideVideo, LucideFileText, LucidePlayCircle, LucideClock, LucideInfo,
@@ -101,7 +99,6 @@ interface ProofItem {
     }
   `],
   template: `
-<app-shell pageTitle="Validation de la course">
   <div class="app-main-inner">
 
     <!-- En-tête -->
@@ -223,7 +220,6 @@ interface ProofItem {
     </app-media-viewer>
 
   </div>
-</app-shell>
   `
 })
 export class ValidateComponent implements OnInit {

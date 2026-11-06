@@ -3,7 +3,6 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { DecimalPipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { AppShellComponent } from '../../../shared/components/app-shell/app-shell.component';
 import { PaymentService } from '../../../core/services/payment.service';
 import { ToastService } from '../../../core/services/toast.service';
 import {
@@ -24,7 +23,7 @@ type PaymentMethod = 'STRIPE' | 'MTN' | 'ORANGE';
     FormsModule,
     RouterLink,
     DecimalPipe,
-    AppShellComponent,    LucideArrowLeft,
+    LucideArrowLeft,
     LucideFileText,
     LucideAlertTriangle,
     LucideCreditCard,
@@ -141,7 +140,6 @@ type PaymentMethod = 'STRIPE' | 'MTN' | 'ORANGE';
     }
   `],
   template: `
-    <app-shell pageTitle="Paiement" [narrow]="true">
 
       <!-- En-tête de page -->
       <section class="page-head">
@@ -300,7 +298,6 @@ type PaymentMethod = 'STRIPE' | 'MTN' | 'ORANGE';
         </button>
       </div>
 
-    </app-shell>
   `
 })
 export class PayComponent implements OnInit {

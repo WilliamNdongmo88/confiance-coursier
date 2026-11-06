@@ -3,7 +3,6 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { NgIf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
-import { AppShellComponent } from '../../../shared/components/app-shell/app-shell.component';
 import { ToastService } from '../../../core/services/toast.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { homeForRole } from '../../../core/auth/session';
@@ -33,7 +32,7 @@ const COURIER_MOTIFS: MotifOption[] = [
 @Component({
   selector: 'app-dispute-form',
   standalone: true,
-  imports: [RouterLink, NgIf, FormsModule, AppShellComponent, LucideAlertTriangle, LucideArrowLeft],
+  imports: [RouterLink, NgIf, FormsModule, LucideAlertTriangle, LucideArrowLeft],
   styles: [`
     .alert-warning {
       background: #fffbeb; border: 1px solid #fcd34d;
@@ -49,7 +48,6 @@ const COURIER_MOTIFS: MotifOption[] = [
     @media (max-width: 480px) { .btn-row { flex-direction: column-reverse; } .btn-row .btn { width: 100%; } }
   `],
   template: `
-<app-shell pageTitle="Signaler un problème">
   <div class="app-main-inner">
 
     <div class="page-head">
@@ -125,7 +123,6 @@ const COURIER_MOTIFS: MotifOption[] = [
       </form>
     </div>
   </div>
-</app-shell>
   `
 })
 export class DisputeFormComponent implements OnInit {

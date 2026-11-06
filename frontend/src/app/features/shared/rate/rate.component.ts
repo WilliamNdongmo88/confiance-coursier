@@ -3,7 +3,6 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { NgFor, NgIf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
-import { AppShellComponent } from '../../../shared/components/app-shell/app-shell.component';
 import { ToastService } from '../../../core/services/toast.service';
 import { AuthService } from '../../../core/services/auth.service';
 import {
@@ -29,7 +28,6 @@ const STAR_LABELS: Record<number, string> = {
     NgFor,
     NgIf,
     FormsModule,
-    AppShellComponent,
     LucideStar,
     LucideSend,
     LucideArrowLeft,
@@ -87,7 +85,6 @@ const STAR_LABELS: Record<number, string> = {
     }
   `],
   template: `
-<app-shell [pageTitle]="role() === 'CLIENT' ? 'Notation coursier' : 'Notation client'">
   <div class="app-main-inner">
 
     <!-- En-tête -->
@@ -170,7 +167,6 @@ const STAR_LABELS: Record<number, string> = {
     </div>
 
   </div>
-</app-shell>
   `
 })
 export class RateComponent implements OnInit {

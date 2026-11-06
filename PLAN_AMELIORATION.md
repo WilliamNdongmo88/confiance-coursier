@@ -797,6 +797,7 @@ Contrôles :
 ### SPRINT 8 — SOCLE UI MOBILE-FIRST
 
 #### TICK-075 🟠 [FE] Shell unique et barre de navigation basse par rôle — 5 h
+**Statut :** ✅ (2026-11-06, session 66)
 **Anomalie :** A-35 · **Fichiers :** `app.routes.ts` (routes parentes `client`, `courier`, `admin` avec `AppShellComponent` + `<router-outlet>`), `app-shell`, nouveau `bottom-nav.component.ts`, sidebars
 **Critères d'acceptation :**
 - Sous 768 px : barre basse à 4 onglets (cf. §2.3/2.4/2.5), avec onglet actif et badge (nombre de demandes ou d'actions).

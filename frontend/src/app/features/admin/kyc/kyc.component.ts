@@ -3,7 +3,6 @@ import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AdminService, AdminKycResponse } from '../../../core/services/admin.service';
 import { ToastService } from '../../../core/services/toast.service';
-import { AppShellComponent } from '../../../shared/components/app-shell/app-shell.component';
 import { MediaViewerComponent, MediaItem } from '../../../shared/components/media-viewer/media-viewer.component';
 import {
   LucideShieldCheck, LucideCalendar, LucideIdCard,
@@ -14,13 +13,12 @@ import {
   selector: 'app-admin-kyc',
   standalone: true,
   imports: [
-    AppShellComponent, DatePipe, FormsModule,
+    DatePipe, FormsModule,
     MediaViewerComponent,
     LucideShieldCheck, LucideCalendar, LucideIdCard,
     LucideImage, LucideUser, LucideCheck, LucideX, LucideTrash2,
   ],
   template: `
-    <app-shell pageTitle="Validations KYC">
       <section class="page-head">
         <div>
           <h1>Validations KYC</h1>
@@ -202,7 +200,6 @@ import {
         (close)="viewerOpen.set(false)">
       </app-media-viewer>
 
-    </app-shell>
   `,
   styles: [`
     /* ── Carte principale ── */

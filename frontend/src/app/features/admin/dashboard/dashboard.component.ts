@@ -2,7 +2,6 @@ import { Component, inject, signal, OnInit } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { AdminService, AdminKycResponse, DisputeResponse, ReportResponse } from '../../../core/services/admin.service';
-import { AppShellComponent } from '../../../shared/components/app-shell/app-shell.component';
 import {
   LucideShieldCheck, LucideFlag, LucideScale, LucidePackage,
   LucideBanknote, LucideUsers, LucideUserCheck,
@@ -12,12 +11,11 @@ import {
   selector: 'app-admin-dashboard',
   standalone: true,
   imports: [
-    AppShellComponent, RouterLink, DatePipe,
+    RouterLink, DatePipe,
     LucideShieldCheck, LucideFlag, LucideScale, LucidePackage,
     LucideBanknote, LucideUsers, LucideUserCheck,
   ],
   template: `
-    <app-shell pageTitle="Vue d'ensemble">
       <section class="page-head">
         <div>
           <h1>Vue d'ensemble</h1>
@@ -164,7 +162,6 @@ import {
           </ul>
         </div>
       </div>
-    </app-shell>
   `,
   styles: [`
     /* ── Stats grid ── */

@@ -31,6 +31,7 @@ import { AdminPayoutSettingsComponent } from './features/admin/payout-settings/p
 import { authGuard } from './core/guards/auth.guard';
 import { roleGuard } from './core/guards/role.guard';
 import { guestGuard } from './core/guards/guest.guard';
+import { AppShellComponent } from './shared/components/app-shell/app-shell.component';
 import { LandingComponent } from './features/public/landing/landing.component';
 import { NotFoundComponent } from './features/public/not-found/not-found.component';
 import { SupportComponent } from './features/public/support/support.component';
@@ -45,187 +46,75 @@ export const routes: Routes = [
   { path: 'reset-password',   component: ResetPasswordComponent },
   { path: 'support',          component: SupportComponent },
 
-  // Routes CLIENT — token requis + rôle CLIENT
+  // ── TICK-075 : le shell (sidebar desktop + barre basse mobile) est déclaré UNE fois par espace ──
+  // Les pages ne l'enveloppent plus ; titre et largeur viennent de data.title / data.narrow.
   {
-    path: 'client/dashboard',
-    component: ClientDashboardComponent,
+    path: 'client',
+    component: AppShellComponent,
     canActivate: [authGuard, roleGuard],
-    data: { role: 'CLIENT' }
+    data: { role: 'CLIENT' },
+    children: [
+      { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+      { path: 'dashboard',               component: ClientDashboardComponent, data: { title: "Vue d'ensemble" } },
+      { path: 'create-course',           component: CreateCourseComponent,    data: { title: 'Nouvelle course', narrow: true } },
+      { path: 'edit-course/:id',         component: CreateCourseComponent,    data: { title: 'Modifier la course', narrow: true } },
+      { path: 'select-courier/:courseId', component: SelectCourierComponent,  data: { title: 'Choisir un coursier', narrow: true } },
+      { path: 'pay/:courseId',           component: PayComponent,             data: { title: 'Paiement', narrow: true } },
+      { path: 'course-detail/:courseId', component: CourseDetailComponent,    data: { title: 'Détail course', narrow: true } },
+      { path: 'validate/:courseId',      component: ValidateComponent,        data: { title: 'Validation de la course' } },
+      { path: 'rate/:courseId',          component: RateComponent,            data: { title: 'Notation coursier' } },
+      { path: 'dispute-form/:courseId',  component: DisputeFormComponent,     data: { title: 'Signaler un problème' } },
+      { path: 'history',                 component: HistoryComponent,         data: { title: 'Historique' } },
+      { path: 'profile',                 component: ProfileComponent,         data: { title: 'Mon profil' } },
+    ],
   },
   {
-    path: 'client/create-course',
-    component: CreateCourseComponent,
+    path: 'courier',
+    component: AppShellComponent,
     canActivate: [authGuard, roleGuard],
-    data: { role: 'CLIENT' }
+    data: { role: 'COURIER' },
+    children: [
+      { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+      { path: 'dashboard',               component: CourierDashboardComponent, data: { title: "Vue d'ensemble" } },
+      { path: 'kyc',                     component: KycComponent,              data: { title: 'Vérification KYC' } },
+      { path: 'proofs/:courseId',        component: ProofsComponent,           data: { title: 'Preuves de la course' } },
+      { path: 'rate-client/:courseId',   component: RateComponent,             data: { title: 'Notation client' } },
+      { path: 'dispute-form/:courseId',  component: DisputeFormComponent,      data: { title: 'Signaler un problème' } },
+      { path: 'earnings',                component: EarningsComponent,         data: { title: 'Mes gains' } },
+      { path: 'history',                 component: HistoryComponent,          data: { title: 'Historique' } },
+      { path: 'profile',                 component: ProfileComponent,          data: { title: 'Mon profil coursier' } },
+    ],
   },
   {
-    path: 'client/edit-course/:id',
-    component: CreateCourseComponent,
+    path: 'admin',
+    component: AppShellComponent,
     canActivate: [authGuard, roleGuard],
-    data: { role: 'CLIENT' }
-  },
-  {
-    path: 'client/select-courier/:courseId',
-    component: SelectCourierComponent,
-    canActivate: [authGuard, roleGuard],
-    data: { role: 'CLIENT' }
-  },
-  {
-    path: 'client/pay/:courseId',
-    component: PayComponent,
-    canActivate: [authGuard, roleGuard],
-    data: { role: 'CLIENT' }
-  },
-  {
-    path: 'client/course-detail/:courseId',
-    component: CourseDetailComponent,
-    canActivate: [authGuard, roleGuard],
-    data: { role: 'CLIENT' }
-  },
-  {
-    path: 'client/profile',
-    component: ProfileComponent,
-    canActivate: [authGuard, roleGuard],
-    data: { role: 'CLIENT' }
-  },
-  {
-    path: 'client/history',
-    component: HistoryComponent,
-    canActivate: [authGuard, roleGuard],
-    data: { role: 'CLIENT' }
+    data: { role: 'ADMIN' },
+    children: [
+      { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+      { path: 'dashboard',       component: AdminDashboardComponent,      data: { title: "Vue d'ensemble" } },
+      { path: 'kyc',             component: AdminKycComponent,            data: { title: 'Validations KYC' } },
+      { path: 'disputes',        component: AdminDisputesComponent,       data: { title: 'Litiges' } },
+      { path: 'reports',         component: AdminReportsComponent,        data: { title: 'Signalements' } },
+      { path: 'commissions',     component: AdminCommissionsComponent,    data: { title: 'Commissions', narrow: true } },
+      { path: 'users',           component: AdminUsersComponent,          data: { title: 'Utilisateurs' } },
+      { path: 'gains',           component: AdminGainsComponent,          data: { title: 'Gains' } },
+      { path: 'payout-settings', component: AdminPayoutSettingsComponent, data: { title: 'Reversements', narrow: true } },
+    ],
   },
 
-  // Routes COURSIER — token requis + rôle COURIER
+  // Signalement : client ou coursier (shell du rôle connecté)
   {
-    path: 'courier/dashboard',
-    component: CourierDashboardComponent,
-    canActivate: [authGuard, roleGuard],
-    data: { role: 'COURIER' }
-  },
-  {
-    path: 'courier/kyc',
-    component: KycComponent,
-    canActivate: [authGuard, roleGuard],
-    data: { role: 'COURIER' }
-  },
-  {
-    path: 'courier/profile',
-    component: ProfileComponent,
-    canActivate: [authGuard, roleGuard],
-    data: { role: 'COURIER' }
-  },
-  {
-    path: 'courier/history',
-    component: HistoryComponent,
-    canActivate: [authGuard, roleGuard],
-    data: { role: 'COURIER' }
-  },
-  {
-    path: 'courier/earnings',
-    component: EarningsComponent,
-    canActivate: [authGuard, roleGuard],
-    data: { role: 'COURIER' }
+    path: 'report-user',
+    component: AppShellComponent,
+    canActivate: [authGuard],
+    children: [
+      { path: ':userId', component: ReportUserComponent, data: { title: 'Signaler un utilisateur' } },
+    ],
   },
 
-  // Routes partagées CLIENT + COURIER (authGuard uniquement)
-  {
-    path: 'client/dispute-form/:courseId',
-    component: DisputeFormComponent,
-    canActivate: [authGuard, roleGuard],
-    data: { role: 'CLIENT' }
-  },
-  {
-    path: 'courier/dispute-form/:courseId',
-    component: DisputeFormComponent,
-    canActivate: [authGuard, roleGuard],
-    data: { role: 'COURIER' }
-  },
-  {
-    path: 'report-user/:userId',
-    component: ReportUserComponent,
-    canActivate: [authGuard]
-  },
-  {
-    path: 'client/rate/:courseId',
-    component: RateComponent,
-    canActivate: [authGuard, roleGuard],
-    data: { role: 'CLIENT' }
-  },
-  {
-    path: 'courier/rate-client/:courseId',
-    component: RateComponent,
-    canActivate: [authGuard, roleGuard],
-    data: { role: 'COURIER' }
-  },
-  {
-    path: 'client/validate/:courseId',
-    component: ValidateComponent,
-    canActivate: [authGuard, roleGuard],
-    data: { role: 'CLIENT' }
-  },
-  {
-    path: 'courier/proofs/:courseId',
-    component: ProofsComponent,
-    canActivate: [authGuard, roleGuard],
-    data: { role: 'COURIER' }
-  },
-
-  // Route Chat — token requis (accessible aux deux rôles)
-  {
-    path: 'chat/:roomId',
-    component: ChatComponent,
-    canActivate: [authGuard]
-  },
-
-  // Routes ADMIN — token requis + rôle ADMIN
-  {
-    path: 'admin/dashboard',
-    component: AdminDashboardComponent,
-    canActivate: [authGuard, roleGuard],
-    data: { role: 'ADMIN' }
-  },
-  {
-    path: 'admin/kyc',
-    component: AdminKycComponent,
-    canActivate: [authGuard, roleGuard],
-    data: { role: 'ADMIN' }
-  },
-  {
-    path: 'admin/disputes',
-    component: AdminDisputesComponent,
-    canActivate: [authGuard, roleGuard],
-    data: { role: 'ADMIN' }
-  },
-  {
-    path: 'admin/reports',
-    component: AdminReportsComponent,
-    canActivate: [authGuard, roleGuard],
-    data: { role: 'ADMIN' }
-  },
-  {
-    path: 'admin/commissions',
-    component: AdminCommissionsComponent,
-    canActivate: [authGuard, roleGuard],
-    data: { role: 'ADMIN' }
-  },
-  {
-    path: 'admin/users',
-    component: AdminUsersComponent,
-    canActivate: [authGuard, roleGuard],
-    data: { role: 'ADMIN' }
-  },
-  {
-    path: 'admin/gains',
-    component: AdminGainsComponent,
-    canActivate: [authGuard, roleGuard],
-    data: { role: 'ADMIN' }
-  },
-  {
-    path: 'admin/payout-settings',
-    component: AdminPayoutSettingsComponent,
-    canActivate: [authGuard, roleGuard],
-    data: { role: 'ADMIN' }
-  },
+  // Chat : plein écran (son propre en-tête, sans barre basse) — TICK-075
+  { path: 'chat/:roomId', component: ChatComponent, canActivate: [authGuard] },
 
   // TICK-072 : toute route inconnue → page 404 (doit rester en dernier)
   { path: '**', component: NotFoundComponent },

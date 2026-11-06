@@ -2,7 +2,6 @@ import { Component, OnInit, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { NgIf } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { AppShellComponent } from '../../../shared/components/app-shell/app-shell.component';
 import { ToastService } from '../../../core/services/toast.service';
 import { AuthService } from '../../../core/services/auth.service';
 import {
@@ -39,7 +38,6 @@ interface UserProfile {
   imports: [
     RouterLink,
     NgIf,
-    AppShellComponent,
     LucideArrowLeft,
     LucideLock,
     LucideSave,
@@ -148,7 +146,6 @@ interface UserProfile {
     }
   `],
   template: `
-<app-shell [pageTitle]="isCourier ? 'Mon profil coursier' : 'Mon profil'">
   <div class="page-head" style="margin-bottom: 24px;">
     <div>
       <h1>{{ isCourier ? 'Mon profil coursier' : 'Mon profil' }}</h1>
@@ -316,7 +313,6 @@ interface UserProfile {
     </div>
 
   </div>
-</app-shell>
   `
 })
 export class ProfileComponent implements OnInit {

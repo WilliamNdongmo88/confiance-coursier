@@ -4,7 +4,6 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AdminService, UserProfileResponse, DisputeResponse } from '../../../core/services/admin.service';
 import { ToastService } from '../../../core/services/toast.service';
-import { AppShellComponent } from '../../../shared/components/app-shell/app-shell.component';
 import {
   LucideX, LucideScale, LucideChevronRight,
 } from '@lucide/angular';
@@ -13,11 +12,10 @@ import {
   selector: 'app-admin-users',
   standalone: true,
   imports: [
-    AppShellComponent, DatePipe, DecimalPipe, FormsModule, RouterLink,
+    DatePipe, DecimalPipe, FormsModule, RouterLink,
     LucideX, LucideScale, LucideChevronRight,
   ],
   template: `
-    <app-shell pageTitle="Utilisateurs">
 
       <!-- ── En-tête ── -->
       <section class="page-head">
@@ -184,7 +182,6 @@ import {
           }
         </div>
       }
-    </app-shell>
 
     <!-- ══════════════════════════════════ MODALE DÉTAIL ══════════════════════════════════ -->
     @if (modalOpen() && selectedUser()) {

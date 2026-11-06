@@ -4,7 +4,6 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { NgClass, NgIf } from '@angular/common';
 import { CourseService } from '../../../core/services/course.service';
 import { ToastService } from '../../../core/services/toast.service';
-import { AppShellComponent } from '../../../shared/components/app-shell/app-shell.component';
 import {
   LucideShoppingBag,
   LucideTruck,
@@ -28,7 +27,6 @@ interface CourseType {
     RouterLink,
     NgClass,
     NgIf,
-    AppShellComponent,
     LucideShoppingBag,
     LucideTruck,
     LucidePackage,
@@ -130,7 +128,6 @@ interface CourseType {
     .action-bar .btn { width: 100%; justify-content: center; }
   `],
   template: `
-    <app-shell [pageTitle]="isEditMode ? 'Modifier la course' : 'Nouvelle course'" [narrow]="true">
 
       <!-- En-tête de page -->
       <section class="page-head">
@@ -296,7 +293,6 @@ interface CourseType {
         </form>
       </div>
 
-    </app-shell>
   `
 })
 export class CreateCourseComponent implements OnInit {

@@ -2,7 +2,6 @@ import { Component, OnInit, signal, computed } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { NgClass, NgIf } from '@angular/common';
 import { HttpClient, HttpEventType } from '@angular/common/http';
-import { AppShellComponent } from '../../../shared/components/app-shell/app-shell.component';
 import { ToastService } from '../../../core/services/toast.service';
 import { AuthService } from '../../../core/services/auth.service';
 import {
@@ -35,7 +34,6 @@ interface KycStatus {
     RouterLink,
     NgClass,
     NgIf,
-    AppShellComponent,
     LucideShieldCheck,
     LucideUser,
     LucideIdCard,
@@ -207,7 +205,6 @@ interface KycStatus {
     [data-theme="dark"] .kyc-step::before { background: #2e4a3f; }
   `],
   template: `
-<app-shell pageTitle="Vérification KYC">
   <div class="page-head" style="margin-bottom: 24px;">
     <div>
       <h1>Vérification d'identité</h1>
@@ -493,7 +490,6 @@ interface KycStatus {
     </p>
 
   </ng-container>
-</app-shell>
   `
 })
 export class KycComponent implements OnInit {

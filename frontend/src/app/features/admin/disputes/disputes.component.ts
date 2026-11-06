@@ -2,7 +2,6 @@ import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { AdminService, DisputeResponse } from '../../../core/services/admin.service';
 import { ToastService } from '../../../core/services/toast.service';
-import { AppShellComponent } from '../../../shared/components/app-shell/app-shell.component';
 import {
   LucideScale, LucideUser, LucideCalendar,
   LucideCheck, LucideCheckCircle, LucideMessageSquare,
@@ -12,12 +11,11 @@ import {
   selector: 'app-admin-disputes',
   standalone: true,
   imports: [
-    AppShellComponent, DatePipe,
+    DatePipe,
     LucideScale, LucideUser, LucideCalendar,
     LucideCheck, LucideCheckCircle, LucideMessageSquare,
   ],
   template: `
-    <app-shell pageTitle="Litiges">
       <section class="page-head">
         <div>
           <h1>Litiges</h1>
@@ -83,7 +81,6 @@ import {
           </div>
         }
       }
-    </app-shell>
   `,
   styles: [`
     .dispute-card {

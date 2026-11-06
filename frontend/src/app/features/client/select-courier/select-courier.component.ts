@@ -3,7 +3,6 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DecimalPipe } from '@angular/common';
 import { CourseService, CourierSummary } from '../../../core/services/course.service';
 import { ToastService } from '../../../core/services/toast.service';
-import { AppShellComponent } from '../../../shared/components/app-shell/app-shell.component';
 import {
   LucideArrowLeft,
   LucideSparkles,
@@ -22,7 +21,6 @@ import {
   imports: [
     RouterLink,
     DecimalPipe,
-    AppShellComponent,
     LucideArrowLeft,
     LucideSparkles,
     LucideStar,
@@ -200,7 +198,6 @@ import {
     @keyframes spin { to { transform: rotate(360deg); } }
   `],
   template: `
-    <app-shell pageTitle="Choisir un coursier" [narrow]="true">
 
       <!-- En-tête de page -->
       <section class="page-head">
@@ -313,7 +310,6 @@ import {
         }
       }
 
-    </app-shell>
   `
 })
 export class SelectCourierComponent implements OnInit {

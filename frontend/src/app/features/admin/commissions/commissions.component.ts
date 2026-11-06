@@ -2,7 +2,6 @@ import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AdminService, CommissionSettings } from '../../../core/services/admin.service';
 import { ToastService } from '../../../core/services/toast.service';
-import { AppShellComponent } from '../../../shared/components/app-shell/app-shell.component';
 import {
   LucidePercent, LucideUser, LucideBike,
   LucideSettings2, LucideSave, LucideAlertTriangle,
@@ -12,12 +11,11 @@ import {
   selector: 'app-admin-commissions',
   standalone: true,
   imports: [
-    AppShellComponent, FormsModule,
+    FormsModule,
     LucidePercent, LucideUser, LucideBike,
     LucideSettings2, LucideSave, LucideAlertTriangle,
   ],
   template: `
-    <app-shell pageTitle="Commissions" [narrow]="true">
       <section class="page-head">
         <div>
           <h1>Taux de commission</h1>
@@ -147,7 +145,6 @@ import {
           Enregistrer les taux et paramètres
         </button>
       }
-    </app-shell>
   `,
   styles: [`
     /* ── Bannière avertissement ── */

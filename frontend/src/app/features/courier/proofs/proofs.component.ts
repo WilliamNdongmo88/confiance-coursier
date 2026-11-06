@@ -2,7 +2,6 @@ import { Component, OnInit, signal, computed } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DecimalPipe, NgTemplateOutlet } from '@angular/common';
 import { HttpEventType } from '@angular/common/http';
-import { AppShellComponent } from '../../../shared/components/app-shell/app-shell.component';
 import { ToastService } from '../../../core/services/toast.service';
 import { CourseService } from '../../../core/services/course.service';
 import {
@@ -50,7 +49,6 @@ const MAX_PROOFS = 10;
     RouterLink,
     DecimalPipe,
     NgTemplateOutlet,
-    AppShellComponent,
     LucideVideo,
     LucideCamera,
     LucideReceipt,
@@ -105,7 +103,6 @@ const MAX_PROOFS = 10;
     .hidden-input { display: none; }
   `],
   template: `
-<app-shell pageTitle="Preuves de la course">
   <div class="app-main-inner">
 
     <div class="page-head">
@@ -270,7 +267,6 @@ const MAX_PROOFS = 10;
     </ng-template>
 
   </div>
-</app-shell>
   `
 })
 export class ProofsComponent implements OnInit {

@@ -2,7 +2,6 @@ import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { AdminService, ReportResponse } from '../../../core/services/admin.service';
 import { ToastService } from '../../../core/services/toast.service';
-import { AppShellComponent } from '../../../shared/components/app-shell/app-shell.component';
 import {
   LucideFlag, LucideUser, LucideCalendar,
   LucideCheck, LucideAlertOctagon, LucideEye,
@@ -12,12 +11,11 @@ import {
   selector: 'app-admin-reports',
   standalone: true,
   imports: [
-    AppShellComponent, DatePipe,
+    DatePipe,
     LucideFlag, LucideUser, LucideCalendar,
     LucideCheck, LucideAlertOctagon, LucideEye,
   ],
   template: `
-    <app-shell pageTitle="Signalements">
       <section class="page-head">
         <div>
           <h1>Signalements</h1>
@@ -92,7 +90,6 @@ import {
           </div>
         }
       }
-    </app-shell>
   `,
   styles: [`
     .report-card {

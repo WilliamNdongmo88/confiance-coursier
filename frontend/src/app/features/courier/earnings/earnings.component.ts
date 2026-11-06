@@ -5,7 +5,6 @@ import { DatePipe } from '@angular/common';
 import { CourseService } from '../../../core/services/course.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { ToastService } from '../../../core/services/toast.service';
-import { AppShellComponent } from '../../../shared/components/app-shell/app-shell.component';
 import {
   LucideWallet,
   LucidePercent,
@@ -20,14 +19,12 @@ import {
   imports: [
     RouterLink,
     DatePipe,
-    AppShellComponent,
     LucideWallet,
     LucidePercent,
     LucidePackageCheck,
     LucideArrowLeft,
   ],
   template: `
-    <app-shell pageTitle="Mes gains">
 
       <!-- ── En-tête ── -->
       <section class="page-head">
@@ -197,7 +194,6 @@ import {
 
       </div>
 
-    </app-shell>
   `,
   styles: `
     /* ── Table desktop ── */

@@ -1,5 +1,5 @@
-import { Component, HostListener, Input, inject, signal } from '@angular/core';
-import { NavigationEnd, Router } from '@angular/router';
+import { Component, HostListener, inject, signal } from '@angular/core';
+import { ActivatedRoute, ActivatedRouteSnapshot, NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AuthService } from '../../../core/services/auth.service';
@@ -7,18 +7,16 @@ import { ThemeService } from '../../../core/services/theme.service';
 import { SidebarClientComponent } from '../sidebar-client/sidebar-client.component';
 import { SidebarCourierComponent } from '../sidebar-courier/sidebar-courier.component';
 import { SidebarAdminComponent } from '../sidebar-admin/sidebar-admin.component';
+import { BottomNavComponent } from '../bottom-nav/bottom-nav.component';
 import { LucideMenu, LucideMoon, LucideSun } from '@lucide/angular';
 
 /**
- * AppShellComponent — layout partagé de l'application (sidebar + topbar + overlay).
+ * AppShellComponent — layout des espaces authentifiés (sidebar + topbar + barre basse mobile).
  *
- * Toutes les pages authentifiées enveloppent leur contenu avec `<app-shell>`.
- * Le contenu de la page est projeté via `<ng-content>` dans `.app-main-inner`.
- *
- * @example
- * <app-shell pageTitle="Vue d'ensemble">
- *   <!-- contenu de la page -->
- * </app-shell>
+ * TICK-075 : le shell est la **route parente** de chaque espace (`/client`, `/courier`, `/admin`) ;
+ * il n'est créé qu'une fois et les pages s'affichent dans son `<router-outlet>`.
+ * Titre du fil d'Ariane et largeur étroite viennent de `data.title` / `data.narrow` de la route enfant.
+ * Sous 768 px : barre de navigation basse à 4 onglets ; au-delà : sidebar.
  *
  * Le sidebar affiché dépend du rôle de l'utilisateur courant (CLIENT/COURIER/ADMIN).
  * Le toggle du thème (clair/sombre) est géré par `ThemeService` et persiste en localStorage.
@@ -30,10 +28,18 @@ import { LucideMenu, LucideMoon, LucideSun } from '@lucide/angular';
     SidebarClientComponent,
     SidebarCourierComponent,
     SidebarAdminComponent,
+    BottomNavComponent,
+    RouterOutlet,
     LucideMenu,
     LucideMoon,
     LucideSun,
   ],
+  styles: [`
+    /* Mobile : place pour la barre basse (56 px + zone sûre) */
+    @media (max-width: 767.98px) {
+      .app-main { padding-bottom: calc(56px + env(safe-area-inset-bottom)); }
+    }
+  `],
   template: `
     <div class="app-shell">
       <!-- Overlay mobile -->
@@ -93,34 +99,50 @@ import { LucideMenu, LucideMoon, LucideSun } from '@lucide/angular';
         </header>
 
         <div class="app-main-inner">
-          <ng-content></ng-content>
+          <router-outlet />
         </div>
       </main>
+
+      <!-- TICK-075 : navigation basse (mobile uniquement) -->
+      <app-bottom-nav />
     </div>
   `,
 })
 export class AppShellComponent {
-  /** Titre de la page affiché dans le fil d'Ariane (2ème segment). */
-  @Input() pageTitle = '';
+  /** Titre de la page affiché dans le fil d'Ariane (2ème segment) — lu dans data.title de la route. */
+  pageTitle = '';
 
-  /** Si true, applique app-main--narrow (max-width 820px, centré) — pour les formulaires/tunnels. */
-  @Input() narrow = false;
+  /** app-main--narrow (max-width 820px, centré) pour les formulaires/tunnels — lu dans data.narrow. */
+  narrow = false;
 
   /** État d'ouverture de la sidebar (mobile). */
   readonly sidebarOpen = signal(false);
 
   private authService = inject(AuthService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
   readonly theme = inject(ThemeService);
 
   constructor() {
-    // Referme la sidebar après chaque navigation réussie (UX mobile).
+    this.applyRouteData();
+    // Referme la sidebar après chaque navigation et met à jour titre / largeur de la page affichée.
     this.router.events
       .pipe(
         filter((e) => e instanceof NavigationEnd),
         takeUntilDestroyed(),
       )
-      .subscribe(() => this.sidebarOpen.set(false));
+      .subscribe(() => {
+        this.sidebarOpen.set(false);
+        this.applyRouteData();
+      });
+  }
+
+  /** Données de la route enfant la plus profonde (la page affichée). */
+  private applyRouteData(): void {
+    let snap: ActivatedRouteSnapshot = this.route.snapshot;
+    while (snap.firstChild) snap = snap.firstChild;
+    this.pageTitle = snap.data['title'] ?? '';
+    this.narrow = !!snap.data['narrow'];
   }
 
   get role(): string {

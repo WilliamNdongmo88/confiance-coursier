@@ -4,7 +4,6 @@ import { DatePipe, DecimalPipe, NgClass, SlicePipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { CourseService } from '../../../core/services/course.service';
 import { ToastService } from '../../../core/services/toast.service';
-import { AppShellComponent } from '../../../shared/components/app-shell/app-shell.component';
 import {
   LucideArrowLeft,
   LucideActivity,
@@ -69,7 +68,6 @@ function buildTimeline(status: string, paidAt?: string, createdAt?: string): Tim
     DecimalPipe,
     NgClass,
     SlicePipe,
-    AppShellComponent,
     LucideArrowLeft,
     LucideActivity,
     LucideCamera,
@@ -178,7 +176,6 @@ function buildTimeline(status: string, paidAt?: string, createdAt?: string): Tim
     }
   `],
   template: `
-    <app-shell pageTitle="Détail course" [narrow]="true">
 
       <!-- En-tête -->
       <section class="page-head">
@@ -356,7 +353,6 @@ function buildTimeline(status: string, paidAt?: string, createdAt?: string): Tim
         </div>
 
       }
-    </app-shell>
   `
 })
 export class CourseDetailComponent implements OnInit {

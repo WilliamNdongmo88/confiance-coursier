@@ -4,7 +4,6 @@ import {
   AdminService, PayoutSettingsResponse, UpdatePayoutSettingsRequest
 } from '../../../core/services/admin.service';
 import { ToastService } from '../../../core/services/toast.service';
-import { AppShellComponent } from '../../../shared/components/app-shell/app-shell.component';
 import {
   LucideCreditCard, LucideSmartphone, LucideBuilding2,
   LucideSave, LucideShieldCheck,
@@ -16,12 +15,11 @@ type PayoutMethod = 'MTN' | 'ORANGE' | 'BANK';
   selector: 'app-admin-payout-settings',
   standalone: true,
   imports: [
-    AppShellComponent, FormsModule,
+    FormsModule,
     LucideCreditCard, LucideSmartphone, LucideBuilding2,
     LucideSave, LucideShieldCheck,
   ],
   template: `
-    <app-shell pageTitle="Reversements" [narrow]="true">
 
       <!-- ── En-tête ── -->
       <section class="page-head">
@@ -171,7 +169,6 @@ type PayoutMethod = 'MTN' | 'ORANGE' | 'BANK';
         </button>
 
       }
-    </app-shell>
   `,
   styles: [`
     /* ── Cartes de section ── */

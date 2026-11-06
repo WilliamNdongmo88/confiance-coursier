@@ -4,7 +4,6 @@ import { DatePipe, NgClass, DecimalPipe } from '@angular/common';
 import { CourseService } from '../../../core/services/course.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { ToastService } from '../../../core/services/toast.service';
-import { AppShellComponent } from '../../../shared/components/app-shell/app-shell.component';
 import {
   LucidePlus,
   LucidePackageOpen,
@@ -59,7 +58,6 @@ function statusLabel(status: string): string {
     DatePipe,
     DecimalPipe,
     NgClass,
-    AppShellComponent,
     LucidePlus,
     LucidePackageOpen,
     LucideCircleCheckBig,
@@ -71,7 +69,6 @@ function statusLabel(status: string): string {
     LucideMessagesSquare,
   ],
   template: `
-    <app-shell pageTitle="Vue d'ensemble">
 
       <!-- ── En-tête de page ── -->
       <section class="page-head">
@@ -278,7 +275,6 @@ function statusLabel(status: string): string {
 
       </div><!-- /content-aside-grid -->
 
-    </app-shell>
   `,
 })
 export class ClientDashboardComponent implements OnInit {
