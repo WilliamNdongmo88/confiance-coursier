@@ -1385,6 +1385,17 @@ Revue du code des tickets 055 à 061 contre `PLAN_AMELIORATION.md`, puis correct
 
 ---
 
+### Session 62 — TICK-071 [FE] : chat fiabilisé (2026-11-06)
+
+- `chat.service.ts` : SockJS sur l'URL **relative** `/ws` (proxy `ng serve` en dev, reverse proxy en prod) ; un seul salon écouté, `StompSubscription` libérée au changement de salon, à la reconnexion et dans `disconnect()` ; messages filtrés par `roomId` (aucune fuite entre salons) ; `connected$` exposé ; envoi hors connexion → texte conservé + message « votre message est conservé ».
+- `proxy.conf.json` : entrée `/ws` (`ws: true`). Vérifié : `/ws/info` et poignée de main WebSocket **101** via le proxy (origine autorisée), 403 pour une origine non autorisée.
+- `chat.component.ts` : bandeau « Reconnexion au chat… » ; menu **⋮** (Détails → `/client/course-detail/:courseId` pour le client, Signaler → `/report-user/:autreParticipant`, Litige → `/client|courier/dispute-form/:courseId`) ; `100dvh` (clavier mobile), barre de saisie sticky avec `safe-area-inset-bottom` ; cibles 44 px.
+- CORS : `setAllowedOriginPatterns` ; profil dev : `http://localhost:4200`, `127.0.0.1:4200`, `192.168.*.*:4200`, `10.*.*.*:4200` (téléphone du réseau local avec `ng serve --host 0.0.0.0`) ; en prod `CORS_ALLOWED_ORIGINS`.
+- Hors périmètre (inchangé) : badge « Vérifié » factice dans l'en-tête du chat (TICK-078).
+- Tests : 249 backend verts (dont contexte) ; build front OK. Tests unitaires front du service de chat : TICK-099.
+
+---
+
 ## 9. DOMAINES À IMPLÉMENTER (par ordre de priorité métier)
 
 ### 1. Guards Angular (prérequis avant tout)

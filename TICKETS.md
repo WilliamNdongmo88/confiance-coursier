@@ -1107,6 +1107,7 @@ Le flux d'offre doit passer par le chat (spec fonctionnelle §2.1). Le coursier 
 | TICK-068 | 🟡 [BE] Secrets et configuration de production | ✅ |
 | TICK-069 | 🟡 [BE] Index, contraintes et suppression de course | ✅ |
 | TICK-070 | 🟠 [FULL] Exposer les données financières et de suivi | ✅ |
+| TICK-071 | 🟠 [FE] Fiabiliser le chat | ✅ |
 
 > 2026-11-05 — TICK-055 → TICK-061 revus et corrigés (session 51, voir `AGENT_CONTEXT.md` §7 et `PLAN_AMELIORATION.md` §1.4).
 

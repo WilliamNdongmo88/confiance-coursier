@@ -749,6 +749,7 @@ Contrôles :
 **Validation :** les montants du détail, des gains et de l'historique correspondent exactement à la base.
 
 #### TICK-071 🟠 [FE] Fiabiliser le chat — 4 h
+**Statut :** ✅ (2026-11-06, session 62)
 **Anomalie :** A-19 · **Fichiers :** `chat.component.ts`, `chat.service.ts`, `environments/`
 **Critères d'acceptation :**
 - URL WS relative (`/ws` via le proxy) ou `environment`.

@@ -121,7 +121,8 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         // TICK-068 : origines lues dans app.cors.allowed-origins (CORS_ALLOWED_ORIGINS en production)
-        configuration.setAllowedOrigins(Arrays.stream(allowedOrigins.split(","))
+        // Motifs acceptés (ex. http://192.168.*.*:4200 en dev pour tester depuis un téléphone) — TICK-071
+        configuration.setAllowedOriginPatterns(Arrays.stream(allowedOrigins.split(","))
                 .map(String::trim).filter(o -> !o.isEmpty()).toList());
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));

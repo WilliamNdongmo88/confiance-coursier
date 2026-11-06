@@ -85,13 +85,14 @@ interface ChatMsg {
     :host {
       display: block;
       height: 100vh;
+      height: 100dvh; /* TICK-071 : hauteur visible réelle (clavier mobile iOS/Android) */
       overflow: hidden;
     }
 
     /* ── Shell : sidebar + main ── */
     .chat-shell {
       display: flex;
-      height: 100vh;
+      height: 100%;
       overflow: hidden;
       background: var(--cc-paper, #f7f8f5);
     }
@@ -102,7 +103,7 @@ interface ChatMsg {
       margin-left: var(--sidebar-width, 242px);
       display: flex;
       flex-direction: column;
-      height: 100vh;
+      height: 100%;
       overflow: hidden;
       transition: margin-left 0.22s ease;
       min-width: 0;
@@ -333,11 +334,24 @@ interface ChatMsg {
       background: var(--cc-white, #fff);
       border-top: 1px solid var(--cc-line, #e2e8e2);
       padding: 12px 24px;
+      padding-bottom: max(12px, env(safe-area-inset-bottom));
       display: flex;
       gap: 12px;
       align-items: center;
       flex-shrink: 0;
+      position: sticky;
+      bottom: 0;
     }
+    .chat-offline { background: var(--cc-warning-bg, #fff7e6); color: var(--cc-warning, #8a5a00);
+      font-size: .8rem; text-align: center; padding: 6px 12px; flex-shrink: 0; }
+    .chat-more { position: relative; }
+    .chat-more-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; min-width: 190px;
+      background: var(--cc-white, #fff); border: 1px solid var(--cc-line, #e2e8e2); border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.12); padding: 6px; display: flex; flex-direction: column; }
+    .chat-more-menu button { min-height: 44px; text-align: left; background: none; border: 0; border-radius: 8px;
+      padding: 0 12px; font: inherit; color: var(--cc-ink, #18271f); cursor: pointer; display: flex; gap: 8px; align-items: center; }
+    .chat-more-menu button:hover { background: var(--cc-paper, #f7f8f5); }
+    .chat-more-menu .danger { color: var(--danger, #dc2626); }
 
     .chat-input {
       flex: 1;
@@ -639,24 +653,32 @@ interface ChatMsg {
               <svg lucideArrowLeft size="16"></svg> <span class="btn-label">Retour</span>
             </button>
 
-            @if (isCLIENT) {
-              <!-- Détails (client) -->
-              <button class="btn btn-secondary btn-sm" (click)="goToCourseDetail()">
-                <svg lucideInfo size="16"></svg> <span class="btn-label">Détails</span>
+            <!-- TICK-071 : menu ⋮ — Détails / Signaler / Litige vers les bons écrans -->
+            <div class="chat-more">
+              <button class="btn btn-secondary btn-sm" type="button" aria-label="Plus d'actions"
+                      [attr.aria-expanded]="moreOpen()" (click)="moreOpen.set(!moreOpen())" style="min-width:44px;min-height:44px">
+                ⋮
               </button>
-            }
-
-            <!-- Signaler -->
-            <button class="btn btn-danger btn-sm" (click)="goToReport()">
-              <svg lucideFlag size="16"></svg> <span class="btn-label">Signaler</span>
-            </button>
-
-            @if (isCOURIER) {
-              <!-- Litige (coursier) -->
-              <button class="btn btn-danger btn-sm" (click)="goToDispute()">
-                <svg lucideAlertTriangle size="16"></svg> <span class="btn-label">Litige</span>
-              </button>
-            }
+              @if (moreOpen()) {
+                <div class="chat-more-menu" role="menu">
+                  @if (isCLIENT && courseId) {
+                    <button type="button" role="menuitem" (click)="goToCourseDetail()">
+                      <svg lucideInfo size="16"></svg> Détails de la course
+                    </button>
+                  }
+                  @if (otherUserId) {
+                    <button type="button" role="menuitem" class="danger" (click)="goToReport()">
+                      <svg lucideFlag size="16"></svg> Signaler {{ correspondentName }}
+                    </button>
+                  }
+                  @if (courseId) {
+                    <button type="button" role="menuitem" class="danger" (click)="goToDispute()">
+                      <svg lucideAlertTriangle size="16"></svg> Ouvrir un litige
+                    </button>
+                  }
+                </div>
+              }
+            </div>
           </div>
         </header>
 
@@ -717,6 +739,11 @@ interface ChatMsg {
             }
           }
         </div>
+
+        @if (!connected()) {
+          <!-- TICK-071 : connexion coupée — le texte saisi est conservé -->
+          <div class="chat-offline" role="status">Reconnexion au chat… vos messages non envoyés restent dans la zone de saisie.</div>
+        }
 
         <!-- Barre de saisie -->
         <div class="chat-input-bar">
@@ -822,8 +849,14 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   correspondentInitials = 'C';
   courseStatus = ''; // chargé depuis getRoomInfo, pilote la visibilité des boutons (vide = inconnu)
 
+  /** Autre participant du salon (cible d'un signalement) — TICK-071. */
+  otherUserId: number | null = null;
+  readonly moreOpen = signal(false);
+  readonly connected = signal(false);
+
   private chatSubscription: Subscription | null = null;
   private chatErrorsSubscription: Subscription | null = null;
+  private connectionSubscription: Subscription | null = null;
   private shouldScrollToBottom = false;
 
   constructor(
@@ -865,6 +898,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         // Stocker le statut de la course (pilote la visibilité des boutons TICK-059)
         this.courseStatus = room.courseStatus ?? '';
         // Le correspondant = l'autre participant (pas soi-même)
+        this.otherUserId = (this.isCOURIER ? room.clientId : room.courierId) ?? null;
         if (this.isCOURIER) {
           // Côté coursier → le correspondant est le client
           this.correspondentName = room.clientName ?? 'Client';
@@ -897,6 +931,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     // ── 3. Connexion WebSocket et abonnement à la room ──
     // Refus du serveur (non participant, offre non autorisée…) — TICK-055
     this.chatErrorsSubscription = this.chatService.errors$.subscribe(msg => this.toast.error(msg));
+    this.connectionSubscription = this.chatService.connected$.subscribe(ok => this.connected.set(ok));
     this.chatService.connect();
 
     this.chatSubscription = this.chatService.subscribeToRoom(this.roomId).subscribe({
@@ -937,7 +972,8 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   ngOnDestroy(): void {
     this.chatSubscription?.unsubscribe();
     this.chatErrorsSubscription?.unsubscribe();
-    this.chatService.disconnect();
+    this.connectionSubscription?.unsubscribe();
+    this.chatService.disconnect(); // libère l'abonnement STOMP et ferme la socket
   }
 
   // ── Sidebar ────────────────────────────────────────────────────────────────
@@ -1041,17 +1077,18 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   goToCourseDetail(): void {
-    // Le courseId n'est pas dans la route chat — on revient au dashboard
-    this.router.navigate(['/client/dashboard']);
+    this.moreOpen.set(false);
+    this.router.navigate(['/client/course-detail', this.courseId]);
   }
 
   goToReport(): void {
-    // On signale le correspondant — sans son userId on redirige vers le dashboard
-    this.router.navigate([this.isCOURIER ? '/courier/dashboard' : '/client/dashboard']);
+    this.moreOpen.set(false);
+    if (this.otherUserId) this.router.navigate(['/report-user', this.otherUserId]);
   }
 
   goToDispute(): void {
-    this.router.navigate([this.isCOURIER ? '/courier/dashboard' : '/client/dashboard']);
+    this.moreOpen.set(false);
+    this.router.navigate([this.isCOURIER ? '/courier/dispute-form' : '/client/dispute-form', this.courseId]);
   }
 
   logout(): void {
