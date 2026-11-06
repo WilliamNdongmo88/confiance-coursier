@@ -106,7 +106,8 @@ public class PasswordResetService {
 
     private void sendResetEmail(String to, String fullName, String token) {
         if (brevoApiKey == null || brevoApiKey.isBlank()) {
-            log.warn("BREVO_API_KEY non configurée — envoi email reset désactivé. Token: {}", token);
+            // TICK-068 : le jeton n'est jamais journalisé (il permet de changer le mot de passe)
+            log.warn("BREVO_API_KEY non configurée — email de réinitialisation non envoyé à {}.", to);
             return;
         }
 

@@ -1349,6 +1349,20 @@ Revue du code des tickets 055 à 061 contre `PLAN_AMELIORATION.md`, puis correct
 
 ---
 
+### Session 59 — TICK-068 [BE] : secrets et configuration de production (2026-11-06)
+
+- **Aucun secret versionné** : `application.properties` ne contient plus que des `${VAR}` — `DB_PASSWORD`, `JWT_SECRET_KEY`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `BREVO_API_KEY`, `BREVO_SENDER_EMAIL` sans valeur par défaut ; `minioadmin` et le mot de passe PostgreSQL retirés (valeurs déplacées dans `backend/.env` local, ignoré par git). `docker-compose.yml` utilise `${DB_USERNAME:?…}`, `${DB_PASSWORD:?…}`, `${MINIO_*:?…}` → lancer avec `docker compose --env-file backend/.env up -d`.
+- **Profils** : `spring.profiles.default=dev`. `application-dev.properties` : `show-sql`, Flyway DEBUG, `app.otp.dev-log=true`. Base : `dev-log=false`, `show-sql=false`. `application-prod.properties` : DB_URL, DB_USERNAME, REDIS_HOST, MINIO_URL, FRONTEND_URL, CORS_ALLOWED_ORIGINS obligatoires, aucun log d'OTP/SQL.
+- `RequiredConfigurationCheck` (listener enregistré dans `main`) : arrêt au démarrage avec la **liste complète** des variables manquantes (6 toujours, +6 en prod) et renvoi vers `backend/.env.example`.
+- `spring.config.import=optional:file:./.env[.properties],optional:file:./backend/.env[.properties]` : les tests Spring lisent aussi `backend/.env` (plus besoin de variables factices).
+- Jeton de réinitialisation de mot de passe **plus journalisé** (`PasswordResetService`).
+- CORS HTTP et WebSocket (`setAllowedOriginPatterns`, plus de `*`) lus dans `app.cors.allowed-origins` / `CORS_ALLOWED_ORIGINS` ; `PORT`, `REDIS_*`, `FRONTEND_URL`, `TRUST_FORWARDED_FOR` configurables.
+- `backend/.env.example` (versionné) ; `.gitignore` : `!.env.example`, `backend/*.log`. Aucun `.log` n'était suivi par git. `application.yml` vide supprimé.
+- Vérifications : profil prod lancé hors projet → échec explicite listant les 12 variables ; profil dev → démarrage OK depuis `backend/.env` (health 200, route protégée 401) ; `RequiredConfigurationCheckTest` (7, dont absence de secrets dans les fichiers versionnés) → 231 tests unitaires verts ; `BackendApplicationTests` vert sans variable factice.
+- **À faire hors code** : l'ancien mot de passe PostgreSQL et `minioadmin` restent dans l'historique git → à changer avant toute mise en ligne.
+
+---
+
 ## 9. DOMAINES À IMPLÉMENTER (par ordre de priorité métier)
 
 ### 1. Guards Angular (prérequis avant tout)

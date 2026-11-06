@@ -13,6 +13,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final StompAuthChannelInterceptor stompAuthChannelInterceptor;
 
+    @org.springframework.beans.factory.annotation.Value("${app.cors.allowed-origins:http://localhost:4200}")
+    private String allowedOrigins = "http://localhost:4200";
+
     public WebSocketConfig(StompAuthChannelInterceptor stompAuthChannelInterceptor) {
         this.stompAuthChannelInterceptor = stompAuthChannelInterceptor;
     }
@@ -36,8 +39,10 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         // Endpoint WebSocket : ws://localhost:8080/ws
+        // TICK-068 : mêmes origines que le CORS HTTP (CORS_ALLOWED_ORIGINS), plus de « * »
         registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns("*")
+                .setAllowedOriginPatterns(java.util.Arrays.stream(allowedOrigins.split(","))
+                        .map(String::trim).filter(o -> !o.isEmpty()).toArray(String[]::new))
                 .withSockJS(); // Fallback pour les vieux navigateurs
     }
 }

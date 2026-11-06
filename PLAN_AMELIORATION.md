@@ -722,6 +722,7 @@ Contrôles :
 **Validation :** matrice MockMvc rôle × endpoint.
 
 #### TICK-068 🟡 [BE] Secrets et configuration de production — 2 h
+**Statut :** ✅ (2026-11-06, session 59)
 **Anomalie :** A-28 · **Fichiers :** `application.properties`, `application-dev.properties` / `-prod`, `.env.example`, `.gitignore`, `PasswordResetService`
 **Critères d'acceptation :**
 - Aucun secret en dur.

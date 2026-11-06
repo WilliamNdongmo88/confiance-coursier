@@ -33,3 +33,9 @@ Thumbs.db
 .env.*
 backend/.env
 backend/.env.*
+# Modèles de configuration sans secret : versionnés (TICK-068)
+!.env.example
+!backend/.env.example
+
+# Logs locaux (diagnostics, démarrages) — jamais versionnés
+backend/*.log

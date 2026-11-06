@@ -16,7 +16,10 @@ public class BackendApplication {
 
 	public static void main(String[] args) {
 		loadDotenv(); // expose les variables du fichier .env en propriétés système
-		SpringApplication.run(BackendApplication.class, args);
+		SpringApplication app = new SpringApplication(BackendApplication.class);
+		// TICK-068 : arrêt explicite si une variable obligatoire manque (liste complète)
+		app.addListeners(new com.confiancecoursier.backend.config.RequiredConfigurationCheck());
+		app.run(args);
 	}
 
 	/**

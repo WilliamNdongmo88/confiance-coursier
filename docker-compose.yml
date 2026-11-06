@@ -1,3 +1,4 @@
+# TICK-068 : aucun secret ici. Lancer avec : docker compose --env-file backend/.env up -d
 version: '3.8'
 
 services:
@@ -6,8 +7,8 @@ services:
     container_name: confiance_postgres
     environment:
       POSTGRES_DB: confiancecoursier
-      POSTGRES_USER: confiance_coursier_user
-      POSTGRES_PASSWORD: confiance_coursier_password
+      POSTGRES_USER: ${DB_USERNAME:?Définir DB_USERNAME dans backend/.env}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Définir DB_PASSWORD dans backend/.env}
     ports:
       - "5432:5432"
     volumes:
@@ -24,8 +25,8 @@ services:
     container_name: confiance_minio
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:?Définir MINIO_ACCESS_KEY dans backend/.env}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:?Définir MINIO_SECRET_KEY dans backend/.env}
     ports:
       - "9000:9000"
       - "9001:9001"
