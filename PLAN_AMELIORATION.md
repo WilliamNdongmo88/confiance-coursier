@@ -819,6 +819,7 @@ Contrôles :
 **Validation :** revue visuelle clair/sombre ; audit Lighthouse mobile en accessibilité ≥ 90.
 
 #### TICK-077 🟡 [FE] Helper de statut et composants d'état partagés — 4 h
+**Statut :** ✅ (2026-11-06, session 69)
 **Anomalie :** A-32, CO-15, CO-16 · **Fichiers :** nouveaux `shared/status/course-status.ts`, `status-badge`, `empty-state`, `error-state`, `skeleton`
 **Critères d'acceptation :**
 - Un seul mapping statut → (libellé, couleur, CTA par rôle), DISPUTED, REFUNDED et CANCELLED compris.

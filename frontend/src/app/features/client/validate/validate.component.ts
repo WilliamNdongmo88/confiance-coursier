@@ -1,3 +1,4 @@
+import { warnLoadFailed } from '../../../shared/state/load-error';
 import { Component, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { NgFor, NgIf, DatePipe } from '@angular/common';
@@ -282,7 +283,7 @@ export class ValidateComponent implements OnInit {
           this.startCountdown(new Date(course.autoValidateAt));
         }
       },
-      error: () => {} // silencieux
+      error: warnLoadFailed('échéance de validation automatique', 'compte à rebours masqué')
     });
   }
 

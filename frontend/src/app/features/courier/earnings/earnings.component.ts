@@ -1,3 +1,4 @@
+import { warnLoadFailed } from '../../../shared/state/load-error';
 import { HttpClient } from '@angular/common/http';
 import { Component, OnInit, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
@@ -315,7 +316,7 @@ export class EarningsComponent implements OnInit {
   ngOnInit(): void {
     this.http.get<any>('/api/commissions/public').subscribe({
       next: (p) => this.currentCommissionRate = p.commissionRateCourier ?? null,
-      error: () => {},
+      error: warnLoadFailed('taux de commission actuel', 'taux affiché « … »'),
     });
     this.loadData();
   }

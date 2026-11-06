@@ -4,44 +4,17 @@ import { DatePipe, DecimalPipe } from '@angular/common';
 import { CourseService } from '../../../core/services/course.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { StatusBadgeComponent } from '../../../shared/status/status-badge.component';
+import { courseStatus } from '../../../shared/status/course-status';
+import { EmptyStateComponent } from '../../../shared/state/empty-state.component';
+import { ErrorStateComponent } from '../../../shared/state/error-state.component';
+import { SkeletonComponent } from '../../../shared/state/skeleton.component';
 import {
   LucidePlus,
   LucideArrowLeft,
   LucideArrowRight,
   LucidePackageOpen,
 } from '@lucide/angular';
-
-// ─── Helpers ───────────────────────────────────────────────────────────────
-
-function statusBadgeClass(status: string): string {
-  switch (status) {
-    case 'PUBLISHED':          return 'status-badge status-badge--info';
-    case 'ASSIGNED':           return 'status-badge status-badge--warning';
-    case 'IN_PROGRESS':        return 'status-badge status-badge--success';
-    case 'PROOFS_SUBMITTED':   return 'status-badge status-badge--purple';
-    case 'OVERDUE':            return 'status-badge status-badge--danger';
-    case 'REFUNDED':           return 'status-badge status-badge--info';
-    case 'COMPLETED':          return 'status-badge status-badge--success';
-    case 'CANCELLED':          return 'status-badge status-badge--danger';
-    case 'DISPUTED':           return 'status-badge status-badge--danger';
-    default:                   return 'status-badge';
-  }
-}
-
-function statusLabel(status: string): string {
-  switch (status) {
-    case 'PUBLISHED':          return 'Publiée';
-    case 'ASSIGNED':           return 'Attribuée';
-    case 'IN_PROGRESS':        return 'En cours';
-    case 'PROOFS_SUBMITTED':   return 'Preuves soumises';
-    case 'OVERDUE':            return 'En retard';
-    case 'REFUNDED':           return 'Remboursée';
-    case 'COMPLETED':          return 'Terminée';
-    case 'CANCELLED':          return 'Annulée';
-    case 'DISPUTED':           return 'Litige';
-    default:                   return status;
-  }
-}
 
 @Component({
   selector: 'app-history',
@@ -50,6 +23,10 @@ function statusLabel(status: string): string {
     RouterLink,
     DatePipe,
     DecimalPipe,
+    StatusBadgeComponent,
+    EmptyStateComponent,
+    ErrorStateComponent,
+    SkeletonComponent,
     LucidePlus,
     LucideArrowLeft,
     LucideArrowRight,
@@ -80,14 +57,9 @@ function statusLabel(status: string): string {
           <label for="statusFilter">Statut</label>
           <select id="statusFilter" class="form-select" [value]="statusFilter()"
                   (change)="statusFilter.set($any($event.target).value)">
-            <option value="ALL">Tous les statuts</option>
-            <option value="COMPLETED">Terminées</option>
-            <option value="IN_PROGRESS">En cours</option>
-            <option value="PROOFS_SUBMITTED">Preuves soumises</option>
-            <option value="ASSIGNED">Attribuées</option>
-            <option value="PUBLISHED">Publiées</option>
-            <option value="CANCELLED">Annulées</option>
-            <option value="DISPUTED">Litiges</option>
+            @for (st of filterStatuses; track st) {
+              <option [value]="st">{{ statusLabel(st) }}</option>
+            }
           </select>
         </div>
         <div class="filter-group">
@@ -100,29 +72,18 @@ function statusLabel(status: string): string {
         </div>
       </div>
 
-      <!-- ── État chargement ── -->
+      <!-- TICK-077 : états chargement / erreur / vide partagés -->
       @if (loading) {
+        <section class="panel"><app-skeleton [lines]="4" /></section>
+      } @else if (loadError) {
         <section class="panel">
-          <div class="row-item st-jc-center-p-32px-0-c-muted">
-            Chargement…
-          </div>
+          <app-error-state message="Impossible de charger l'historique." (retry)="loadData()" />
         </section>
-      }
-
-      <!-- ── État vide ── -->
-      @if (!loading && filteredCourses().length === 0) {
+      } @else if (filteredCourses().length === 0) {
         <section class="panel">
-          <div class="row-item st-jc-center-fd-column-g-8px">
-            <svg class="st-opac-35-m-0-auto" lucidePackageOpen size="32"></svg>
-            <p class="st-m-0-fs-14px">
-              {{ isClient ? 'Aucune course pour le moment.' : 'Aucune mission pour le moment.' }}
-            </p>
-            @if (isClient) {
-              <a routerLink="/client/create-course" class="text-link">Créer votre première course →</a>
-            } @else {
-              <a routerLink="/courier/dashboard" class="text-link">Voir les demandes disponibles →</a>
-            }
-          </div>
+          <app-empty-state [title]="isClient ? 'Aucune course pour le moment.' : 'Aucune mission pour le moment.'"
+                           [actionLabel]="isClient ? 'Créer ma première course' : 'Voir les demandes disponibles'"
+                           [actionLink]="isClient ? '/client/create-course' : '/courier/dashboard'" />
         </section>
       }
 
@@ -158,12 +119,10 @@ function statusLabel(status: string): string {
                 </div>
               </div>
               <div class="row-right">
-                <span [class]="getBadgeClass(course.status)">
-                  {{ getStatusLabel(course.status) }}
-                </span>
+                <app-status-badge [status]="course.status" role="CLIENT" />
                 <div class="row-actions">
-                  @if (course.reviewDue) {
-                    <a [routerLink]="['/client/rate', course.id]" class="row-action-link">★ Noter</a>
+                  @if (nextAction(course, 'CLIENT'); as action) {
+                    <a [routerLink]="action.link" class="row-action-link">{{ action.label }}</a>
                   }
                   <a [routerLink]="['/client/course-detail', course.id]" class="row-action-link">
                     Voir détail <svg lucideArrowRight size="12"></svg>
@@ -208,11 +167,11 @@ function statusLabel(status: string): string {
                       {{ course.status === 'COMPLETED' ? netPercu(course) : '—' }}
                     </td>
                     <td>
-                      <span [class]="getBadgeClass(course.status)">{{ getStatusLabel(course.status) }}</span>
+                      <app-status-badge [status]="course.status" role="COURIER" />
                     </td>
                     <td>
-                      @if (course.reviewDue) {
-                        <a [routerLink]="['/courier/rate-client', course.id]" class="text-link">★ Noter</a>
+                      @if (nextAction(course, 'COURIER'); as action) {
+                        <a [routerLink]="action.link" class="text-link">{{ action.label }}</a>
                       }
                       @if (course.chatRoomId) {
                         <a [routerLink]="['/chat', course.chatRoomId]" class="text-link">
@@ -232,19 +191,19 @@ function statusLabel(status: string): string {
               <div class="hist-card-item">
                 <div class="hist-card-top">
                   <span class="hist-card-title">{{ course.description }} — {{ course.zone }}</span>
-                  <span [class]="getBadgeClass(course.status)">{{ getStatusLabel(course.status) }}</span>
+                  <app-status-badge [status]="course.status" role="COURIER" />
                 </div>
                 <div class="hist-card-meta">{{ course.scheduledAt | date:'dd/MM/yyyy' }}</div>
                 <div class="hist-card-stats">
                   <div>
                     <span class="hist-card-label">Net</span>
-                    <strong [style.color]="course.status === 'COMPLETED' ? 'var(--success)' : 'var(--text-muted)'">
+                    <strong [class.text-success]="course.status === 'COMPLETED'" [class.text-muted]="course.status !== 'COMPLETED'">
                       {{ course.status === 'COMPLETED' ? netPercu(course) : '—' }}
                     </strong>
                   </div>
                   <div>
                     <span class="hist-card-label">Statut</span>
-                    <strong>{{ getStatusLabel(course.status) }}</strong>
+                    <strong>{{ statusLabel(course.status) }}</strong>
                   </div>
                 </div>
               </div>
@@ -393,8 +352,17 @@ export class HistoryComponent implements OnInit {
 
   // ─── Helpers exposés au template ──────────────────────────────────────────
 
-  getBadgeClass(status: string): string  { return statusBadgeClass(status); }
-  getStatusLabel(status: string): string { return statusLabel(status); }
+  /** Statuts proposés dans le filtre (libellés issus de courseStatus — TICK-077). */
+  readonly filterStatuses = ['ALL', 'COMPLETED', 'IN_PROGRESS', 'OVERDUE', 'PROOFS_SUBMITTED', 'ASSIGNED',
+    'PUBLISHED', 'DISPUTED', 'REFUNDED', 'CANCELLED'];
+
+  statusLabel(status: string): string {
+    return status === 'ALL'
+      ? 'Tous les statuts'
+      : courseStatus({ id: 0, status }, this.isCourier ? 'COURIER' : 'CLIENT').label;
+  }
+
+  nextAction(course: any, role: 'CLIENT' | 'COURIER') { return courseStatus(course, role).action; }
 
   /** Net perçu par le coursier (tarif − commission, hors remboursement d'achats), fourni par le serveur — TICK-070. */
   netPercu(course: any): string {
@@ -409,8 +377,12 @@ export class HistoryComponent implements OnInit {
     this.loadData();
   }
 
-  private loadData(): void {
+  /** Échec du chargement principal : état d'erreur avec « Réessayer » (TICK-077). */
+  loadError = false;
+
+  loadData(): void {
     this.loading = true;
+    this.loadError = false;
     const obs = this.isClient
       ? this.courseService.getMyCourses()
       : this.courseService.getMyMissions();
@@ -422,7 +394,7 @@ export class HistoryComponent implements OnInit {
       },
       error: (err) => {
         this.loading = false;
-        this.toast.error('Impossible de charger l\'historique.');
+        this.loadError = true;
         console.error(err);
       },
     });

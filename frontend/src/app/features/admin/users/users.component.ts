@@ -1,3 +1,4 @@
+import { warnLoadFailed } from '../../../shared/state/load-error';
 import { Component, inject, signal, computed, OnInit, HostListener } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -490,7 +491,7 @@ export class AdminUsersComponent implements OnInit {
     // Charge tous les litiges pour la modale (best-effort, silencieux si échec)
     this.adminService.getDisputes().subscribe({
       next: (data) => this.allDisputes.set(data),
-      error: () => {},
+      error: warnLoadFailed('litiges ouverts (compteur)', 'compteur non affiché'),
     });
   }
 

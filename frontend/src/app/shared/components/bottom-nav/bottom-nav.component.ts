@@ -1,3 +1,4 @@
+import { warnLoadFailed } from '../../state/load-error';
 import { Component, DestroyRef, inject, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -112,17 +113,17 @@ export class BottomNavComponent {
 
     if (this.role === 'COURIER') {
       // Nouvelles demandes disponibles
-      this.courses.getPublishedCourses().subscribe({ next: l => this.badge.set(l.length), error: () => {} });
+      this.courses.getPublishedCourses().subscribe({ next: l => this.badge.set(l.length), error: warnLoadFailed('badge « nouvelles demandes »', 'badge masqué') });
     } else if (this.role === 'ADMIN') {
       // Litiges ouverts
       this.admin.getDisputes().subscribe({
-        next: l => this.badge.set(l.filter((d: any) => d.status === 'OPEN').length), error: () => {},
+        next: l => this.badge.set(l.filter((d: any) => d.status === 'OPEN').length), error: warnLoadFailed('badge « litiges ouverts »', 'badge masqué'),
       });
     } else {
       // Courses qui attendent une action du client
       this.courses.getMyCourses().subscribe({
         next: l => this.badge.set(l.filter((c: any) => CLIENT_ACTION_STATUSES.includes(c.status) || c.reviewDue).length),
-        error: () => {},
+        error: warnLoadFailed('badge « courses à traiter »', 'badge masqué'),
       });
     }
   }

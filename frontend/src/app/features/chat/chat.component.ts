@@ -1,3 +1,4 @@
+import { warnLoadFailed } from '../../shared/state/load-error';
 import {
   Component, OnInit, OnDestroy, AfterViewChecked,
   ViewChild, ElementRef, signal
@@ -975,7 +976,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     if (this.isCOURIER) {
       this.courseService.getPendingReviews().subscribe({
         next: (list) => this.pendingReviewCourseId = list[0]?.courseId ?? null,
-        error: () => {},
+        error: warnLoadFailed('avis en attente du coursier', 'offres non bloquées côté écran (le serveur revérifie)'),
       });
     }
 

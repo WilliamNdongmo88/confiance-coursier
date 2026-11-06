@@ -1,10 +1,16 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { DatePipe, NgClass, SlicePipe } from '@angular/common';
+import { DatePipe, SlicePipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { CourseService } from '../../../core/services/course.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { StatusBadgeComponent } from '../../../shared/status/status-badge.component';
+import { courseStatus } from '../../../shared/status/course-status';
+import { EmptyStateComponent } from '../../../shared/state/empty-state.component';
+import { ErrorStateComponent } from '../../../shared/state/error-state.component';
+import { SkeletonComponent } from '../../../shared/state/skeleton.component';
+import { warnLoadFailed } from '../../../shared/state/load-error';
 import {
   LucideWallet,
   LucidePackageCheck,
@@ -13,7 +19,6 @@ import {
   LucideArrowRight,
   LucideArrowUpRight,
   LucideMessageCircle,
-  LucideCamera,
   LucideShoppingBasket,
   LucidePill,
   LucideX,
@@ -26,8 +31,11 @@ import {
   imports: [
     RouterLink,
     DatePipe,
-    NgClass,
     SlicePipe,
+    StatusBadgeComponent,
+    EmptyStateComponent,
+    ErrorStateComponent,
+    SkeletonComponent,
     LucideWallet,
     LucidePackageCheck,
     LucideStar,
@@ -35,7 +43,6 @@ import {
     LucideArrowRight,
     LucideArrowUpRight,
     LucideMessageCircle,
-    LucideCamera,
     LucideShoppingBasket,
     LucidePill,
     LucideX,
@@ -332,10 +339,14 @@ import {
               </a>
             </div>
 
-            @if (myMissions.length === 0) {
-              <div style="padding:24px;text-align:center;color:var(--cc-muted);font-size:.9rem">
-                Aucune mission en cours.
-              </div>
+            <!-- TICK-077 : états chargement / erreur / vide partagés -->
+            @if (missionsLoading()) {
+              <app-skeleton [lines]="2" />
+            } @else if (missionsError()) {
+              <app-error-state message="Impossible de charger vos missions." (retry)="loadMissions()" />
+            } @else if (myMissions.length === 0) {
+              <app-empty-state title="Aucune mission en cours."
+                               message="Proposez votre tarif sur une des nouvelles demandes ci-dessous." />
             }
 
             @for (mission of myMissions; track mission.id) {
@@ -350,18 +361,13 @@ import {
                   </div>
                 </div>
                 <div class="row-right">
-                  <span class="status-badge" [ngClass]="statusBadgeClass(mission.status)">
-                    {{ statusLabel(mission.status) }}
-                  </span>
+                  <app-status-badge [status]="mission.status" role="COURIER" />
                   <div class="row-actions">
-                    @if ((mission.status === 'IN_PROGRESS' || mission.status === 'OVERDUE')) {
-                      <a [routerLink]="['/courier/proofs', mission.id]" class="mission-btn">
-                        <svg lucideCamera size="13"></svg> Preuves
-                      </a>
-                    }
-                    @if (mission.reviewDue) {
-                      <!-- TICK-073 : noter le client après une course terminée -->
-                      <a [routerLink]="['/courier/rate-client', mission.id]" class="mission-btn">★ Noter le client</a>
+                    <!-- TICK-077 : action suivante issue de courseStatus() (preuves, notation…) -->
+                    @if (nextAction(mission); as action) {
+                      @if (action.link[0] !== '/chat') {
+                        <a [routerLink]="action.link" class="mission-btn">{{ action.label }}</a>
+                      }
                     }
                     <!-- TICK-065b : échéance de dépôt des preuves -->
                     @if (mission.status === 'IN_PROGRESS' && mission.proofDeadline) {
@@ -394,10 +400,13 @@ import {
               }
             </div>
 
-            @if (publishedCourses.length === 0) {
-              <div style="padding:24px;text-align:center;color:var(--cc-muted);font-size:.9rem">
-                Aucune nouvelle demande pour le moment.
-              </div>
+            @if (publishedLoading()) {
+              <app-skeleton [lines]="2" />
+            } @else if (publishedError()) {
+              <app-error-state message="Impossible de charger les nouvelles demandes." (retry)="loadPublished()" />
+            } @else if (publishedCourses.length === 0) {
+              <app-empty-state title="Aucune nouvelle demande pour le moment."
+                               message="Les demandes publiées par les clients apparaîtront ici." />
             }
 
             @for (course of publishedCourses; track course.id) {
@@ -535,56 +544,49 @@ export class CourierDashboardComponent implements OnInit {
     return this.authService.getCurrentUserEmail().split('@')[0] || 'vous';
   }
 
+  /** États des chargements principaux (TICK-077). */
+  readonly missionsLoading = signal(true);
+  readonly missionsError = signal(false);
+  readonly publishedLoading = signal(true);
+  readonly publishedError = signal(false);
+
   ngOnInit(): void {
-    // 1. Charger le profil pour connaître le statut KYC réel
+    // 1. Profil (secondaire) : statut KYC réel — en cas d'échec, la bannière KYC reste affichée par prudence
     this.http.get<any>('/api/users/me').subscribe({
       next: (profile) => this.kycStatus.set(profile.kycStatus || 'NONE'),
-      error: () => {}   // silencieux — la bannière reste visible par défaut
+      error: warnLoadFailed('profil coursier (statut KYC)', 'bannière KYC affichée'),
     });
+    this.loadMissions();
+    this.loadPublished();
+  }
 
-    // 2. Missions du coursier
+  /** 2. Missions du coursier (principal). */
+  loadMissions(): void {
+    this.missionsLoading.set(true);
+    this.missionsError.set(false);
     this.courseService.getMyMissions().subscribe({
       next: (list: any[]) => {
-        this.myMissions    = list.filter(c => c.status !== 'COMPLETED');
+        this.myMissions    = list.filter(c => c.status !== 'COMPLETED' || c.reviewDue);
         this.completedCount = list.filter(c => c.status === 'COMPLETED').length;
+        this.missionsLoading.set(false);
       },
-      error: () => {}
+      error: () => { this.missionsLoading.set(false); this.missionsError.set(true); },
     });
+  }
 
-    // 3. Courses publiées disponibles
+  /** 3. Courses publiées disponibles (principal). */
+  loadPublished(): void {
+    this.publishedLoading.set(true);
+    this.publishedError.set(false);
     this.courseService.getPublishedCourses().subscribe({
-      next: (list: any[]) => { this.publishedCourses = list; },
-      error: () => {}
+      next: (list: any[]) => { this.publishedCourses = list; this.publishedLoading.set(false); },
+      error: () => { this.publishedLoading.set(false); this.publishedError.set(true); },
     });
   }
 
-  statusBadgeClass(status: string): string {
-    switch (status) {
-      case 'PUBLISHED':        return 'status-badge--info';
-      case 'ASSIGNED':         return 'status-badge--warning';
-      case 'IN_PROGRESS':      return 'status-badge--success';
-      case 'PROOFS_SUBMITTED': return 'status-badge--purple';
-      case 'OVERDUE':          return 'status-badge--danger';
-      case 'DISPUTED':         return 'status-badge--danger';
-      case 'REFUNDED':         return 'status-badge--info';
-      case 'COMPLETED':        return 'status-badge--success';
-      default:                 return '';
-    }
-  }
+  /** Action suivante attendue du coursier (TICK-077). */
+  nextAction(mission: any) { return courseStatus(mission, 'COURIER').action; }
 
-  statusLabel(status: string): string {
-    switch (status) {
-      case 'PUBLISHED':        return 'Publiée';
-      case 'ASSIGNED':         return 'Négociation';
-      case 'IN_PROGRESS':      return 'En cours';
-      case 'PROOFS_SUBMITTED': return 'Preuves soumises';
-      case 'OVERDUE':          return 'En retard';
-      case 'DISPUTED':         return 'Litige';
-      case 'REFUNDED':         return 'Remboursée';
-      case 'COMPLETED':        return 'Terminée';
-      default:                 return status;
-    }
-  }
 
   openModal(course: any): void {
     this.selectedCourse = course;

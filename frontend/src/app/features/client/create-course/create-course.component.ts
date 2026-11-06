@@ -1,3 +1,4 @@
+import { warnLoadFailed } from '../../../shared/state/load-error';
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -335,7 +336,7 @@ export class CreateCourseComponent implements OnInit {
     if (!id) {
       this.courseService.getPendingReviews().subscribe({
         next: (list) => this.pendingReview = list[0] ?? null,
-        error: () => {},
+        error: warnLoadFailed('avis en attente du client', 'création non bloquée côté écran (le serveur revérifie)'),
       });
     }
     if (id) {

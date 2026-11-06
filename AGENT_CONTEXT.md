@@ -1455,6 +1455,17 @@ Choix utilisateur : deux variantes sur deux branches, comparées visuellement av
 
 ---
 
+### Session 69 — TICK-077 [FE] : helper de statut et composants d'état partagés (2026-11-06)
+
+- `shared/status/course-status.ts` : `courseStatus(course, rôle)` → libellé, ton (`info|warning|success|danger|neutral`) et action suivante (lien) pour les 9 statuts (dont OVERDUE, DISPUTED, REFUNDED, CANCELLED), selon CLIENT / COURIER (ADMIN : aucune action) ; `statusBadgeClass(ton)`.
+- `shared/status/status-badge.component.ts` (`<app-status-badge [status] role>`), `shared/state/` : `empty-state` (titre, message, action), `error-state` (« Réessayer »), `skeleton` (lignes animées, respect de `prefers-reduced-motion`), `load-error.ts` (`warnLoadFailed(contexte, repli)`).
+- Écrans branchés : dashboard client (skeleton / erreur + réessayer / vide avec action, badge, action suivante), historique (idem + filtre alimenté par le helper, statuts OVERDUE/REFUNDED ajoutés), dashboard coursier (missions et demandes : skeleton / erreur + réessayer / vide ; badge ; action suivante), détail client (badge en tête ; timeline couvrant DISPUTED, REFUNDED, CANCELLED, OVERDUE). Les 3 mappings recopiés sont supprimés ; libellés ASSIGNED unifiés (« Paiement à faire » / « Offre acceptée — paiement en attente »).
+- **Plus aucun `error: () => {}`** : chargements principaux → état d'erreur avec « Réessayer » ; secondaires (badges, avis dus, paramètres publics, profil KYC…) → `warnLoadFailed` avec le repli documenté.
+- Correctif lié à TICK-073 : le dashboard coursier masquait les missions terminées, donc « Noter le client » n'y apparaissait jamais → les missions terminées avec avis dû restent listées.
+- Tests : `course-status.spec.ts` (6) → `ng test` 8/8 ; build dev OK.
+
+---
+
 ## 9. DOMAINES À IMPLÉMENTER (par ordre de priorité métier)
 
 ### 1. Guards Angular (prérequis avant tout)

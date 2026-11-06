@@ -1,3 +1,4 @@
+import { warnLoadFailed } from '../../../shared/state/load-error';
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DecimalPipe } from '@angular/common';
@@ -335,7 +336,7 @@ export class SelectCourierComponent implements OnInit {
     if (this.courseId) {
       this.courseService.getCourseById(this.courseId).subscribe({
         next: (course: any) => { this.courseZone = course?.zone ?? ''; },
-        error: () => {}
+        error: warnLoadFailed('détail de la course (en-tête)', 'en-tête générique')
       });
     }
 

@@ -1,8 +1,10 @@
+import { warnLoadFailed } from '../../../shared/state/load-error';
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DatePipe, DecimalPipe, NgClass, SlicePipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { CourseService } from '../../../core/services/course.service';
+import { StatusBadgeComponent } from '../../../shared/status/status-badge.component';
 import { ToastService } from '../../../core/services/toast.service';
 import {
   LucideArrowLeft,
@@ -24,8 +26,17 @@ interface TimelineStep {
 /** Construit la timeline en fonction du statut de la course */
 function buildTimeline(status: string, paidAt?: string, createdAt?: string): TimelineStep[] {
   const statuses = ['PUBLISHED', 'ASSIGNED', 'IN_PROGRESS', 'PROOFS_SUBMITTED', 'COMPLETED'];
-  // OVERDUE (TICK-065b) : même étape que IN_PROGRESS — payée, preuves attendues
-  const idx = statuses.indexOf(status === 'OVERDUE' ? 'IN_PROGRESS' : status);
+  // TICK-077 : tous les statuts sont placés sur la timeline
+  //  OVERDUE  → étape « payée » (preuves attendues) ; DISPUTED → étape « preuves » (en arbitrage)
+  //  REFUNDED → payée puis remboursée ; CANCELLED → annulée avant paiement
+  const position: Record<string, number> = {
+    OVERDUE: 2, DISPUTED: 3, REFUNDED: 2, CANCELLED: 0,
+  };
+  const idx = status in position ? position[status] : statuses.indexOf(status);
+  const closedWithoutValidation = status === 'REFUNDED' || status === 'CANCELLED';
+  const finalLabel = status === 'REFUNDED' ? 'Course remboursée'
+                   : status === 'CANCELLED' ? 'Course annulée'
+                   : 'Course validée';
 
   return [
     {
@@ -47,14 +58,16 @@ function buildTimeline(status: string, paidAt?: string, createdAt?: string): Tim
     },
     {
       key: 'PROOFS_SUBMITTED',
-      label: 'Preuves soumises',
-      sublabel: idx < 3 ? 'En attente' : 'Le coursier a soumis ses preuves',
-      state: idx > 3 ? 'done' : idx === 3 ? 'active' : 'pending',
+      label: status === 'DISPUTED' ? 'Litige en cours' : 'Preuves soumises',
+      sublabel: status === 'DISPUTED' ? "Un administrateur examine le dossier"
+              : idx < 3 ? (closedWithoutValidation ? 'Aucune preuve' : 'En attente')
+              : 'Le coursier a soumis ses preuves',
+      state: status === 'DISPUTED' ? 'active' : idx > 3 ? 'done' : idx === 3 ? 'active' : 'pending',
     },
     {
       key: 'COMPLETED',
-      label: 'Course validée',
-      state: idx >= 4 ? 'done' : 'pending',
+      label: finalLabel,
+      state: idx >= 4 || closedWithoutValidation ? 'done' : 'pending',
     },
   ];
 }
@@ -63,6 +76,7 @@ function buildTimeline(status: string, paidAt?: string, createdAt?: string): Tim
   selector: 'app-course-detail',
   standalone: true,
   imports: [
+    StatusBadgeComponent,
     RouterLink,
     DatePipe,
     DecimalPipe,
@@ -77,6 +91,7 @@ function buildTimeline(status: string, paidAt?: string, createdAt?: string): Tim
     LucideCheckCircle,
   ],
   styles: [`
+    .st-ml-auto { margin-left: auto; }
     /* ── Timeline ── */
     .timeline {
       position: relative;
@@ -199,6 +214,8 @@ function buildTimeline(status: string, paidAt?: string, createdAt?: string): Tim
           <div style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:.95rem;color:var(--text);margin-bottom:16px">
             <svg lucideActivity size="17" style="color:var(--primary)"></svg>
             Suivi de la course
+            <!-- TICK-077 : badge de statut partagé -->
+            <span class="st-ml-auto"><app-status-badge [status]="course.status" role="CLIENT" /></span>
           </div>
           <div class="timeline">
             @for (step of timeline; track step.key) {
@@ -381,7 +398,7 @@ export class CourseDetailComponent implements OnInit {
         this.maxExtensions = Number(p.maxExtensions ?? 0);
         this.overdueGraceHours = Number(p.overdueGraceHours ?? 0);
       },
-      error: () => {},
+      error: warnLoadFailed('paramètres publics (prolongations, délai de grâce)', 'boutons de prolongation masqués'),
     });
     this.loadCourse();
   }

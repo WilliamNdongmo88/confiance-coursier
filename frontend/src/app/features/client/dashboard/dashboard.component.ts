@@ -1,9 +1,15 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { RouterLink, Router } from '@angular/router';
-import { DatePipe, NgClass, DecimalPipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { CourseService } from '../../../core/services/course.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { StatusBadgeComponent } from '../../../shared/status/status-badge.component';
+import { courseStatus } from '../../../shared/status/course-status';
+import { EmptyStateComponent } from '../../../shared/state/empty-state.component';
+import { ErrorStateComponent } from '../../../shared/state/error-state.component';
+import { SkeletonComponent } from '../../../shared/state/skeleton.component';
+
 import {
   LucidePlus,
   LucidePackageOpen,
@@ -16,40 +22,6 @@ import {
   LucideMessagesSquare,
 } from '@lucide/angular';
 
-// ─── Helpers ───────────────────────────────────────────────────────────────
-
-/** Classe CSS du badge de statut selon le statut backend */
-function statusBadgeClass(status: string): string {
-  switch (status) {
-    case 'PUBLISHED':     return 'status-badge status-badge--info';
-    case 'ASSIGNED':      return 'status-badge status-badge--warning';
-    case 'IN_PROGRESS':   return 'status-badge status-badge--success';
-    case 'PROOFS_SUBMITTED': return 'status-badge status-badge--purple';
-    case 'OVERDUE':       return 'status-badge status-badge--danger';
-    case 'DISPUTED':      return 'status-badge status-badge--danger';
-    case 'REFUNDED':      return 'status-badge status-badge--info';
-    case 'COMPLETED':     return 'status-badge status-badge--success';
-    case 'CANCELLED':     return 'status-badge status-badge--danger';
-    default:              return 'status-badge';
-  }
-}
-
-/** Libellé humain du statut */
-function statusLabel(status: string): string {
-  switch (status) {
-    case 'PUBLISHED':        return 'Publiée';
-    case 'ASSIGNED':         return 'À confirmer';
-    case 'IN_PROGRESS':      return 'En préparation';
-    case 'PROOFS_SUBMITTED': return 'Preuves soumises';
-    case 'OVERDUE':          return 'En retard';
-    case 'DISPUTED':         return 'Litige';
-    case 'REFUNDED':         return 'Remboursée';
-    case 'COMPLETED':        return 'Terminée';
-    case 'CANCELLED':        return 'Annulée';
-    default:                 return status;
-  }
-}
-
 @Component({
   selector: 'app-client-dashboard',
   standalone: true,
@@ -57,7 +29,10 @@ function statusLabel(status: string): string {
     RouterLink,
     DatePipe,
     DecimalPipe,
-    NgClass,
+    StatusBadgeComponent,
+    EmptyStateComponent,
+    ErrorStateComponent,
+    SkeletonComponent,
     LucidePlus,
     LucidePackageOpen,
     LucideCircleCheckBig,
@@ -149,20 +124,15 @@ function statusLabel(status: string): string {
             </a>
           </div>
 
-          <!-- État chargement -->
+          <!-- TICK-077 : états chargement / erreur / vide partagés -->
           @if (loading) {
-            <div class="row-item" style="justify-content:center;padding:32px 0;color:#94a199;">
-              Chargement…
-            </div>
-          }
-
-          <!-- Aucune course -->
-          @if (!loading && activeCourses.length === 0) {
-            <div class="row-item" style="justify-content:center;flex-direction:column;gap:8px;padding:32px 0;color:#94a199;text-align:center;">
-              <svg lucidePackageOpen size="32" style="opacity:.35;margin:0 auto"></svg>
-              <p style="margin:0;font-size:14px;">Aucune course active pour le moment.</p>
-              <a routerLink="/client/create-course" class="text-link">Créer votre première course →</a>
-            </div>
+            <app-skeleton [lines]="3" />
+          } @else if (loadError) {
+            <app-error-state message="Impossible de charger vos courses." (retry)="loadCourses()" />
+          } @else if (activeCourses.length === 0) {
+            <app-empty-state title="Aucune course active pour le moment."
+                             message="Décrivez votre besoin : des coursiers vérifiés vous répondent."
+                             actionLabel="Créer ma première course" actionLink="/client/create-course" />
           }
 
           <!-- Liste des courses actives -->
@@ -182,24 +152,13 @@ function statusLabel(status: string): string {
               </div>
 
               <div class="row-right">
-                <!-- Badge statut -->
-                @if (course.status === 'PROOFS_SUBMITTED') {
-                  <a class="row-action-link"
-                     [routerLink]="['/client/course-detail', course.id]"
-                     [queryParams]="{status: 'submitted'}">
-                    Voir les preuves <svg lucideArrowRight size="12"></svg>
-                  </a>
-                } @else {
-                  <span [ngClass]="getBadgeClass(course.status)">
-                    {{ getStatusLabel(course.status) }}
-                  </span>
-                }
+                <!-- TICK-077 : badge et action suivante issus de courseStatus() -->
+                <app-status-badge [status]="course.status" role="CLIENT" />
 
                 <!-- Actions -->
                 <div class="row-actions">
-                  @if (course.reviewDue) {
-                    <!-- TICK-073 : notation due (y compris après validation automatique à 72 h) -->
-                    <a [routerLink]="['/client/rate', course.id]" class="btn-row btn-row--green">★ Noter</a>
+                  @if (nextAction(course); as action) {
+                    <a [routerLink]="action.link" class="btn-row btn-row--green">{{ action.label }}</a>
                   }
                   <a [routerLink]="['/client/course-detail', course.id]"
                      class="btn-row btn-row--ghost">Détails</a>
@@ -324,8 +283,8 @@ export class ClientDashboardComponent implements OnInit {
 
   // ─── Helpers exposés au template ─────────────────────────────────────────
 
-  getBadgeClass(status: string): string  { return statusBadgeClass(status); }
-  getStatusLabel(status: string): string { return statusLabel(status); }
+  /** Action suivante attendue du client (TICK-077). */
+  nextAction(course: any) { return courseStatus(course, 'CLIENT').action; }
 
   // ─── Lifecycle ───────────────────────────────────────────────────────────
 
@@ -333,8 +292,12 @@ export class ClientDashboardComponent implements OnInit {
     this.loadCourses();
   }
 
+  /** Échec du chargement principal : état d'erreur avec « Réessayer » (TICK-077). */
+  loadError = false;
+
   loadCourses(): void {
     this.loading = true;
+    this.loadError = false;
     this.courseService.getMyCourses().subscribe({
       next: (data) => {
         this.courses = data;
@@ -342,7 +305,7 @@ export class ClientDashboardComponent implements OnInit {
       },
       error: (err) => {
         this.loading = false;
-        this.toast.error('Impossible de charger vos courses.');
+        this.loadError = true;
         console.error(err);
       },
     });
