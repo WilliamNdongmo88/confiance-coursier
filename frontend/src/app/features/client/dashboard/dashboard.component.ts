@@ -1,6 +1,6 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { RouterLink, Router } from '@angular/router';
-import { DatePipe, DecimalPipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { CourseService } from '../../../core/services/course.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { ToastService } from '../../../core/services/toast.service';
@@ -20,8 +20,8 @@ import {
   LucideMessageCircle,
   LucideArrowUpRight,
   LucideArrowRight,
-  LucideSparkles,
   LucideMessagesSquare,
+  LucideShieldCheck,
 } from '@lucide/angular';
 
 @Component({
@@ -30,7 +30,6 @@ import {
   imports: [
     RouterLink,
     DatePipe,
-    DecimalPipe,
     StatusBadgeComponent,
     EmptyStateComponent,
     ErrorStateComponent,
@@ -42,46 +41,107 @@ import {
     LucideMessageCircle,
     LucideArrowUpRight,
     LucideArrowRight,
-    LucideSparkles,
     LucideMessagesSquare,
+    LucideShieldCheck,
   ],
   styles: [`
-    .metric-unit { font-size: 13px; color: var(--cc-muted); font-weight: 600; }
+    :host { display: block; --dash-muted: #56635c; }
+    :host-context([data-theme="dark"]) { --dash-muted: #B0C0B7; }
+    .dash-head p { color: var(--dash-muted); }
+    .metric-unit { font-size: 13px; color: var(--dash-muted); font-weight: 600; }
+    .metric-none { font-size: 15px; font-weight: 700; letter-spacing: -.02em; }
+    .text-link { white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; min-height: 44px; }
+
+    /* Une course attend le client : l'action principale de l'écran */
+    .dash-alert {
+      display: flex; align-items: center; gap: 16px; margin-bottom: 20px; padding: 18px 20px; border-radius: 14px;
+      background: var(--cc-forest); color: #fff; box-shadow: 0 14px 34px rgba(18,59,50,.18);
+    }
+    .dash-alert-icon { flex: none; width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center;
+      background: rgba(215,237,154,.16); color: var(--cc-lime); }
+    .dash-alert-body { flex: 1; min-width: 0; }
+    .dash-alert-body strong { display: block; font-size: 15px; letter-spacing: -.02em; }
+    .dash-alert-body span { display: block; margin-top: 2px; font-size: 13px; color: #cfdcd4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* Rappel du séquestre */
+    .escrow-steps { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 12px; counter-reset: step; }
+    .escrow-steps li { display: grid; grid-template-columns: 26px 1fr; gap: 10px; align-items: start; font-size: 13px; line-height: 1.45; color: #d6e2da; }
+    .escrow-steps li::before { counter-increment: step; content: counter(step); width: 26px; height: 26px; border-radius: 8px;
+      display: grid; place-items: center; background: rgba(215,237,154,.14); color: var(--cc-lime); font-weight: 800; font-size: 12px; }
+    .escrow-steps b { color: #fff; font-weight: 700; }
+    .dark-card h3 { font-size: 17px; line-height: 1.25; letter-spacing: -.035em; margin: 0; color: #fff; }
+
+    .help-card { padding: 17px; }
+    .help-title { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; font-weight: 700; font-size: 14px; color: var(--cc-ink); }
+    .help-title svg { color: var(--primary); }
+    .help-card p { margin: 0 0 6px; font-size: 13px; line-height: 1.55; color: var(--dash-muted); }
+    :host-context([data-theme="dark"]) .help-title { color: #F3F7F5 !important; }
+    :host-context([data-theme="dark"]) .help-card p, :host-context([data-theme="dark"]) .dash-head p { color: #B0C0B7 !important; }
+
+    /* Entrée : l'en-tête puis les blocs, dans l'ordre de lecture */
+    .dash-in { animation: dash-rise .5s cubic-bezier(.16,1,.3,1) both; }
+    .dash-in:nth-child(2) { animation-delay: .05s; } .dash-in:nth-child(3) { animation-delay: .1s; }
+    .dash-in:nth-child(4) { animation-delay: .15s; } .dash-in:nth-child(5) { animation-delay: .2s; }
+    .row-item { animation: dash-rise .4s cubic-bezier(.16,1,.3,1) both; }
+    @keyframes dash-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+    /* Mobile : résumé compact sur une ligne, l'action d'abord */
+    @media (max-width: 767.98px) {
+      .metrics-grid { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 8px; margin-bottom: 18px; }
+      .metric-card { padding: 12px 10px; display: block; text-align: center; }
+      .metric-card .metric-icon, .metric-card .metric-note { display: none; }
+      .metric-card .metric-label { font-size: 12px; line-height: 1.25; }
+      .metric-card .metric-value { font-size: 22px; margin-top: 4px; }
+      .metric-none { font-size: 13px; }
+      .dash-alert { flex-wrap: wrap; }
+      .dash-alert .primary-action { width: 100%; justify-content: center; }
+      .dash-head .primary-action { width: 100%; justify-content: center; margin-top: 4px; }
+    }
+    @media (prefers-reduced-motion: reduce) { .dash-in, .row-item { animation: none; } }
   `],
   template: `
-
-      <!-- ── En-tête de page ── -->
-      <section class="page-head">
+      <section class="page-head dash-head dash-in">
         <div>
           <h1>Bonjour {{ firstName }},</h1>
-          <p>Voici le point sur vos courses et vos prochaines étapes.</p>
+          <p>
+            @if (loading) { Chargement de vos courses… }
+            @else if (proofsSubmittedCourse) { Une course attend votre validation. }
+            @else if (activeCourses.length > 0) { Voici où en sont vos courses. }
+            @else { Confiez votre première course : des coursiers vérifiés vous répondent. }
+          </p>
         </div>
-        <a routerLink="/client/create-course" class="primary-action">
-          <svg lucidePlus size="14"></svg> Créer une course
-        </a>
+        @if (!loading && activeCourses.length > 0 && !proofsSubmittedCourse) {
+          <a routerLink="/client/create-course" class="primary-action">
+            <svg lucidePlus size="14"></svg> Nouvelle course
+          </a>
+        }
       </section>
 
-      <!-- ── Notice ── -->
-      <div class="app-notice">
-        <svg lucideSparkles size="16"></svg>
-        <div>
-          <strong>Votre famille est à portée de main.</strong>
-          <span> Commandez une course pour un proche au Cameroun et suivez sa réalisation depuis votre espace.</span>
-        </div>
-      </div>
+      @if (proofsSubmittedCourse; as c) {
+        <section class="dash-alert dash-in" aria-label="Action attendue">
+          <span class="dash-alert-icon"><svg lucideShieldCheck size="20"></svg></span>
+          <div class="dash-alert-body">
+            <strong>Preuves reçues : à vous de valider</strong>
+            <span>« {{ c.description }} » — l’argent reste bloqué tant que vous n’avez pas validé.</span>
+          </div>
+          <a class="primary-action primary-action--lime" [routerLink]="['/client/course-detail', c.id]" [queryParams]="{ status: 'submitted' }">
+            Examiner les preuves <svg lucideArrowRight size="14"></svg>
+          </a>
+        </section>
+      }
 
-      <!-- ── Métriques ── -->
-      <section class="metrics-grid" aria-label="Résumé de votre activité">
-
+      @if (!loading && courses.length > 0) {
+      <section class="metrics-grid dash-in" aria-label="Résumé de votre activité">
         <article class="metric-card">
           <span class="metric-icon"><svg lucidePackageOpen size="20"></svg></span>
           <div>
             <span class="metric-label">Courses actives</span>
-            <strong class="metric-value">{{ activeCourses.length.toString().padStart(2, '0') }}</strong>
+            <strong class="metric-value">{{ activeCourses.length }}</strong>
             <div class="metric-note">
-              <em>{{ inProgressCount }} en cours</em>
-              @if (inProgressCount !== activeCourses.length) {
-                · {{ activeCourses.length - inProgressCount }} à confirmer
+              @if (activeCourses.length === 0) { Aucune pour l’instant }
+              @else {
+                <em>{{ inProgressCount }} en cours</em>
+                @if (inProgressCount !== activeCourses.length) { · {{ activeCourses.length - inProgressCount }} à suivre }
               }
             </div>
           </div>
@@ -90,8 +150,8 @@ import {
         <article class="metric-card">
           <span class="metric-icon"><svg lucideCircleCheckBig size="20"></svg></span>
           <div>
-            <span class="metric-label">Courses terminées</span>
-            <strong class="metric-value">{{ completedCourses.length.toString().padStart(2, '0') }}</strong>
+            <span class="metric-label">Terminées</span>
+            <strong class="metric-value">{{ completedCourses.length }}</strong>
             <div class="metric-note">Depuis votre inscription</div>
           </div>
         </article>
@@ -103,21 +163,18 @@ import {
             <!-- TICK-078 : note réelle donnée par les coursiers, affichée seulement s'il y a des avis -->
             <strong class="metric-value">
               @if (reviewCount > 0) {
-                {{ trustScore | number:'1.1-1' }} <span class="metric-unit">/ 5</span>
+                {{ ratingLabel }} <span class="metric-unit">/ 5</span>
               } @else {
-                <span class="metric-unit">Pas encore d'avis</span>
+                <span class="metric-none">—</span>
               }
             </strong>
-            <div class="metric-note">{{ reviewCount > 0 ? 'Sur ' + reviewCount + ' avis de coursiers' : 'Les coursiers vous notent après chaque course' }}</div>
+            <div class="metric-note">{{ reviewCount > 0 ? 'Sur ' + reviewCount + ' avis de coursiers' : 'Pas encore d’avis' }}</div>
           </div>
         </article>
-
       </section>
+      }
 
-      <!-- ── Grille principale ── -->
-      <div class="content-aside-grid">
-
-        <!-- Panel : courses à suivre -->
+      <div class="content-aside-grid dash-in">
         <section class="panel">
           <div class="panel-head">
             <div>
@@ -125,7 +182,7 @@ import {
               <p>Les dernières mises à jour de vos commandes</p>
             </div>
             <a class="text-link" routerLink="/client/history">
-              Tout l'historique <svg lucideArrowUpRight style="width:12px;vertical-align:-2px"></svg>
+              Historique <svg lucideArrowUpRight size="13"></svg>
             </a>
           </div>
 
@@ -135,18 +192,14 @@ import {
           } @else if (loadError) {
             <app-error-state message="Impossible de charger vos courses." (retry)="loadCourses()" />
           } @else if (activeCourses.length === 0) {
-            <app-empty-state title="Aucune course active pour le moment."
-                             message="Décrivez votre besoin : des coursiers vérifiés vous répondent."
+            <app-empty-state title="Aucune course en cours"
+                             message="Décrivez ce qu’il faut faire, où et quand : des coursiers vérifiés vous proposent leur tarif."
                              actionLabel="Créer ma première course" actionLink="/client/create-course" />
           }
 
-          <!-- Liste des courses actives -->
-          @for (course of activeCourses; track course.id) {
-            <article class="row-item">
-              <span class="row-icon">
-                <svg lucidePackageOpen size="16"></svg>
-              </span>
-
+          @for (course of activeCourses; track course.id; let i = $index) {
+            <article class="row-item" [style.animation-delay.ms]="120 + i * 40">
+              <span class="row-icon"><svg lucidePackageOpen size="16"></svg></span>
               <div class="row-body">
                 <div class="row-title">{{ course.description }}</div>
                 <div class="row-meta">
@@ -155,90 +208,42 @@ import {
                   <span>{{ course.scheduledAt | date:'dd/MM/yyyy HH:mm' }}</span>
                 </div>
               </div>
-
               <div class="row-right">
                 <!-- TICK-077 : badge et action suivante issus de courseStatus() -->
                 <app-status-badge [status]="course.status" role="CLIENT" />
-
-                <!-- Actions -->
                 <div class="row-actions">
                   @if (nextAction(course); as action) {
                     <a [routerLink]="action.link" class="btn-row btn-row--green">{{ action.label }}</a>
                   }
-                  <a [routerLink]="['/client/course-detail', course.id]"
-                     class="btn-row btn-row--ghost">Détails</a>
-
+                  <a [routerLink]="['/client/course-detail', course.id]" class="btn-row btn-row--ghost">Détails</a>
                   @if (course.chatRoomId) {
-                    <a [routerLink]="['/chat', course.chatRoomId]"
-                       class="btn-row btn-row--green"
-                       aria-label="Chat">
-                      <svg lucideMessageCircle style="width:14px;height:14px"></svg> Chat
+                    <a [routerLink]="['/chat', course.chatRoomId]" class="btn-row btn-row--green" aria-label="Ouvrir le chat de la course">
+                      <svg lucideMessageCircle size="14"></svg> Chat
                     </a>
                   }
                 </div>
               </div>
             </article>
           }
-
         </section>
 
-        <!-- ── Aside ── -->
         <aside class="card-stack">
-
-          <!-- CTA contextuel selon statut -->
-          @if (proofsSubmittedCourse) {
-            <article class="dark-card">
-              <small>La prochaine étape</small>
-              <h3 style="font-size:17px;line-height:1.25;letter-spacing:-.035em;margin:9px 0">
-                Votre course attend votre validation
-              </h3>
-              <p>Les preuves pour "{{ proofsSubmittedCourse.description }}" sont disponibles. Consultez-les avant de confirmer.</p>
-              <a class="primary-action primary-action--lime"
-                 [routerLink]="['/client/course-detail', proofsSubmittedCourse.id]"
-                 [queryParams]="{status: 'submitted'}">
-                Examiner les preuves <svg lucideArrowRight size="14"></svg>
-              </a>
-            </article>
-          } @else if (activeCourses.length === 0) {
-            <article class="dark-card">
-              <small>Par où commencer ?</small>
-              <h3 style="font-size:17px;line-height:1.25;letter-spacing:-.035em;margin:9px 0">
-                Créez votre première course
-              </h3>
-              <p>Décrivez votre besoin et choisissez un coursier de confiance en quelques clics.</p>
-              <a class="primary-action primary-action--lime" routerLink="/client/create-course">
-                Nouvelle course <svg lucideArrowRight size="14"></svg>
-              </a>
-            </article>
-          } @else {
-            <article class="dark-card">
-              <small>Tout se passe bien</small>
-              <h3 style="font-size:17px;line-height:1.25;letter-spacing:-.035em;margin:9px 0">
-                {{ activeCourses.length }} course{{ activeCourses.length > 1 ? 's' : '' }} en cours
-              </h3>
-              <p>Suivez l'avancement en temps réel et discutez avec votre coursier via le chat.</p>
-              <a class="primary-action primary-action--lime" routerLink="/client/create-course">
-                Ajouter une course <svg lucideArrowRight size="14"></svg>
-              </a>
-            </article>
-          }
-
-          <!-- Aide -->
-          <article class="panel" style="padding:17px">
-            <div style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px;color:#304237;margin-bottom:9px">
-              <svg lucideMessagesSquare style="width:16px;color:#538366"></svg>
-              Besoin d'un coup de main ?
-            </div>
-            <p style="font-size:12px;line-height:1.55;color:#7f8a82;margin:0 0 13px">
-              Notre centre d'aide répond aux questions sur les paiements, les courses et le suivi.
-            </p>
-            <a class="text-link" href="/support">Contacter le support →</a>
+          <article class="dark-card">
+            <h3>Votre argent est protégé</h3>
+            <ol class="escrow-steps">
+              <li><span>Vous payez : <b>les fonds sont bloqués</b>, pas versés.</span></li>
+              <li><span>Le coursier réalise la course et <b>envoie ses preuves</b>.</span></li>
+              <li><span>Vous vérifiez, puis <b>vous validez</b> : il est payé. Un souci ? Ouvrez un litige.</span></li>
+            </ol>
           </article>
 
+          <article class="panel help-card">
+            <h3 class="help-title"><svg lucideMessagesSquare size="16"></svg> Besoin d’un coup de main ?</h3>
+            <p>Le centre d’aide répond aux questions sur les paiements, les courses et le suivi.</p>
+            <a class="text-link" routerLink="/support">Contacter le support <svg lucideArrowRight size="13"></svg></a>
+          </article>
         </aside>
-
-      </div><!-- /content-aside-grid -->
-
+      </div>
   `,
 })
 export class ClientDashboardComponent implements OnInit {
@@ -281,6 +286,9 @@ export class ClientDashboardComponent implements OnInit {
   get proofsSubmittedCourse(): any | null {
     return this.courses.find((c) => c.status === 'PROOFS_SUBMITTED') ?? null;
   }
+
+  /** Note au format français (4,7). */
+  get ratingLabel(): string { return this.trustScore.toFixed(1).replace('.', ','); }
 
   /** TICK-078 : note réelle du client (moyenne des avis des coursiers) et nombre d'avis. */
   trustScore = 0;

@@ -40,11 +40,11 @@ import {
           <h1>{{ isClient ? 'Historique des courses' : 'Historique des missions' }}</h1>
           <p>{{ isClient ? 'Retrouvez toutes vos commandes passées.' : 'Retrouvez toutes vos courses passées.' }}</p>
         </div>
-        @if (isClient) {
+        @if (isClient && !loading && courses.length > 0) {
           <a routerLink="/client/create-course" class="primary-action">
             <svg lucidePlus size="14"></svg> Nouvelle course
           </a>
-        } @else {
+        } @else if (!isClient) {
           <a routerLink="/courier/dashboard" class="btn btn-secondary btn-sm">
             <svg lucideArrowLeft size="15"></svg> Retour
           </a>
@@ -52,6 +52,7 @@ import {
       </section>
 
       <!-- ── Filtres ── -->
+      @if (loading || courses.length > 0) {
       <div class="history-filters">
         <div class="filter-group">
           <label for="statusFilter">Statut</label>
@@ -71,6 +72,7 @@ import {
           </select>
         </div>
       </div>
+      }
 
       <!-- TICK-077 : états chargement / erreur / vide partagés -->
       @if (loading) {

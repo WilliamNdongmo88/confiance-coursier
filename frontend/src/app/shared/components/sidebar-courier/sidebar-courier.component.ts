@@ -35,7 +35,7 @@ import {
     <aside class="app-sidebar" [class.open]="open" id="sidebar">
       <a class="sb-brand" routerLink="/courier/dashboard">
         <span class="sb-brand-icon"><svg lucideBike size="17"></svg></span>
-        confiancecoursier
+        ConfianceCoursier
       </a>
 
       <div class="sb-workspace">Espace coursier</div>

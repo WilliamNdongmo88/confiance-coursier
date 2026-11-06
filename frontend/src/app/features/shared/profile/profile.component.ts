@@ -5,7 +5,7 @@ import { HttpClient } from '@angular/common/http';
 import { ToastService } from '../../../core/services/toast.service';
 import { AuthService } from '../../../core/services/auth.service';
 import {
-  LucideArrowLeft,
+  LucideLogOut,
   LucideLock,
   LucideSave,
   LucideShieldCheck,
@@ -38,7 +38,7 @@ interface UserProfile {
   imports: [
     RouterLink,
     NgIf,
-    LucideArrowLeft,
+    LucideLogOut,
     LucideLock,
     LucideSave,
     LucideShieldCheck,
@@ -85,7 +85,14 @@ interface UserProfile {
       .profile-grid   { grid-template-columns: 1fr; gap: 0; }
     }
     [data-theme="dark"] .avatar-section { border-bottom-color: var(--cc-line); }
-    [data-theme="dark"] .avatar-lg { background: var(--surface); color: var(--cc-lime); }
+    :host-context([data-theme="dark"]) .avatar-lg { background: rgba(215,237,154,.14) !important; color: var(--cc-lime) !important; }
+    .logout-zone { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--cc-line); }
+    .btn-logout { width: 100%; min-height: 48px; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      border-radius: 10px; border: 0; background: #b54843; color: #fff; font: inherit; font-weight: 750; cursor: pointer;
+      box-shadow: 0 6px 16px rgba(181,72,67,.22); transition: background .15s, transform .12s; }
+    .btn-logout:hover { background: #9c3a35; }
+    .btn-logout:active { transform: scale(.985); }
+    :host-context([data-theme="dark"]) .btn-logout { background: #E2776F !important; color: #1f0d0b !important; }
     [data-theme="dark"] hr { border-top-color: var(--cc-line) !important; }
     /* ── Bannière KYC (même style que courier/dashboard) ── */
     .kyc-banner {
@@ -167,9 +174,6 @@ interface UserProfile {
       <h1>{{ isCourier ? 'Mon profil coursier' : 'Mon profil' }}</h1>
       <p>{{ isCourier ? 'Gérez vos coordonnées et préférences de mission.' : 'Gérez vos informations personnelles.' }}</p>
     </div>
-    <a [routerLink]="isCourier ? '/courier/dashboard' : '/client/dashboard'" class="btn btn-secondary btn-sm">
-      <svg lucideArrowLeft size="15"></svg> Retour
-    </a>
   </div>
 
   <!-- Chargement -->
@@ -328,6 +332,12 @@ interface UserProfile {
       </button>
     </div>
 
+    <div class="logout-zone">
+      <button type="button" class="btn-logout" (click)="logout()">
+        <svg lucideLogOut size="17"></svg> Se déconnecter
+      </button>
+    </div>
+
   </div>
   `
 })
@@ -357,6 +367,11 @@ export class ProfileComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadProfile();
+  }
+
+  logout(): void {
+    this.auth.logout();
+    this.router.navigate(['/login']);
   }
 
   // ── Chargement ────────────────────────────────────────────────────────────

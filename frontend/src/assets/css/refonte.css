@@ -883,3 +883,28 @@ button, input, select, textarea { font: inherit; }
 [data-theme="dark"] .auth-card .input-error { border-color: #E2776F !important; }
 [data-theme="dark"] .auth-link-btn { color: #5FBF8F; }
 @media (prefers-reduced-motion: reduce) { .auth-badge, .auth-error { animation: none; } }
+
+/* ── Cadre des espaces connectés (Impeccable) ───────────────────────────── */
+/* Libellé d'espace discret (pas de capitales criardes) */
+.sb-workspace { text-transform: none; letter-spacing: 0; font-size: 12px; font-weight: 700; color: #56635c; }
+[data-theme="dark"] .sb-workspace { color: #B0C0B7; }
+/* Mobile : le tiroir passe au-dessus de la barre basse (le compte et la déconnexion restent visibles) */
+@media (max-width: 767.98px) {
+  .app-sidebar { z-index: 60; padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
+  .app-overlay { z-index: 55; }
+}
+.app-overlay.active { animation: auth-rise-fade .25s ease-out; }
+@keyframes auth-rise-fade { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .app-overlay.active { animation: none; } }
+
+/* Déconnexion : rouge et assez grande pour être trouvée et touchée */
+.sb-logout-btn { width: 40px; height: 40px; border-radius: 10px; color: #fff !important; background: #b54843 !important;
+  border: 0 !important; box-shadow: 0 4px 12px rgba(181, 72, 67, .25); }
+.sb-logout-btn:hover { background: #9c3a35 !important; }
+.sb-logout-btn svg { width: 17px !important; height: 17px !important; }
+[data-theme="dark"] .sb-logout-btn { background: #E2776F !important; color: #1f0d0b !important; }
+
+/* Thème sombre : le navigateur dessine ses contrôles natifs en clair (icônes date/heure, listes, barres de défilement) */
+:root { color-scheme: light; }
+[data-theme="dark"] { color-scheme: dark; }
+input::-webkit-calendar-picker-indicator { cursor: pointer; }
