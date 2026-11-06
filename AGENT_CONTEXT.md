@@ -1289,6 +1289,21 @@ Revue du code des tickets 055 à 061 contre `PLAN_AMELIORATION.md`, puis correct
 
 ---
 
+### Session 55 — TICK-065 [BE] : scheduler de validation automatique robuste (2026-11-06)
+
+- Nouveau `AutoValidationService` (remplace `PaymentService.autoValidateExpiredCourses`, supprimée) :
+  requête ciblée `CourseRepository.findIdsDueForAutoValidation(now)` (`status = PROOFS_SUBMITTED AND auto_validate_at <= now`) ;
+  **une transaction par course** (`TransactionTemplate`), course rechargée sous verrou et revérifiée (ignorée si validée, en litige ou échéance repoussée) ;
+  emails **après commit** ; une erreur sur une course est journalisée (`error`) et n'arrête pas les suivantes ; une panne d'email n'annule pas la libération.
+- `ValidationScheduler` : cron `${app.scheduler.validation.cron:0 */15 * * * *}` (toutes les 15 min au lieu de toutes les heures) + `@SchedulerLock(name = "autoValidateCourses")`.
+- `config/SchedulingConfig` : bean `Clock` (injectable en test) ; ShedLock `JdbcTemplateLockProvider` (heure de la base), `@EnableSchedulerLock`.
+- Dépendances : `shedlock-spring` et `shedlock-provider-jdbc-template` 7.9.0 (compatibles Spring 7 / Boot 4).
+- Migration `V16__shedlock.sql` : table `shedlock` + index `courses(status, auto_validate_at)`.
+- Validation manuelle (`PaymentService.validateCourse`) : email au coursier également envoyé après commit.
+- Tests : `AutoValidationServiceTest` (8 cas, horloge fixe, ordre libération → commit → email, isolement des erreurs) → 154 tests unitaires verts ; `BackendApplicationTests` vert (V16 appliquée sur la base de dev). Test d'intégration sur vraie base : TICK-096/097 (Testcontainers).
+
+---
+
 ## 9. DOMAINES À IMPLÉMENTER (par ordre de priorité métier)
 
 ### 1. Guards Angular (prérequis avant tout)

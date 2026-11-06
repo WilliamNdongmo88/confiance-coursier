@@ -679,6 +679,7 @@ Contrôles :
 **Validation :** sur mobile réel : filmer, photographier, envoyer.
 
 #### TICK-065 🟡 [BE] Scheduler de validation automatique robuste — 3 h
+**Statut :** ✅ (2026-11-06, session 55)
 **Anomalie :** A-30 · **Fichiers :** `ValidationScheduler`, `PaymentService`, `pom.xml` (ShedLock)
 **Critères d'acceptation :**
 - Requête `status = PROOFS_SUBMITTED AND auto_validate_at <= now`.

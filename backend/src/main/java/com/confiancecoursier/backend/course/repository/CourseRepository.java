@@ -21,6 +21,14 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT c FROM Course c WHERE c.id = :id")
     Optional<Course> findByIdForUpdate(@org.springframework.data.repository.query.Param("id") Long id);
+    /**
+     * TICK-065 : ids des courses dont le délai de validation est écoulé
+     * ({@code status = PROOFS_SUBMITTED AND auto_validate_at <= now}). Les courses DISPUTED sont exclues par le statut.
+     */
+    @Query("SELECT c.id FROM Course c WHERE c.status = 'PROOFS_SUBMITTED' " +
+           "AND c.autoValidateAt IS NOT NULL AND c.autoValidateAt <= :now ORDER BY c.autoValidateAt")
+    List<Long> findIdsDueForAutoValidation(@org.springframework.data.repository.query.Param("now") java.time.LocalDateTime now);
+
     // Récupère toutes les courses avec un statut donné (ex: PUBLISHED)
     List<Course> findByStatusOrderByCreatedAtDesc(String status);
 

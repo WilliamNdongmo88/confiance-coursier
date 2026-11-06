@@ -1100,6 +1100,7 @@ Le flux d'offre doit passer par le chat (spec fonctionnelle §2.1). Le coursier 
 | TICK-062 | 🟠 [FULL] Règles d'ouverture des litiges | ✅ |
 | TICK-063 | 🟠 [BE] Signalements anti-abus | ✅ |
 | TICK-064 | 🟠 [FULL] Soumission de preuves complète et fiable | ✅ |
+| TICK-065 | 🟡 [BE] Scheduler de validation automatique robuste | ✅ |
 
 > 2026-11-05 — TICK-055 → TICK-061 revus et corrigés (session 51, voir `AGENT_CONTEXT.md` §7 et `PLAN_AMELIORATION.md` §1.4).
 

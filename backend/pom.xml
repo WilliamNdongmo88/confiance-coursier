@@ -104,6 +104,18 @@
 			<scope>test</scope>
 		</dependency>
 
+		<!-- ShedLock (TICK-065) : une seule instance exécute un job planifié à la fois -->
+		<dependency>
+			<groupId>net.javacrumbs.shedlock</groupId>
+			<artifactId>shedlock-spring</artifactId>
+			<version>7.9.0</version>
+		</dependency>
+		<dependency>
+			<groupId>net.javacrumbs.shedlock</groupId>
+			<artifactId>shedlock-provider-jdbc-template</artifactId>
+			<version>7.9.0</version>
+		</dependency>
+
 		<!-- JWT (JJWT) -->
 		<dependency>
 			<groupId>io.jsonwebtoken</groupId>

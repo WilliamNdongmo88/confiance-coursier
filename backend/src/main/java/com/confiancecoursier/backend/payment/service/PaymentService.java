@@ -14,6 +14,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -196,44 +198,14 @@ public class PaymentService {
 
         applyValidation(course);
 
-        // Notification email au coursier
-        notificationService.notifyCourseValidated(course.getCourierId(), courseId);
+        // Notification email au coursier, après commit (jamais pour une libération annulée)
+        Long courierId = course.getCourierId();
+        afterCommit(() -> notificationService.notifyCourseValidated(courierId, courseId));
 
         log.info("[VALIDATION CLIENT] courseId={} validé par clientId={}", courseId, clientId);
     }
 
-    // ─── Auto-validation (appelée par le scheduler) ────────────────────────────
-
-    /**
-     * Applique la validation automatique sur toutes les courses dont
-     * {@code auto_validate_at <= now} et dont le statut est {@code PROOFS_SUBMITTED}.
-     *
-     * @return nombre de courses auto-validées
-     */
-    @Transactional
-    public int autoValidateExpiredCourses() {
-        LocalDateTime now = LocalDateTime.now();
-        var candidates = courseRepository.findByStatusOrderByCreatedAtDesc("PROOFS_SUBMITTED")
-                .stream()
-                .filter(c -> c.getAutoValidateAt() != null && !c.getAutoValidateAt().isAfter(now))
-                .map(Course::getId)
-                .toList();
-
-        int count = 0;
-        for (Long id : candidates) {
-            // Rechargée sous verrou : une validation manuelle concurrente a pu passer avant
-            Course course = courseRepository.findByIdForUpdate(id).orElse(null);
-            if (course == null || !"PROOFS_SUBMITTED".equals(course.getStatus())) {
-                continue;
-            }
-            applyValidation(course);
-            notificationService.notifyAutoValidation(course.getClientId(), course.getCourierId(), course.getId());
-            log.info("[AUTO-VALIDATION] courseId={} validée automatiquement (autoValidateAt={})",
-                    course.getId(), course.getAutoValidateAt());
-            count++;
-        }
-        return count;
-    }
+    // L'auto-validation à 72 h est portée par AutoValidationService (TICK-065).
 
     // ─── Logique de validation commune ────────────────────────────────────────
 
@@ -245,5 +217,23 @@ public class PaymentService {
         course.setCompletedAt(LocalDateTime.now());
         escrowService.release(course);
         log.info("[VALIDATION] courseId={} → COMPLETED via EscrowService", course.getId());
+    }
+
+    /** Exécute l'action après le commit de la transaction courante (immédiatement s'il n'y en a pas). */
+    private static void afterCommit(Runnable action) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    try {
+                        action.run();
+                    } catch (RuntimeException e) {
+                        log.warn("[NOTIFICATION] Échec d'envoi après commit : {}", e.getMessage());
+                    }
+                }
+            });
+        } else {
+            action.run();
+        }
     }
 }
