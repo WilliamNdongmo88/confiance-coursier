@@ -1,0 +1,657 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-06T14:02:35+00:00",
+  "title": "Design System: ConfianceCoursier",
+  "extensions": {
+    "colorMeta": {
+      "vert-coffre": {
+        "role": "primary",
+        "displayName": "Vert coffre",
+        "canonical": "#123b32",
+        "oklch": "oklch(32.1% 0.048 176.0)",
+        "tonalRamp": [
+          "#060d0b",
+          "#182824",
+          "#2d463f",
+          "#44665d",
+          "#64897f",
+          "#8faca4",
+          "#bcd0ca",
+          "#e6f2ee"
+        ]
+      },
+      "vert-coffre-2": {
+        "role": "primary",
+        "displayName": "Vert coffre 2",
+        "canonical": "#1b5144",
+        "oklch": "oklch(39.5% 0.061 174.3)",
+        "tonalRamp": [
+          "#040d0b",
+          "#142923",
+          "#27473e",
+          "#3b685b",
+          "#5c8b7e",
+          "#8aaea3",
+          "#b8d1c9",
+          "#e4f2ee"
+        ]
+      },
+      "feuille": {
+        "role": "primary",
+        "displayName": "Feuille",
+        "canonical": "#17634f",
+        "oklch": "oklch(44.9% 0.079 171.0)",
+        "tonalRamp": [
+          "#030e0a",
+          "#0e2a22",
+          "#1e493c",
+          "#2f6a58",
+          "#508e7a",
+          "#82b0a0",
+          "#b3d3c7",
+          "#e1f3ec"
+        ]
+      },
+      "feuille-sombre": {
+        "role": "primary",
+        "displayName": "Feuille sombre",
+        "canonical": "#104d3d",
+        "oklch": "oklch(37.8% 0.066 171.1)",
+        "tonalRamp": [
+          "#040e0a",
+          "#132922",
+          "#25483d",
+          "#396859",
+          "#5a8c7b",
+          "#88aea1",
+          "#b7d2c8",
+          "#e3f3ed"
+        ]
+      },
+      "feuille-tendre": {
+        "role": "primary",
+        "displayName": "Feuille tendre",
+        "canonical": "#e5f1e8",
+        "oklch": "oklch(94.7% 0.017 153.6)",
+        "tonalRamp": [
+          "#0a0c0a",
+          "#212522",
+          "#3b423d",
+          "#57605a",
+          "#79837c",
+          "#9fa7a1",
+          "#c7ccc8",
+          "#ecefed"
+        ]
+      },
+      "lime-eclat": {
+        "role": "secondary",
+        "displayName": "Lime éclat",
+        "canonical": "#d7ed9a",
+        "oklch": "oklch(91.1% 0.109 120.7)",
+        "tonalRamp": [
+          "#090d01",
+          "#212808",
+          "#3a4513",
+          "#566520",
+          "#788942",
+          "#9eac77",
+          "#c5d0ab",
+          "#ebf2dc"
+        ]
+      },
+      "lime-eclat-2": {
+        "role": "secondary",
+        "displayName": "Lime éclat 2",
+        "canonical": "#c8e480",
+        "oklch": "oklch(87.6% 0.130 121.9)",
+        "tonalRamp": [
+          "#090d00",
+          "#1f2801",
+          "#384603",
+          "#536707",
+          "#758b32",
+          "#9bae6d",
+          "#c4d1a5",
+          "#eaf3d9"
+        ]
+      },
+      "papier": {
+        "role": "neutral",
+        "displayName": "Papier",
+        "canonical": "#f5f7f4",
+        "oklch": "oklch(97.4% 0.004 134.8)",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#242423",
+          "#3f403e",
+          "#5d5e5c",
+          "#7f817e",
+          "#a4a5a3",
+          "#cacbc9",
+          "#eeefee"
+        ]
+      },
+      "papier-2": {
+        "role": "neutral",
+        "displayName": "Papier 2",
+        "canonical": "#f0f3ef",
+        "oklch": "oklch(96.1% 0.006 137.8)",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#232423",
+          "#3f403e",
+          "#5c5e5b",
+          "#7f817e",
+          "#a3a5a3",
+          "#c9cbc9",
+          "#eeefee"
+        ]
+      },
+      "blanc": {
+        "role": "neutral",
+        "displayName": "Blanc",
+        "canonical": "#ffffff",
+        "oklch": "oklch(100.0% 0.000 89.9)",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#242424",
+          "#404040",
+          "#5d5d5d",
+          "#808080",
+          "#a4a4a4",
+          "#cacaca",
+          "#eeeeee"
+        ]
+      },
+      "encre": {
+        "role": "neutral",
+        "displayName": "Encre",
+        "canonical": "#15241f",
+        "oklch": "oklch(24.5% 0.023 171.5)",
+        "tonalRamp": [
+          "#090c0b",
+          "#1f2623",
+          "#38423f",
+          "#53615c",
+          "#74847f",
+          "#9ba8a3",
+          "#c4cdc9",
+          "#ebf0ee"
+        ]
+      },
+      "sauge": {
+        "role": "neutral",
+        "displayName": "Sauge",
+        "canonical": "#6d7a71",
+        "oklch": "oklch(56.6% 0.021 155.5)",
+        "tonalRamp": [
+          "#090c0a",
+          "#202522",
+          "#3a423d",
+          "#566159",
+          "#78847b",
+          "#9ea7a1",
+          "#c6ccc8",
+          "#ecf0ed"
+        ]
+      },
+      "sauge-lisible": {
+        "role": "neutral",
+        "displayName": "Sauge lisible",
+        "canonical": "#56635c",
+        "oklch": "oklch(48.6% 0.019 162.1)",
+        "tonalRamp": [
+          "#090c0a",
+          "#202523",
+          "#3a423e",
+          "#55615b",
+          "#77847d",
+          "#9ea7a2",
+          "#c5ccc9",
+          "#ebf0ed"
+        ]
+      },
+      "ligne": {
+        "role": "neutral",
+        "displayName": "Ligne",
+        "canonical": "#e2e8e2",
+        "oklch": "oklch(92.5% 0.010 145.5)",
+        "tonalRamp": [
+          "#0a0b0a",
+          "#232523",
+          "#3d413d",
+          "#5b5f5b",
+          "#7d827d",
+          "#a2a6a2",
+          "#c9cbc9",
+          "#edefed"
+        ]
+      },
+      "ligne-2": {
+        "role": "neutral",
+        "displayName": "Ligne 2",
+        "canonical": "#d1dad2",
+        "oklch": "oklch(87.9% 0.015 148.8)",
+        "tonalRamp": [
+          "#0a0c0a",
+          "#222522",
+          "#3c413d",
+          "#59605a",
+          "#7b827c",
+          "#a0a6a1",
+          "#c8ccc8",
+          "#edefed"
+        ]
+      },
+      "succes": {
+        "role": "neutral",
+        "displayName": "Succès",
+        "canonical": "#26845d",
+        "oklch": "oklch(54.9% 0.106 161.4)",
+        "tonalRamp": [
+          "#010f07",
+          "#072b1c",
+          "#124b33",
+          "#1e6d4d",
+          "#43926e",
+          "#7ab396",
+          "#aed5c0",
+          "#def5e8"
+        ]
+      },
+      "succes-fond": {
+        "role": "neutral",
+        "displayName": "Fond succès",
+        "canonical": "#e4f3e9",
+        "oklch": "oklch(95.0% 0.021 156.8)",
+        "tonalRamp": [
+          "#090c0a",
+          "#202522",
+          "#3a423d",
+          "#566159",
+          "#78847c",
+          "#9ea7a1",
+          "#c6ccc8",
+          "#ecf0ed"
+        ]
+      },
+      "alerte": {
+        "role": "neutral",
+        "displayName": "Alerte",
+        "canonical": "#a66b16",
+        "oklch": "oklch(57.8% 0.118 69.3)",
+        "tonalRamp": [
+          "#140800",
+          "#351e00",
+          "#5a3701",
+          "#825103",
+          "#a9732f",
+          "#c69c6b",
+          "#e3c5a4",
+          "#fdebd8"
+        ]
+      },
+      "alerte-fond": {
+        "role": "neutral",
+        "displayName": "Fond alerte",
+        "canonical": "#fff3dc",
+        "oklch": "oklch(96.8% 0.033 83.7)",
+        "tonalRamp": [
+          "#0d0b07",
+          "#28231c",
+          "#453f33",
+          "#655d4b",
+          "#897f6c",
+          "#aba495",
+          "#cfcabf",
+          "#f1eee8"
+        ]
+      },
+      "danger": {
+        "role": "neutral",
+        "displayName": "Danger",
+        "canonical": "#b54843",
+        "oklch": "oklch(54.7% 0.143 25.6)",
+        "tonalRamp": [
+          "#190404",
+          "#3f1412",
+          "#6a2724",
+          "#973b37",
+          "#c25d57",
+          "#dc8c85",
+          "#f4bab4",
+          "#ffe5e1"
+        ]
+      },
+      "danger-fond": {
+        "role": "neutral",
+        "displayName": "Fond danger",
+        "canonical": "#fbeae8",
+        "oklch": "oklch(95.0% 0.019 25.6)",
+        "tonalRamp": [
+          "#0d0a0a",
+          "#282222",
+          "#463d3c",
+          "#675a59",
+          "#8a7d7b",
+          "#ada2a0",
+          "#d0c8c7",
+          "#f2eded"
+        ]
+      },
+      "or-avis": {
+        "role": "tertiary",
+        "displayName": "Or avis",
+        "canonical": "#d99d45",
+        "oklch": "oklch(73.8% 0.126 73.8)",
+        "tonalRamp": [
+          "#140800",
+          "#351f00",
+          "#5a3700",
+          "#825200",
+          "#a87422",
+          "#c59d66",
+          "#e2c5a0",
+          "#fdecd6"
+        ]
+      },
+      "nuit-papier": {
+        "role": "neutral",
+        "displayName": "Nuit papier",
+        "canonical": "#18221d",
+        "oklch": "oklch(24.0% 0.017 163.1)",
+        "tonalRamp": [
+          "#090c0b",
+          "#212523",
+          "#3a423e",
+          "#56605b",
+          "#78837d",
+          "#9ea7a2",
+          "#c6ccc9",
+          "#ecefed"
+        ]
+      },
+      "nuit-surface": {
+        "role": "neutral",
+        "displayName": "Nuit surface",
+        "canonical": "#1f2c26",
+        "oklch": "oklch(27.9% 0.021 164.9)",
+        "tonalRamp": [
+          "#090c0b",
+          "#202623",
+          "#39423e",
+          "#54615b",
+          "#76847d",
+          "#9da8a2",
+          "#c5cdc9",
+          "#ebf0ed"
+        ]
+      },
+      "nuit-encre": {
+        "role": "neutral",
+        "displayName": "Nuit encre",
+        "canonical": "#f3f7f5",
+        "oklch": "oklch(97.3% 0.005 165.0)",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#232424",
+          "#3e403f",
+          "#5b5e5d",
+          "#7e817f",
+          "#a3a5a4",
+          "#c9cbca",
+          "#eeefee"
+        ]
+      },
+      "nuit-sauge": {
+        "role": "neutral",
+        "displayName": "Nuit sauge",
+        "canonical": "#b0c0b7",
+        "oklch": "oklch(79.3% 0.022 161.3)",
+        "tonalRamp": [
+          "#090c0a",
+          "#202622",
+          "#39423d",
+          "#55615a",
+          "#76847c",
+          "#9da8a2",
+          "#c5cdc8",
+          "#ebf0ed"
+        ]
+      },
+      "nuit-ligne": {
+        "role": "neutral",
+        "displayName": "Nuit ligne",
+        "canonical": "#2e4037",
+        "oklch": "oklch(35.3% 0.028 162.9)",
+        "tonalRamp": [
+          "#080c0a",
+          "#1e2622",
+          "#37433d",
+          "#52625a",
+          "#73857c",
+          "#9aa9a1",
+          "#c3cdc8",
+          "#eaf0ed"
+        ]
+      },
+      "nuit-feuille": {
+        "role": "neutral",
+        "displayName": "Nuit feuille",
+        "canonical": "#3e8a6b",
+        "oklch": "oklch(57.6% 0.090 164.2)",
+        "tonalRamp": [
+          "#020e08",
+          "#0c2a1e",
+          "#1b4a37",
+          "#2b6c52",
+          "#4d9073",
+          "#80b19a",
+          "#b2d4c3",
+          "#e0f4ea"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Titre du hero uniquement."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Titres de section des pages publiques."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Titres de carte, d'écran et d'étape."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Paragraphes, 65 à 75 caractères par ligne."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Métadonnées, badges, libellés de champ (≥ 12 px)."
+      }
+    },
+    "shadows": [
+      {
+        "name": "pose",
+        "value": "0 5px 20px rgb(23 49 34 / .035)",
+        "purpose": "Cartes au repos."
+      },
+      {
+        "name": "bouton",
+        "value": "0 4px 12px #123b3214",
+        "purpose": "Boutons pleins ; survol 0 7px 18px #123b3224."
+      },
+      {
+        "name": "flottant",
+        "value": "0 15px 45px #142b1d1c",
+        "purpose": "Cartes au premier plan, feuilles, menus."
+      },
+      {
+        "name": "vitrine",
+        "value": "0 30px 80px #1d3b2b22",
+        "purpose": "Photo du hero uniquement."
+      }
+    ],
+    "motion": [
+      {
+        "name": "rapide",
+        "value": "0.15s ease",
+        "purpose": "Couleurs et bordures au survol."
+      },
+      {
+        "name": "normal",
+        "value": "0.2s ease",
+        "purpose": "Boutons (fond, ombre, montée de 1 px)."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "mobile",
+        "value": "680px"
+      },
+      {
+        "name": "nav-basse",
+        "value": "768px"
+      },
+      {
+        "name": "tablette",
+        "value": "900px"
+      },
+      {
+        "name": "conteneur",
+        "value": "1180px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Bouton principal (application)",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Action principale d'un écran de l'application ; une seule par écran.",
+      "html": "<button class=\"ds-btn-primary\">Payer et bloquer les fonds <svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14M12 5l7 7-7 7\"/></svg></button>",
+      "css": ".ds-btn-primary{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:46px;padding:0 19px;border-radius:9px;font:750 14px/1 Inter,system-ui,sans-serif;letter-spacing:-.012em;border:1px solid transparent;cursor:pointer;transition:background .2s,box-shadow .2s,transform .2s;min-height:48px;background:#17634f;color:#fff;box-shadow:0 4px 12px #123b3214}.ds-btn-primary:hover{background:#1b5144;transform:translateY(-1px);box-shadow:0 7px 18px #123b3224}.ds-btn-primary:focus-visible{outline:3px solid #2e705b;outline-offset:3px;}.ds-btn-primary:active{transform:none}"
+    },
+    {
+      "name": "Bouton vert coffre (site public)",
+      "kind": "button",
+      "refersTo": "button-coffre",
+      "description": "CTA du site public (Créer un compte, Confier une course).",
+      "html": "<button class=\"ds-btn-coffre\">Confier une course <svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14M12 5l7 7-7 7\"/></svg></button>",
+      "css": ".ds-btn-coffre{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:46px;padding:0 19px;border-radius:9px;font:750 14px/1 Inter,system-ui,sans-serif;letter-spacing:-.012em;border:1px solid transparent;cursor:pointer;transition:background .2s,box-shadow .2s,transform .2s;background:#123b32;color:#fff;box-shadow:0 4px 12px #123b3214}.ds-btn-coffre:hover{background:#1b5144;transform:translateY(-1px);box-shadow:0 7px 18px #123b3224}.ds-btn-coffre:focus-visible{outline:3px solid #2e705b;outline-offset:3px;}"
+    },
+    {
+      "name": "Bouton secondaire",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Action secondaire à côté du principal.",
+      "html": "<button class=\"ds-btn-secondary\">Découvrir le service</button>",
+      "css": ".ds-btn-secondary{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:46px;padding:0 19px;border-radius:9px;font:750 14px/1 Inter,system-ui,sans-serif;letter-spacing:-.012em;border:1px solid transparent;cursor:pointer;transition:background .2s,box-shadow .2s,transform .2s;background:#fff;color:#123b32;border-color:#dce4dd}.ds-btn-secondary:hover{background:#f2f6f1}.ds-btn-secondary:focus-visible{outline:3px solid #2e705b;outline-offset:3px;}"
+    },
+    {
+      "name": "Bouton lime",
+      "kind": "button",
+      "refersTo": "button-lime",
+      "description": "Signal sur fond vert coffre uniquement.",
+      "html": "<div class=\"ds-band\"><button class=\"ds-btn-lime\">En savoir plus</button></div>",
+      "css": ".ds-band{background:#153c32;padding:24px;border-radius:13px}.ds-btn-lime{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:46px;padding:0 19px;border-radius:9px;font:750 14px/1 Inter,system-ui,sans-serif;letter-spacing:-.012em;border:1px solid transparent;cursor:pointer;transition:background .2s,box-shadow .2s,transform .2s;background:#d7ed9a;color:#123b32}.ds-btn-lime:hover{background:#c8e480}.ds-btn-lime:focus-visible{outline:3px solid #d7ed9a;outline-offset:3px}"
+    },
+    {
+      "name": "Champ",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Champ de saisie standard, 44 px, texte 16 px.",
+      "html": "<label class=\"ds-field\"><span>Achats à avancer (XAF)</span><input class=\"ds-input\" placeholder=\"15 000\"></label>",
+      "css": ".ds-field{display:flex;flex-direction:column;gap:6px;font:700 14px Inter,system-ui,sans-serif;color:#35473c}.ds-input{min-height:44px;padding:0 14px;border:1px solid #dce4dd;border-radius:8px;background:#fff;color:#15241f;font:400 16px Inter,system-ui,sans-serif}.ds-input::placeholder{color:#56635c}.ds-input:focus{outline:none;border-color:#76a789;box-shadow:0 0 0 3px #17634f16}"
+    },
+    {
+      "name": "Carte",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Surface de contenu posée sur le papier.",
+      "html": "<article class=\"ds-card\"><h3>Décrivez votre besoin</h3><p>Précisez l’achat, le lieu, le délai et votre budget.</p></article>",
+      "css": ".ds-card{background:#fff;border:1px solid #e2e8e2;border-radius:13px;padding:24px;box-shadow:0 5px 20px rgb(23 49 34 / .035);font-family:Inter,system-ui,sans-serif}.ds-card h3{margin:0 0 8px;font-size:15px;font-weight:700;color:#20372b;letter-spacing:-.02em}.ds-card p{margin:0;font-size:13px;line-height:1.65;color:#56635c}"
+    },
+    {
+      "name": "Badges de statut",
+      "kind": "chip",
+      "refersTo": "badge-succes",
+      "description": "Statut de course, couleur et libellé issus de courseStatus.",
+      "html": "<div class=\"ds-badges\"><span class=\"ds-badge ds-ok\">En cours</span><span class=\"ds-badge ds-warn\">Preuves à valider</span><span class=\"ds-badge ds-bad\">En retard</span></div>",
+      "css": ".ds-badges{display:flex;gap:8px;flex-wrap:wrap}.ds-badge{display:inline-flex;align-items:center;min-height:24px;padding:2px 10px;border-radius:99px;font:700 12px Inter,system-ui,sans-serif}.ds-ok{background:#e4f3e9;color:#26845d}.ds-warn{background:#fff3dc;color:#a66b16}.ds-bad{background:#fbeae8;color:#b54843}"
+    },
+    {
+      "name": "Barre de navigation basse",
+      "kind": "nav",
+      "refersTo": "bottom-nav",
+      "description": "Navigation mobile à 4 onglets par rôle (ici : client).",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-on\" href=\"#\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z\"/></svg>Accueil</a><a href=\"#\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M12 8v8M8 12h8\"/></svg>Course</a><a href=\"#\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z\"/></svg>Messages</a><a href=\"#\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"8\" r=\"4\"/><path d=\"M4 21a8 8 0 0 1 16 0\"/></svg>Moi</a></nav>",
+      "css": ".ds-nav{display:grid;grid-template-columns:repeat(4,1fr);background:#fff;border-top:1px solid #e2e8e2;width:360px}.ds-nav a{position:relative;min-height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font:600 11px Inter,system-ui,sans-serif;color:#56635c;text-decoration:none}.ds-nav a:hover{color:#15241f}.ds-nav a:focus-visible{outline:3px solid #2e705b;outline-offset:3px;}.ds-nav .ds-on{color:#17634f}.ds-nav .ds-on::before{content:\"\";position:absolute;top:0;left:25%;right:25%;height:3px;border-radius:0 0 3px 3px;background:#17634f}"
+    },
+    {
+      "name": "Carte « Course protégée »",
+      "kind": "custom",
+      "refersTo": "card",
+      "description": "Carte signature flottante : la garantie au premier plan.",
+      "html": "<div class=\"ds-proof\"><div class=\"ds-proof-top\"><span class=\"ds-proof-ic\"><svg width=\"17\" height=\"17\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z\"/><path d=\"m9 12 2 2 4-4\"/></svg></span><span><strong>Course protégée</strong><small>Suivi et preuves à chaque étape</small></span></div><div class=\"ds-proof-foot\"><span>Paiement sécurisé</span><b>Vérifié</b></div></div>",
+      "css": ".ds-proof{width:236px;padding:16px;background:#fff;border:1px solid #edf0ed;border-radius:12px;box-shadow:0 15px 45px #142b1d1c;font-family:Inter,system-ui,sans-serif}.ds-proof-top{display:flex;align-items:center;gap:11px}.ds-proof-ic{width:36px;height:36px;display:grid;place-items:center;border-radius:10px;background:#e8f4e9;color:#276548}.ds-proof strong{display:block;font-size:12px;color:#22372d}.ds-proof small{display:block;font-size:11px;line-height:1.4;color:#56635c}.ds-proof-foot{display:flex;justify-content:space-between;border-top:1px solid #edf0ed;margin-top:13px;padding-top:11px;font-size:11px;color:#56635c}.ds-proof-foot b{color:#2d7955}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Le Tiers de confiance",
+    "overview": "ConfianceCoursier se présente comme une institution discrète qui tient l'argent pendant la course et prouve chaque étape. Le design reste sobre et rassurant : peu d'effets, beaucoup de clarté. La confiance vient de la lisibilité, de la retenue et de l'honnêteté de ce qui est montré, jamais de l'emphase. Une couleur dominante, le vert coffre profond, porte la gravité du séquestre. Le lime éclat est l'unique signal lumineux et appelle l'action.\n\nLes surfaces s'empilent en couches nettement visibles. Le papier ivoire sert de fond, les cartes blanches posées dessus portent le contenu, et des éléments flottants (la carte « Course protégée », les feuilles modales, les menus) passent au-dessus avec une ombre ample. Le relief sert à dire « ceci est au premier plan », pas à décorer. Les composants sont doux et accueillants : arrondis généreux, couleurs tendres pour les fonds d'état, rien d'anguleux ni d'intimidant pour quelqu'un qui confie son argent à un inconnu.\n\nLa référence est la maquette v2 (`maquette-v2/`), dont l'application reprend le langage visuel : forêt et ivoire, titres serrés en Inter, photo arrondie en goutte, bandes pleine largeur en vert coffre.",
+    "keyCharacteristics": [
+      "Fond ivoire chaud, cartes blanches, bandes pleine largeur en vert coffre pour les moments de réassurance.",
+      "Une seule couleur d'accent lumineuse (lime éclat), jamais utilisée pour du texte sur fond clair.",
+      "Titres très serrés et lourds, corps de texte aéré et gris sauge.",
+      "Couches visibles : repos, carte posée, élément flottant.",
+      "Clair et sombre maintenus à égalité."
+    ],
+    "rules": [
+      {
+        "name": "La Règle du signal unique",
+        "body": "Le lime éclat est le seul accent lumineux. Il marque l'action ou l'information clé d'un écran, jamais plus de deux éléments à la fois, et jamais en texte sur papier ou sur blanc (contraste insuffisant).",
+        "section": "colors"
+      },
+      {
+        "name": "La Règle du gris lisible",
+        "body": "Sous 16 px, le texte secondaire est en sauge lisible, jamais en sauge ni plus clair. Aucune couleur en dur dans un composant : tout passe par les jetons, y compris en mode sombre.",
+        "section": "colors"
+      },
+      {
+        "name": "La Règle du titre qui parle seul",
+        "body": "Aucune petite étiquette en capitales au-dessus d'un titre. Le titre porte son propre poids.",
+        "section": "typography"
+      },
+      {
+        "name": "La Règle du plancher",
+        "body": "Interlettrage jamais en dessous de -0,04em, taille de texte jamais sous 12 px.",
+        "section": "typography"
+      },
+      {
+        "name": "La Règle des couches",
+        "body": "Trois niveaux seulement : sol, posé, flottant. Un élément ne flotte que s'il est réellement au-dessus du reste (superposé, modal, déroulant). Jamais de carte dans une carte.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do poser chaque contenu sur une carte blanche à 13 px sur le papier, et réserver l'ombre « Flottant » aux éléments réellement au premier plan.",
+      "Do utiliser la feuille pour l'action principale de l'application et le vert coffre pour les CTA du site public, une action principale par écran.",
+      "Do garder le texte secondaire en sauge lisible sous 16 px et vérifier 4,5:1 en clair comme en sombre.",
+      "Do passer toute couleur par un jeton, y compris dans les composants et en mode sombre.",
+      "Do garder des cibles tactiles d'au moins 44 px et un focus clavier visible."
+    ],
+    "donts": [
+      "Don't mettre une petite étiquette en capitales au-dessus d'un titre.",
+      "Don't utiliser le lime éclat pour du texte sur fond clair ni pour plus de deux éléments par écran.",
+      "Don't afficher d'avis, d'étoiles, d'avatars ou de compteurs sans source réelle.",
+      "Don't imbriquer des cartes, ni ajouter un accent coloré épais sur un bord de carte.",
+      "Don't écrire de `style=\"\"` ni de couleur hexadécimale en dur dans un composant."
+    ]
+  }
+}

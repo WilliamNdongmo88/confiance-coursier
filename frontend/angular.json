@@ -31,6 +31,7 @@
             ],
             "styles": [
               "src/assets/css/main.css",
+              "src/assets/css/landing.css",
               "src/assets/css/app-layout.css",
               "src/assets/css/refonte.css",
               "src/styles.scss"
