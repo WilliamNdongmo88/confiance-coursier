@@ -62,7 +62,7 @@ import { LucideArrowLeft, LucideBike, LucideMoon, LucideSun, LucideShieldCheck }
           <!-- Champ OTP admin — affiché uniquement après requestAdminOtp() -->
           <div *ngIf="otpRequired()" class="form-group otp-group">
             <label class="form-label" for="login-otp">
-              <svg lucideShieldCheck size="14" style="display:inline;vertical-align:middle;margin-right:5px;"></svg>
+              <svg class="st-d-inline-vert-middle-marg-5px" lucideShieldCheck size="14"></svg>
               Code de vérification administrateur
             </label>
             <input id="login-otp" type="text" [(ngModel)]="otp" name="otp"
@@ -71,7 +71,7 @@ import { LucideArrowLeft, LucideBike, LucideMoon, LucideSun, LucideShieldCheck }
               maxlength="6"
               inputmode="numeric"
               autocomplete="one-time-code">
-            <p class="form-hint" style="margin-top:6px;">
+            <p class="form-hint st-mt-6px">
               Vérifiez votre boîte email — le code expire dans 5 minutes.
               <button type="button" class="forgot-link" (click)="resendAdminOtp()" [disabled]="isLoading">
                 Renvoyer
@@ -107,15 +107,15 @@ import { LucideArrowLeft, LucideBike, LucideMoon, LucideSun, LucideShieldCheck }
   styles: [`
     :host { display: block; }
     .otp-group {
-      background: var(--bg-card, #f7f8f5);
-      border: 1px solid #b8ddc8;
+      background: var(--bg-card);
+      border: 1px solid var(--cc-success-bg);
       border-radius: 10px;
       padding: 14px 16px;
       margin-bottom: 16px;
     }
     [data-theme="dark"] .otp-group {
-      background: #1a2e24;
-      border-color: #2e5040;
+      background: var(--surface);
+      border-color: var(--cc-line);
     }
     .otp-input {
       font-size: 1.5rem;
@@ -123,6 +123,10 @@ import { LucideArrowLeft, LucideBike, LucideMoon, LucideSun, LucideShieldCheck }
       letter-spacing: 8px;
       text-align: center;
     }
+
+    /* TICK-076 : anciens attributs « style » du template, convertis en classes (mêmes déclarations) */
+    .st-d-inline-vert-middle-marg-5px { display: inline; vertical-align: middle; margin-right: 5px; }
+    .st-mt-6px { margin-top: 6px; }
   `]
 })
 export class LoginComponent implements OnInit {

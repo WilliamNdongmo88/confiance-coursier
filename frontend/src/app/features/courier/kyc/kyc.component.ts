@@ -71,7 +71,7 @@ interface KycStatus {
       left: 50%;
       right: -50%;
       height: 2px;
-      background: #e1e8e0;
+      background: var(--cc-line);
       z-index: 0;
     }
     .kyc-step:last-child::before { display: none; }
@@ -79,63 +79,63 @@ interface KycStatus {
       width: 34px;
       height: 34px;
       border-radius: 50%;
-      background: #fff;
-      border: 2px solid #e1e8e0;
+      background: var(--surface);
+      border: 2px solid var(--cc-line);
       display: flex;
       align-items: center;
       justify-content: center;
       font-weight: 700;
       font-size: .85rem;
-      color: #8a9490;
+      color: var(--cc-muted);
       position: relative;
       z-index: 1;
     }
     .kyc-step.done .kyc-step-num {
-      background: #17634f;
-      border-color: #17634f;
+      background: var(--primary);
+      border-color: var(--primary);
       color: white;
     }
     .kyc-step.active .kyc-step-num {
-      background: #123b32;
-      border-color: #123b32;
+      background: var(--cc-forest);
+      border-color: var(--cc-forest);
       color: white;
     }
     .kyc-step-label {
       font-size: .78rem;
-      color: #8a9490;
+      color: var(--cc-muted);
       font-weight: 600;
     }
-    .kyc-step.active .kyc-step-label { color: #123b32; }
-    .kyc-step.done .kyc-step-label { color: #17634f; }
+    .kyc-step.active .kyc-step-label { color: var(--cc-forest); }
+    .kyc-step.done .kyc-step-label { color: var(--primary); }
 
     /* ── Zone upload ── */
     .upload-zone {
-      border: 2px dashed #ccd8d3;
+      border: 2px dashed var(--cc-line);
       border-radius: 10px;
       padding: 22px 16px;
       text-align: center;
       cursor: pointer;
-      background: #f7f8f5;
+      background: var(--cc-paper);
       transition: border-color .15s, background .15s;
     }
     .upload-zone:hover {
-      border-color: #123b32;
-      background: #eef4f2;
+      border-color: var(--cc-forest);
+      background: var(--cc-success-bg);
     }
     .upload-zone.has-file {
-      border-color: #17634f;
-      background: #f0f9f5;
+      border-color: var(--primary);
+      background: var(--cc-success-bg);
     }
 
     .upload-zone.has-error {
-      border-color: #dc2626;
-      background: #fef2f2;
+      border-color: var(--cc-danger);
+      background: var(--cc-danger-bg);
     }
 
     /* ── Message d'erreur fichier ── */
     .file-error {
       font-size: .78rem;
-      color: #dc2626;
+      color: var(--cc-danger);
       margin: 5px 0 0;
       line-height: 1.4;
     }
@@ -168,44 +168,83 @@ interface KycStatus {
       align-items: center;
       justify-content: center;
     }
-    .status-icon-wrap.pending  { background: #fff7e0; color: #c27c00; }
-    .status-icon-wrap.approved { background: #e8f5ef; color: #17634f; }
-    .status-icon-wrap.rejected { background: #fef2f2; color: #dc2626; }
+    .status-icon-wrap.pending  { background: var(--cc-warning-bg); color: var(--cc-warning); }
+    .status-icon-wrap.approved { background: var(--cc-success-bg); color: var(--primary); }
+    .status-icon-wrap.rejected { background: var(--cc-danger-bg); color: var(--cc-danger); }
 
     /* ── Barre de progression ── */
     .upload-progress {
       height: 4px;
-      background: #e1e8e0;
+      background: var(--cc-line);
       border-radius: 2px;
       overflow: hidden;
       margin-top: 8px;
     }
     .upload-progress-bar {
       height: 100%;
-      background: #17634f;
+      background: var(--primary);
       transition: width .2s;
     }
 
     [data-theme="dark"] .upload-zone {
-      background: #1c2b26;
-      border-color: #2e4a3f;
+      background: var(--surface);
+      border-color: var(--cc-line);
     }
     [data-theme="dark"] .upload-zone:hover {
-      border-color: #d7ed9a;
-      background: #1e3029;
+      border-color: var(--cc-lime);
+      background: var(--surface);
     }
     [data-theme="dark"] .upload-zone.has-file {
-      border-color: #d7ed9a;
-      background: #1e3029;
+      border-color: var(--cc-lime);
+      background: var(--surface);
     }
     [data-theme="dark"] .kyc-step-num {
-      background: #1a2e28;
-      border-color: #2e4a3f;
+      background: var(--surface);
+      border-color: var(--cc-line);
     }
-    [data-theme="dark"] .kyc-step::before { background: #2e4a3f; }
+    [data-theme="dark"] .kyc-step::before { background: var(--cc-line); }
+
+    /* TICK-076 : anciens attributs « style » du template, convertis en classes (mêmes déclarations) */
+    .st-mb-24px { margin-bottom: 24px; }
+    .st-m-0-fs-1-1rem { margin: 0; font-size: 1.1rem; }
+    .st-max-400px { max-width: 400px; }
+    .st-m-0-fs-1-1rem-c-primary { margin: 0; font-size: 1.1rem; color: var(--primary); }
+    .st-d-flex-g-10px-p-14px-16px { display: flex; gap: 10px; padding: 14px 16px; border-radius: 10px; background: var(--cc-danger-bg); border: 1px solid var(--cc-danger); margin-bottom: 20px; }
+    .st-c-danger-flex-0-mt-1px { color: var(--cc-danger); flex-shrink: 0; margin-top: 1px; }
+    .st-c-danger-d-block-mb-3px { color: var(--cc-danger); display: block; margin-bottom: 3px; }
+    .st-fs-88rem-c-danger { font-size: .88rem; color: var(--cc-danger); }
+    .st-mb-20px { margin-bottom: 20px; }
+    .st-mb-18px { margin-bottom: 18px; }
+    .st-d-flex-ai-center-g-8px { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: .95rem; margin-bottom: 16px; }
+    .st-c-primary { color: var(--primary); }
+    .st-marg-auto-fs-7rem { margin-left: auto; font-size: .7rem; }
+    .st-mb-16px { margin-bottom: 16px; }
+    .st-c-forest { color: var(--cc-forest); }
+    .st-d-none { display: none; }
+    .st-c-muted-mb-6px-d-block { color: var(--cc-muted); margin-bottom: 6px; display: block; margin-inline: auto; }
+    .st-m-0 { margin: 0; }
+    .st-m-3px-0-0-fs-72rem { margin: 3px 0 0; font-size: .72rem; }
+    .st-c-primary-mb-4px-d-block { color: var(--primary); margin-bottom: 4px; display: block; margin-inline: auto; }
+    .st-m-0-fw-600-c-primary { margin: 0; font-weight: 600; color: var(--primary); }
+    .st-m-2px-0-0 { margin: 2px 0 0; }
+    .st-d-flex-ai-center-g-8px-2 { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: .95rem; margin-bottom: 14px; }
+    .st-mb-14px { margin-bottom: 14px; }
+    .st-max-320px-m-auto { max-width: 320px; margin: auto; }
+    .st-c-muted-mb-8px-d-block { color: var(--cc-muted); margin-bottom: 8px; display: block; margin-inline: auto; }
+    .st-fw-600-c-forest-m-0 { font-weight: 600; color: var(--cc-forest); margin: 0; }
+    .st-mt-3px { margin-top: 3px; }
+    .st-mt-2px-fs-72rem { margin-top: 2px; font-size: .72rem; }
+    .st-c-primary-mb-8px-d-block { color: var(--primary); margin-bottom: 8px; display: block; margin-inline: auto; }
+    .st-fw-600-c-primary-m-0 { font-weight: 600; color: var(--primary); margin: 0; }
+    .st-ta-center-mt-8px { text-align: center; margin-top: 8px; }
+    .st-mb-22px { margin-bottom: 22px; }
+    .st-mb-6px { margin-bottom: 6px; }
+    .st-w-100 { width: 100%; }
+    .st-w-17px-heig-17px-bord-2px { width: 17px; height: 17px; border-width: 2px; }
+    .st-ta-center-mt-12px { text-align: center; margin-top: 12px; }
   `],
   template: `
-  <div class="page-head" style="margin-bottom: 24px;">
+  <div class="page-head st-mb-24px">
     <div>
       <h1>Vérification d'identité</h1>
       <p>Complétez votre dossier KYC pour accepter des missions.</p>
@@ -217,7 +256,7 @@ interface KycStatus {
 
   <!-- ── Statut déjà soumis (PENDING ou APPROVED) ── -->
   <ng-container *ngIf="showStatusCard()">
-    <div class="card" style="margin-bottom: 24px;">
+    <div class="card st-mb-24px">
       <div class="status-card">
 
         <!-- PENDING -->
@@ -225,8 +264,8 @@ interface KycStatus {
           <div class="status-icon-wrap pending">
             <svg lucideClock size="32"></svg>
           </div>
-          <h2 style="margin: 0; font-size: 1.1rem;">Dossier en cours de vérification</h2>
-          <p class="text-muted text-sm" style="max-width: 400px;">
+          <h2 class="st-m-0-fs-1-1rem">Dossier en cours de vérification</h2>
+          <p class="text-muted text-sm st-max-400px">
             Votre dossier KYC a été soumis et est en cours d'examen par notre équipe.
             La vérification prend généralement moins de 24 heures.
           </p>
@@ -238,7 +277,7 @@ interface KycStatus {
           <div class="status-icon-wrap approved">
             <svg lucideShieldCheck size="32"></svg>
           </div>
-          <h2 style="margin: 0; font-size: 1.1rem; color: #17634f;">Identité vérifiée ✓</h2>
+          <h2 class="st-m-0-fs-1-1rem-c-primary">Identité vérifiée ✓</h2>
           <p class="text-muted text-sm">
             Votre identité a été validée. Vous pouvez accepter des missions.
           </p>
@@ -255,13 +294,12 @@ interface KycStatus {
   <ng-container *ngIf="showForm()">
 
     <!-- Alerte si rejeté -->
-    <div *ngIf="kycStatus()?.status === 'REJECTED'"
-         style="display:flex; gap:10px; padding:14px 16px; border-radius:10px;
-                background:#fef2f2; border:1px solid #dc2626; margin-bottom:20px;">
-      <svg lucideXCircle size="18" style="color:#dc2626; flex-shrink:0; margin-top:1px;"></svg>
+    <div class="st-d-flex-g-10px-p-14px-16px" *ngIf="kycStatus()?.status === 'REJECTED'"
+>
+      <svg class="st-c-danger-flex-0-mt-1px" lucideXCircle size="18"></svg>
       <div>
-        <strong style="color:#dc2626; display:block; margin-bottom:3px;">Dossier rejeté</strong>
-        <span style="font-size:.88rem; color:#991b1b;">
+        <strong class="st-c-danger-d-block-mb-3px">Dossier rejeté</strong>
+        <span class="st-fs-88rem-c-danger">
           {{ kycStatus()?.rejectionReason ?? 'Veuillez resoumettre votre dossier avec des documents valides.' }}
         </span>
       </div>
@@ -303,7 +341,7 @@ interface KycStatus {
     </div>
 
     <!-- Notice sécurité -->
-    <div class="app-notice" style="margin-bottom: 20px;">
+    <div class="app-notice st-mb-20px">
       <svg lucideShieldCheck size="18"></svg>
       <div>
         <strong>Vos données sont protégées</strong>
@@ -312,13 +350,13 @@ interface KycStatus {
     </div>
 
     <!-- ── ÉTAPE 1 : Informations personnelles ── -->
-    <div class="card" style="margin-bottom: 18px;">
-      <div style="display:flex; align-items:center; gap:8px; font-weight:700; font-size:.95rem; margin-bottom:16px;">
-        <svg lucideUser size="17" style="color:#17634f;"></svg>
+    <div class="card st-mb-18px">
+      <div class="st-d-flex-ai-center-g-8px">
+        <svg class="st-c-primary" lucideUser size="17"></svg>
         Informations personnelles
-        <span *ngIf="currentStep() > 1" class="badge badge-success" style="margin-left:auto; font-size:.7rem;">Complété</span>
+        <span *ngIf="currentStep() > 1" class="badge badge-success st-marg-auto-fs-7rem">Complété</span>
       </div>
-      <div class="kyc-grid" style="margin-bottom: 16px;">
+      <div class="kyc-grid st-mb-16px">
         <div class="form-group">
           <label class="form-label" for="firstName">Prénom</label>
           <input id="firstName" type="text" class="form-input"
@@ -350,13 +388,13 @@ interface KycStatus {
     </div>
 
     <!-- ── ÉTAPE 2 : Documents ── -->
-    <div class="card" style="margin-bottom: 18px;">
-      <div style="display:flex; align-items:center; gap:8px; font-weight:700; font-size:.95rem; margin-bottom:16px;">
-        <svg lucideIdCard size="17" style="color:#123b32;"></svg>
+    <div class="card st-mb-18px">
+      <div class="st-d-flex-ai-center-g-8px">
+        <svg class="st-c-forest" lucideIdCard size="17"></svg>
         Pièce d'identité *
       </div>
 
-      <div class="form-group" style="margin-bottom: 16px;">
+      <div class="form-group st-mb-16px">
         <label class="form-label" for="docType">Type de document</label>
         <select id="docType" class="form-select"
                 [value]="documentType" (change)="documentType = getVal($event)">
@@ -371,17 +409,17 @@ interface KycStatus {
           <p class="form-label">Recto du document</p>
           <div class="upload-zone" [ngClass]="{'has-file': !!frontFile(), 'has-error': !!frontFileError()}"
                (click)="frontInput.click()" (keyup.enter)="frontInput.click()" tabindex="0">
-            <input #frontInput type="file" accept="image/jpeg,image/png,image/webp,application/pdf"
-                   style="display:none" (change)="onFrontChange($event)">
+            <input class="st-d-none" #frontInput type="file" accept="image/jpeg,image/png,image/webp,application/pdf"
+ (change)="onFrontChange($event)">
             <ng-container *ngIf="!frontFile(); else frontDone">
-              <svg lucideCamera size="28" style="color:#8a9490; margin-bottom:6px; display:block; margin-inline:auto;"></svg>
-              <p class="text-sm text-muted" style="margin:0;">Photo du recto</p>
-              <p class="text-sm text-muted" style="margin:3px 0 0; font-size:.72rem;">JPG, PNG, PDF · max 10 Mo</p>
+              <svg class="st-c-muted-mb-6px-d-block" lucideCamera size="28"></svg>
+              <p class="text-sm text-muted st-m-0">Photo du recto</p>
+              <p class="text-sm text-muted st-m-3px-0-0-fs-72rem">JPG, PNG, PDF · max 10 Mo</p>
             </ng-container>
             <ng-template #frontDone>
-              <svg lucideCheck size="24" style="color:#17634f; margin-bottom:4px; display:block; margin-inline:auto;"></svg>
-              <p class="text-sm" style="margin:0; font-weight:600; color:#17634f;">{{ frontFile()!.name }}</p>
-              <p class="text-sm text-muted" style="margin:2px 0 0;">{{ formatSize(frontFile()!.size) }}</p>
+              <svg class="st-c-primary-mb-4px-d-block" lucideCheck size="24"></svg>
+              <p class="text-sm st-m-0-fw-600-c-primary">{{ frontFile()!.name }}</p>
+              <p class="text-sm text-muted st-m-2px-0-0">{{ formatSize(frontFile()!.size) }}</p>
             </ng-template>
           </div>
           <p *ngIf="frontFileError()" class="file-error">⚠ {{ frontFileError() }}</p>
@@ -392,17 +430,17 @@ interface KycStatus {
           <p class="form-label">Verso du document</p>
           <div class="upload-zone" [ngClass]="{'has-file': !!backFile(), 'has-error': !!backFileError()}"
                (click)="backInput.click()" (keyup.enter)="backInput.click()" tabindex="0">
-            <input #backInput type="file" accept="image/jpeg,image/png,image/webp,application/pdf"
-                   style="display:none" (change)="onBackChange($event)">
+            <input class="st-d-none" #backInput type="file" accept="image/jpeg,image/png,image/webp,application/pdf"
+ (change)="onBackChange($event)">
             <ng-container *ngIf="!backFile(); else backDone">
-              <svg lucideCamera size="28" style="color:#8a9490; margin-bottom:6px; display:block; margin-inline:auto;"></svg>
-              <p class="text-sm text-muted" style="margin:0;">Photo du verso</p>
-              <p class="text-sm text-muted" style="margin:3px 0 0; font-size:.72rem;">JPG, PNG, PDF · max 10 Mo</p>
+              <svg class="st-c-muted-mb-6px-d-block" lucideCamera size="28"></svg>
+              <p class="text-sm text-muted st-m-0">Photo du verso</p>
+              <p class="text-sm text-muted st-m-3px-0-0-fs-72rem">JPG, PNG, PDF · max 10 Mo</p>
             </ng-container>
             <ng-template #backDone>
-              <svg lucideCheck size="24" style="color:#17634f; margin-bottom:4px; display:block; margin-inline:auto;"></svg>
-              <p class="text-sm" style="margin:0; font-weight:600; color:#17634f;">{{ backFile()!.name }}</p>
-              <p class="text-sm text-muted" style="margin:2px 0 0;">{{ formatSize(backFile()!.size) }}</p>
+              <svg class="st-c-primary-mb-4px-d-block" lucideCheck size="24"></svg>
+              <p class="text-sm st-m-0-fw-600-c-primary">{{ backFile()!.name }}</p>
+              <p class="text-sm text-muted st-m-2px-0-0">{{ formatSize(backFile()!.size) }}</p>
             </ng-template>
           </div>
           <p *ngIf="backFileError()" class="file-error">⚠ {{ backFileError() }}</p>
@@ -411,41 +449,41 @@ interface KycStatus {
     </div>
 
     <!-- ── ÉTAPE 3 : Selfie ── -->
-    <div class="card" style="margin-bottom: 18px;">
-      <div style="display:flex; align-items:center; gap:8px; font-weight:700; font-size:.95rem; margin-bottom:14px;">
-        <svg lucideScanFace size="17" style="color:#123b32;"></svg>
+    <div class="card st-mb-18px">
+      <div class="st-d-flex-ai-center-g-8px-2">
+        <svg class="st-c-forest" lucideScanFace size="17"></svg>
         Selfie de vérification *
       </div>
-      <p class="text-sm text-muted" style="margin-bottom: 14px;">
+      <p class="text-sm text-muted st-mb-14px">
         Prenez un selfie en tenant votre pièce d'identité bien visible à côté de votre visage.
       </p>
-      <div class="upload-zone" [ngClass]="{'has-file': !!selfieFile(), 'has-error': !!selfieFileError()}"
+      <div class="upload-zone st-max-320px-m-auto" [ngClass]="{'has-file': !!selfieFile(), 'has-error': !!selfieFileError()}"
            (click)="selfieInput.click()" (keyup.enter)="selfieInput.click()" tabindex="0"
-           style="max-width: 320px; margin: auto;">
-        <input #selfieInput type="file" accept="image/jpeg,image/png,image/webp"
-               style="display:none" (change)="onSelfieChange($event)">
+>
+        <input class="st-d-none" #selfieInput type="file" accept="image/jpeg,image/png,image/webp"
+ (change)="onSelfieChange($event)">
         <ng-container *ngIf="!selfieFile(); else selfieDone">
-          <svg lucideUser size="36" style="color:#8a9490; margin-bottom:8px; display:block; margin-inline:auto;"></svg>
-          <p class="text-sm" style="font-weight:600; color:#123b32; margin:0;">Prendre le selfie</p>
-          <p class="text-sm text-muted" style="margin-top:3px;">Ou importer une photo existante</p>
-          <p class="text-sm text-muted" style="margin-top:2px; font-size:.72rem;">JPG, PNG, WebP · max 10 Mo</p>
+          <svg class="st-c-muted-mb-8px-d-block" lucideUser size="36"></svg>
+          <p class="text-sm st-fw-600-c-forest-m-0">Prendre le selfie</p>
+          <p class="text-sm text-muted st-mt-3px">Ou importer une photo existante</p>
+          <p class="text-sm text-muted st-mt-2px-fs-72rem">JPG, PNG, WebP · max 10 Mo</p>
         </ng-container>
         <ng-template #selfieDone>
-          <svg lucideCheckCircle size="36" style="color:#17634f; margin-bottom:8px; display:block; margin-inline:auto;"></svg>
-          <p class="text-sm" style="font-weight:600; color:#17634f; margin:0;">{{ selfieFile()!.name }}</p>
-          <p class="text-sm text-muted" style="margin-top:3px;">{{ formatSize(selfieFile()!.size) }}</p>
+          <svg class="st-c-primary-mb-8px-d-block" lucideCheckCircle size="36"></svg>
+          <p class="text-sm st-fw-600-c-primary-m-0">{{ selfieFile()!.name }}</p>
+          <p class="text-sm text-muted st-mt-3px">{{ formatSize(selfieFile()!.size) }}</p>
         </ng-template>
       </div>
-      <p *ngIf="selfieFileError()" class="file-error" style="text-align:center; margin-top:8px;">⚠ {{ selfieFileError() }}</p>
+      <p *ngIf="selfieFileError()" class="file-error st-ta-center-mt-8px">⚠ {{ selfieFileError() }}</p>
     </div>
 
     <!-- ── ÉTAPE 4 : Coordonnées de paiement ── -->
-    <div class="card" style="margin-bottom: 22px;">
-      <div style="display:flex; align-items:center; gap:8px; font-weight:700; font-size:.95rem; margin-bottom:14px;">
-        <svg lucideWallet size="17" style="color:#123b32;"></svg>
+    <div class="card st-mb-22px">
+      <div class="st-d-flex-ai-center-g-8px-2">
+        <svg class="st-c-forest" lucideWallet size="17"></svg>
         Coordonnées de paiement *
       </div>
-      <div class="form-group" style="margin-bottom: 14px;">
+      <div class="form-group st-mb-14px">
         <label class="form-label" for="payoutMethod">Méthode de reversement</label>
         <select id="payoutMethod" class="form-select"
                 [value]="payoutMethod" (change)="payoutMethod = getVal($event)">
@@ -463,16 +501,16 @@ interface KycStatus {
     </div>
 
     <!-- Barre de progression upload -->
-    <div *ngIf="uploadProgress() > 0 && uploadProgress() < 100" style="margin-bottom: 16px;">
-      <p class="text-sm text-muted" style="margin-bottom:6px;">Upload en cours… {{ uploadProgress() }}%</p>
+    <div class="st-mb-16px" *ngIf="uploadProgress() > 0 && uploadProgress() < 100">
+      <p class="text-sm text-muted st-mb-6px">Upload en cours… {{ uploadProgress() }}%</p>
       <div class="upload-progress">
         <div class="upload-progress-bar" [style.width.%]="uploadProgress()"></div>
       </div>
     </div>
 
     <!-- Bouton submit -->
-    <button type="button" class="btn btn-primary btn-lg"
-            style="width:100%;"
+    <button type="button" class="btn btn-primary btn-lg st-w-100"
+
             [disabled]="!isFormValid() || isLoading()"
             (click)="onSubmit()">
       <ng-container *ngIf="!isLoading(); else spinnerTpl">
@@ -480,12 +518,12 @@ interface KycStatus {
         Soumettre mon dossier KYC
       </ng-container>
       <ng-template #spinnerTpl>
-        <span class="spinner" style="width:17px; height:17px; border-width:2px;"></span>
+        <span class="spinner st-w-17px-heig-17px-bord-2px"></span>
         Envoi en cours…
       </ng-template>
     </button>
 
-    <p class="text-sm text-muted" style="text-align:center; margin-top:12px;">
+    <p class="text-sm text-muted st-ta-center-mt-12px">
       La vérification prend généralement moins de 24 heures.
     </p>
 

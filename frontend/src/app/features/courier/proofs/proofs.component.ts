@@ -71,18 +71,18 @@ const MAX_PROOFS = 10;
       padding: 10px 14px; background: var(--bg);
       border: 1px solid var(--border); border-radius: var(--radius-md);
     }
-    .proof-item-row.done      { border-color: var(--success, #16a34a); }
-    .proof-item-row.has-error { border-color: var(--danger, #dc2626); }
+    .proof-item-row.done      { border-color: var(--success); }
+    .proof-item-row.has-error { border-color: var(--danger); }
     .proof-item-info { flex: 1; min-width: 0; }
     .proof-item-info strong {
       font-size: .88rem; color: var(--text); display: block;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .proof-item-info span { font-size: .76rem; color: var(--text-muted); }
-    .state-done  { color: var(--success, #16a34a); }
-    .state-error { color: var(--danger, #dc2626); }
+    .state-done  { color: var(--success); }
+    .state-error { color: var(--danger); }
     .proof-item-remove {
-      border: none; background: none; color: var(--danger, #dc2626);
+      border: none; background: none; color: var(--danger);
       cursor: pointer; border-radius: 6px; flex-shrink: 0;
       min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center;
     }
@@ -97,10 +97,17 @@ const MAX_PROOFS = 10;
     .progress-bar-outer { height: 6px; background: var(--border); border-radius: 99px; overflow: hidden; margin-top: 8px; }
     .progress-bar-inner { height: 100%; background: var(--primary); border-radius: 99px; transition: width .2s; }
     .upload-hint { font-size: .74rem; color: var(--text-muted); margin-top: 6px; }
-    .file-error  { font-size: .78rem; color: var(--danger, #dc2626); margin-top: 6px; }
+    .file-error  { font-size: .78rem; color: var(--danger); margin-top: 6px; }
     .checklist { list-style: none; padding: 0; margin: 8px 0 0; font-size: .85rem; }
     .checklist li { padding: 2px 0; }
     .hidden-input { display: none; }
+
+    /* TICK-076 : anciens attributs « style » du template, convertis en classes (mêmes déclarations) */
+    .st-mb-20px { margin-bottom: 20px; }
+    .st-mb-18px { margin-bottom: 18px; }
+    .st-fs-7rem { font-size: .7rem; }
+    .st-mb-12px { margin-bottom: 12px; }
+    .st-ta-center { text-align: center; }
   `],
   template: `
   <div class="app-main-inner">
@@ -124,7 +131,7 @@ const MAX_PROOFS = 10;
       </div>
     } @else {
 
-      <div class="app-notice" style="margin-bottom:20px">
+      <div class="app-notice st-mb-20px">
         <svg lucideInfo></svg>
         <div>
           <strong>Preuves obligatoires</strong>
@@ -139,10 +146,10 @@ const MAX_PROOFS = 10;
       </div>
 
       <!-- ── 1. Vidéo ── -->
-      <div class="card" style="margin-bottom:18px">
+      <div class="card st-mb-18px">
         <div class="section-label">
           <svg lucideVideo size="17"></svg> 1. Vidéo *
-          <span class="badge badge-warning" style="font-size:.7rem">≤ {{ MAX_VIDEO_SECONDS }} s</span>
+          <span class="badge badge-warning st-fs-7rem">≤ {{ MAX_VIDEO_SECONDS }} s</span>
         </div>
         <input #videoCam type="file" class="hidden-input" accept="video/*" capture="environment" (change)="onVideoSelected($event)">
         <input #videoLib type="file" class="hidden-input" accept="video/*" (change)="onVideoSelected($event)">
@@ -165,10 +172,10 @@ const MAX_PROOFS = 10;
       </div>
 
       <!-- ── 2. Photos ── -->
-      <div class="card" style="margin-bottom:18px">
+      <div class="card st-mb-18px">
         <div class="section-label">
           <svg lucideCamera size="17"></svg> 2. Photos *
-          <span class="badge badge-gray" style="font-size:.7rem">{{ items().length }}/{{ MAX_PROOFS }} fichiers</span>
+          <span class="badge badge-gray st-fs-7rem">{{ items().length }}/{{ MAX_PROOFS }} fichiers</span>
         </div>
         <input #photoCam type="file" class="hidden-input" accept="image/*" capture="environment" (change)="onFilesSelected($event, 'PHOTO')">
         <input #photoLib type="file" class="hidden-input" accept="image/*" multiple (change)="onFilesSelected($event, 'PHOTO')">
@@ -191,10 +198,10 @@ const MAX_PROOFS = 10;
       </div>
 
       <!-- ── 3. Reçus ── -->
-      <div class="card" style="margin-bottom:18px">
+      <div class="card st-mb-18px">
         <div class="section-label">
           <svg lucideReceipt size="17"></svg> 3. Reçus d'achat{{ receiptsRequired() ? ' *' : '' }}
-          <span class="badge badge-gray" style="font-size:.7rem">{{ receiptsRequired() ? 'Obligatoire' : 'Si applicable' }}</span>
+          <span class="badge badge-gray st-fs-7rem">{{ receiptsRequired() ? 'Obligatoire' : 'Si applicable' }}</span>
         </div>
         <input #receiptCam type="file" class="hidden-input" accept="image/*" capture="environment" (change)="onFilesSelected($event, 'RECEIPT')">
         <input #receiptLib type="file" class="hidden-input" accept="image/*,application/pdf" multiple (change)="onFilesSelected($event, 'RECEIPT')">
@@ -216,11 +223,11 @@ const MAX_PROOFS = 10;
         }
       </div>
 
-      @if (selectionError()) { <p class="file-error" style="margin-bottom:12px">{{ selectionError() }}</p> }
+      @if (selectionError()) { <p class="file-error st-mb-12px">{{ selectionError() }}</p> }
 
       <!-- ── Progression (en octets) ── -->
       @if (busy()) {
-        <div style="margin-bottom:18px">
+        <div class="st-mb-18px">
           <p class="text-sm text-muted">
             {{ phase() === 'submitting' ? 'Validation des preuves…' : 'Envoi… ' + progress() + '%' }}
           </p>
@@ -234,7 +241,7 @@ const MAX_PROOFS = 10;
         {{ hasFailures() ? "Réessayer l'envoi" : 'Envoyer les preuves au client' }}
       </button>
       @if (!isComplete()) {
-        <p class="upload-hint" style="text-align:center">Complétez les éléments obligatoires ci-dessus.</p>
+        <p class="upload-hint st-ta-center">Complétez les éléments obligatoires ci-dessus.</p>
       }
     }
 

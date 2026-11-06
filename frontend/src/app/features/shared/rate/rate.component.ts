@@ -43,7 +43,7 @@ const STAR_LABELS: Record<number, string> = {
     }
     .rate-avatar {
       width: 76px; height: 76px; border-radius: 50%;
-      background: var(--primary-light, #d7ed9a); color: var(--primary, #123b32);
+      background: var(--primary-light); color: var(--primary);
       display: flex; align-items: center; justify-content: center;
       font-weight: 800; font-size: 1.8rem; margin: 0 auto 14px;
     }
@@ -56,33 +56,39 @@ const STAR_LABELS: Record<number, string> = {
     }
     .star-btn {
       background: none; border: none; padding: 4px; cursor: pointer;
-      color: var(--gray-300, #d1d5db);
+      color: var(--gray-300);
       transition: transform .15s, color .15s;
     }
     .star-btn:hover   { transform: scale(1.2); }
-    .star-btn.active  { color: #F59E0B; }
+    .star-btn.active  { color: var(--cc-warning); }
     .star-btn svg     { display: block; }
 
     .rating-label {
       font-size: .9rem; font-weight: 600; min-height: 1.4em;
       margin-bottom: 24px; transition: color .15s;
     }
-    .rating-label.good { color: var(--success, #16a34a); }
-    .rating-label.bad  { color: var(--danger, #dc2626); }
+    .rating-label.good { color: var(--success); }
+    .rating-label.bad  { color: var(--danger); }
     .rating-label.muted { color: var(--text-muted); }
 
     .notice-box {
-      background: var(--warning-light, #fffbeb);
+      background: var(--warning-light);
       padding: 12px 14px; border-radius: var(--radius-md);
       font-size: .83rem; margin-bottom: 22px;
       text-align: left; display: flex; gap: 8px;
       color: var(--text-muted);
     }
-    .notice-box svg { flex-shrink: 0; color: #D97706; margin-top: 1px; }
+    .notice-box svg { flex-shrink: 0; color: var(--cc-warning); margin-top: 1px; }
 
     @media (max-width: 640px) {
       .rate-card { padding: 26px 18px; }
     }
+
+    /* TICK-076 : anciens attributs « style » du template, convertis en classes (mêmes déclarations) */
+    .st-ta-left-mb-20px { text-align: left; margin-bottom: 20px; }
+    .st-w-100 { width: 100%; }
+    .st-marg-5px { margin-left: 5px; }
+    .st-d-inline-block-w-16px-heig-16px { display: inline-block; width: 16px; height: 16px; margin-right: 8px; border: 2px solid rgba(255,255,255,.3); border-top-color: var(--surface); border-radius: 50%; animation: spin .7s linear infinite; }
   `],
   template: `
   <div class="app-main-inner">
@@ -133,7 +139,7 @@ const STAR_LABELS: Record<number, string> = {
         </p>
 
         <!-- Commentaire -->
-        <div class="form-group" style="text-align:left;margin-bottom:20px">
+        <div class="form-group st-ta-left-mb-20px">
           <label class="form-label" for="comment">Commentaire (optionnel)</label>
           <textarea id="comment" class="form-textarea" rows="3"
             [placeholder]="role() === 'CLIENT'
@@ -149,16 +155,14 @@ const STAR_LABELS: Record<number, string> = {
         </div>
 
         <!-- Bouton submit -->
-        <button type="submit" class="btn btn-primary btn-lg" style="width:100%"
+        <button type="submit" class="btn btn-primary btn-lg st-w-100"
                 [disabled]="!selectedStar() || isSubmitting()">
           <ng-container *ngIf="!isSubmitting()">
             Envoyer la note
-            <svg lucideSend size="17" style="margin-left:5px"></svg>
+            <svg class="st-marg-5px" lucideSend size="17"></svg>
           </ng-container>
           <ng-container *ngIf="isSubmitting()">
-            <span style="display:inline-block;width:16px;height:16px;margin-right:8px;
-              border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;
-              animation:spin .7s linear infinite"></span>
+            <span class="st-d-inline-block-w-16px-heig-16px"></span>
             Envoi…
           </ng-container>
         </button>

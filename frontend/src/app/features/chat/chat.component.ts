@@ -94,7 +94,7 @@ interface ChatMsg {
       display: flex;
       height: 100%;
       overflow: hidden;
-      background: var(--cc-paper, #f7f8f5);
+      background: var(--cc-paper);
     }
 
     /* ── Zone principale ── */
@@ -111,8 +111,8 @@ interface ChatMsg {
 
     /* ── En-tête ── */
     .chat-header {
-      background: var(--cc-white, #fff);
-      border-bottom: 1px solid var(--cc-line, #e2e8e2);
+      background: var(--cc-white);
+      border-bottom: 1px solid var(--cc-line);
       padding: 12px 24px;
       display: flex;
       justify-content: space-between;
@@ -135,8 +135,8 @@ interface ChatMsg {
     .chat-avatar {
       width: 44px; height: 44px;
       border-radius: 50%;
-      background: var(--primary-light, #e4f1e8);
-      color: var(--primary, #17634f);
+      background: var(--primary-light);
+      color: var(--primary);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -155,7 +155,7 @@ interface ChatMsg {
     .chat-title {
       font-size: 1.05rem;
       font-weight: 700;
-      color: var(--cc-ink, #18271f);
+      color: var(--cc-ink);
       display: flex;
       align-items: center;
       gap: 6px;
@@ -165,7 +165,7 @@ interface ChatMsg {
 
     .chat-subtitle {
       font-size: 0.8rem;
-      color: var(--cc-muted, #6d7a71);
+      color: var(--cc-muted);
       display: flex;
       align-items: center;
       gap: 4px;
@@ -181,8 +181,8 @@ interface ChatMsg {
       font-weight: 700;
       padding: 2px 7px;
       border-radius: 99px;
-      background: var(--cc-success-bg, #e4f3e9);
-      color: var(--cc-success, #26845d);
+      background: var(--cc-success-bg);
+      color: var(--cc-success);
     }
 
     .chat-header-actions {
@@ -196,10 +196,10 @@ interface ChatMsg {
     .chat-menu-btn {
       display: none;
       height: 38px; width: 38px;
-      border: 1px solid var(--cc-line, #e2e8e2);
+      border: 1px solid var(--cc-line);
       border-radius: 9px;
-      background: var(--cc-white, #fff);
-      color: var(--cc-forest, #123b32);
+      background: var(--cc-white);
+      color: var(--cc-forest);
       align-items: center;
       justify-content: center;
       cursor: pointer;
@@ -212,10 +212,10 @@ interface ChatMsg {
       align-items: center;
       gap: 8px;
       padding: 8px 24px;
-      background: var(--bg-card, #fff);
-      border-bottom: 1px solid var(--cc-line, #e2e8e2);
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--cc-line);
       font-size: 0.75rem;
-      color: var(--cc-muted, #6d7a71);
+      color: var(--cc-muted);
       flex-shrink: 0;
     }
 
@@ -227,13 +227,13 @@ interface ChatMsg {
       display: flex;
       flex-direction: column;
       gap: 20px;
-      background: var(--cc-paper, #f7f8f5);
+      background: var(--cc-paper);
     }
 
     .chat-date-divider {
       text-align: center;
       font-size: 0.8rem;
-      color: var(--cc-muted, #6d7a71);
+      color: var(--cc-muted);
       margin: 16px 0;
       position: relative;
     }
@@ -244,7 +244,7 @@ interface ChatMsg {
       top: 50%;
       width: 30%;
       height: 1px;
-      background: var(--cc-line, #e2e8e2);
+      background: var(--cc-line);
     }
     .chat-date-divider::before { left: 0; }
     .chat-date-divider::after  { right: 0; }
@@ -270,26 +270,26 @@ interface ChatMsg {
       line-height: 1.4;
     }
     .message-row.incoming .message-bubble {
-      background: var(--cc-white, #fff);
-      color: var(--cc-ink, #18271f);
+      background: var(--cc-white);
+      color: var(--cc-ink);
       border-bottom-left-radius: 4px;
-      border: 1px solid var(--cc-line, #e2e8e2);
+      border: 1px solid var(--cc-line);
     }
     .message-row.outgoing .message-bubble {
-      background: var(--primary, #17634f);
-      color: #fff;
+      background: var(--primary);
+      color: var(--on-primary);
       border-bottom-right-radius: 4px;
     }
     .message-time {
       font-size: 0.75rem;
-      color: var(--cc-muted, #6d7a71);
+      color: var(--cc-muted);
       margin-top: 4px;
     }
 
     /* ── Carte d'offre ── */
     .offer-card {
-      background: var(--cc-paper, #f7f8f5);
-      border: 1px solid var(--primary, #17634f);
+      background: var(--cc-paper);
+      border: 1px solid var(--primary);
       border-radius: var(--radius-md, 10px);
       padding: 16px;
       margin-top: 8px;
@@ -299,7 +299,7 @@ interface ChatMsg {
     .offer-card h4 {
       font-size: 1rem;
       font-weight: 700;
-      color: var(--cc-ink, #18271f);
+      color: var(--cc-ink);
       margin: 0 0 8px;
       display: flex;
       align-items: center;
@@ -310,29 +310,29 @@ interface ChatMsg {
       justify-content: space-between;
       font-size: 0.85rem;
       margin-bottom: 4px;
-      color: var(--cc-muted, #6d7a71);
+      color: var(--cc-muted);
     }
     .offer-total {
       display: flex;
       justify-content: space-between;
       font-size: 1rem;
       font-weight: 700;
-      color: var(--cc-ink, #18271f);
+      color: var(--cc-ink);
       margin-top: 8px;
       padding-top: 8px;
-      border-top: 1px dashed var(--cc-line, #e2e8e2);
+      border-top: 1px dashed var(--cc-line);
     }
     .offer-note {
       font-size: 0.75rem;
-      color: var(--cc-success, #26845d);
+      color: var(--cc-success);
       margin: 8px 0 12px;
       line-height: 1.4;
     }
 
     /* ── Barre de saisie ── */
     .chat-input-bar {
-      background: var(--cc-white, #fff);
-      border-top: 1px solid var(--cc-line, #e2e8e2);
+      background: var(--cc-white);
+      border-top: 1px solid var(--cc-line);
       padding: 12px 24px;
       padding-bottom: max(12px, env(safe-area-inset-bottom));
       display: flex;
@@ -342,35 +342,35 @@ interface ChatMsg {
       position: sticky;
       bottom: 0;
     }
-    .chat-offline { background: var(--cc-warning-bg, #fff7e6); color: var(--cc-warning, #8a5a00);
+    .chat-offline { background: var(--cc-warning-bg); color: var(--cc-warning);
       font-size: .8rem; text-align: center; padding: 6px 12px; flex-shrink: 0; }
     .chat-more { position: relative; }
     .chat-more-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; min-width: 190px;
-      background: var(--cc-white, #fff); border: 1px solid var(--cc-line, #e2e8e2); border-radius: 10px;
+      background: var(--cc-white); border: 1px solid var(--cc-line); border-radius: 10px;
       box-shadow: 0 8px 24px rgba(0,0,0,.12); padding: 6px; display: flex; flex-direction: column; }
     .chat-more-menu button { min-height: 44px; text-align: left; background: none; border: 0; border-radius: 8px;
-      padding: 0 12px; font: inherit; color: var(--cc-ink, #18271f); cursor: pointer; display: flex; gap: 8px; align-items: center; }
-    .chat-more-menu button:hover { background: var(--cc-paper, #f7f8f5); }
-    .chat-more-menu .danger { color: var(--danger, #dc2626); }
+      padding: 0 12px; font: inherit; color: var(--cc-ink); cursor: pointer; display: flex; gap: 8px; align-items: center; }
+    .chat-more-menu button:hover { background: var(--cc-paper); }
+    .chat-more-menu .danger { color: var(--danger); }
 
     .chat-input {
       flex: 1;
       min-width: 0;
       padding: 12px 16px;
-      border: 1px solid var(--cc-line, #e2e8e2);
+      border: 1px solid var(--cc-line);
       border-radius: 999px;
-      background: var(--cc-paper, #f7f8f5);
-      color: var(--cc-ink, #18271f);
+      background: var(--cc-paper);
+      color: var(--cc-ink);
       font-family: inherit;
       font-size: 0.95rem;
       outline: none;
       transition: border-color 0.15s;
     }
-    .chat-input:focus { border-color: var(--primary, #17634f); }
+    .chat-input:focus { border-color: var(--primary); }
 
     .send-btn {
-      background: var(--primary, #17634f);
-      color: #fff;
+      background: var(--primary);
+      color: var(--on-primary);
       border: none;
       width: 44px; height: 44px;
       border-radius: 50%;
@@ -381,7 +381,7 @@ interface ChatMsg {
       flex-shrink: 0;
       transition: background 0.15s;
     }
-    .send-btn:hover  { background: var(--primary-hover, #104d3d); }
+    .send-btn:hover  { background: var(--primary-hover); }
     .send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
     /* Bouton "Proposer une offre" dans la barre de saisie (coursier) */
@@ -392,8 +392,8 @@ interface ChatMsg {
       padding: 10px 18px;
       border-radius: 999px;
       border: none;
-      background: var(--primary, #17634f);
-      color: #fff;
+      background: var(--primary);
+      color: var(--on-primary);
       font-size: 0.9rem;
       font-weight: 700;
       cursor: pointer;
@@ -401,7 +401,7 @@ interface ChatMsg {
       white-space: nowrap;
       transition: background 0.15s;
     }
-    .offer-trigger-btn:hover { background: var(--primary-hover, #104d3d); }
+    .offer-trigger-btn:hover { background: var(--primary-hover); }
 
     /* ── Modale offre (coursier) — identique à la maquette ── */
     .modal-overlay {
@@ -417,8 +417,8 @@ interface ChatMsg {
     .modal-overlay.active { display: flex; }
 
     .modal-content {
-      background: var(--cc-white, #fff);
-      border: 1px solid var(--cc-line, #e2e8e2);
+      background: var(--cc-white);
+      border: 1px solid var(--cc-line);
       border-radius: 13px;
       width: 100%;
       max-width: 400px;
@@ -436,14 +436,14 @@ interface ChatMsg {
     .modal-title {
       font-size: 1.2rem;
       font-weight: 700;
-      color: var(--cc-ink, #18271f);
+      color: var(--cc-ink);
       margin: 0;
     }
 
     .modal-close {
       background: none;
       border: none;
-      color: var(--cc-muted, #6d7a71);
+      color: var(--cc-muted);
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -452,7 +452,7 @@ interface ChatMsg {
       border-radius: 6px;
       transition: background 0.15s;
     }
-    .modal-close:hover { background: var(--cc-paper, #f7f8f5); }
+    .modal-close:hover { background: var(--cc-paper); }
 
     .offer-input-wrap {
       position: relative;
@@ -462,7 +462,7 @@ interface ChatMsg {
       right: 12px;
       top: 50%;
       transform: translateY(-50%);
-      color: var(--cc-muted, #6d7a71);
+      color: var(--cc-muted);
       font-size: 0.9rem;
       pointer-events: none;
     }
@@ -473,11 +473,11 @@ interface ChatMsg {
     .form-hint {
       margin-top: 6px;
       font-size: 0.8rem;
-      color: var(--danger, #dc2626);
+      color: var(--danger);
     }
 
     .offer-preview {
-      background: var(--cc-paper, #f7f8f5);
+      background: var(--cc-paper);
       padding: 12px;
       border-radius: 9px;
       margin-top: 16px;
@@ -491,15 +491,15 @@ interface ChatMsg {
       font-size: 0.85rem;
     }
     .offer-preview-row:last-child { margin-bottom: 0; }
-    .offer-preview-row .label { color: var(--cc-muted, #6d7a71); }
+    .offer-preview-row .label { color: var(--cc-muted); }
     .offer-preview-row .value { font-weight: 700; }
     .offer-preview-divider {
       border: none;
-      border-top: 1px dashed var(--cc-line, #e2e8e2);
+      border-top: 1px dashed var(--cc-line);
       margin: 8px 0;
     }
     .offer-preview-net .label,
-    .offer-preview-net .value { color: var(--cc-success, #26845d); font-weight: 700; }
+    .offer-preview-net .value { color: var(--cc-success); font-weight: 700; }
 
     /* ── Overlay mobile ── */
     .chat-overlay {
@@ -531,38 +531,50 @@ interface ChatMsg {
 
     /* ── Dark mode ── */
     :host-context([data-theme="dark"]) .chat-header,
-    :host-context([data-theme="dark"]) .chat-input-bar { background: #1F2C26; border-color: #2E4037; }
-    :host-context([data-theme="dark"]) .chat-trace-banner { background: #1a2e28; border-color: #2E4037; color: #a8bfb4; }
-    :host-context([data-theme="dark"]) .chat-body { background: #18221D; }
-    :host-context([data-theme="dark"]) .chat-title { color: #e8f0ec; }
-    :host-context([data-theme="dark"]) .chat-subtitle { color: #7fa898; }
-    :host-context([data-theme="dark"]) .chat-date-divider { color: #7fa898; }
+    :host-context([data-theme="dark"]) .chat-input-bar { background: var(--surface); border-color: var(--cc-line); }
+    :host-context([data-theme="dark"]) .chat-trace-banner { background: var(--surface); border-color: var(--cc-line); color: var(--cc-muted); }
+    :host-context([data-theme="dark"]) .chat-body { background: var(--cc-paper); }
+    :host-context([data-theme="dark"]) .chat-title { color: var(--cc-ink); }
+    :host-context([data-theme="dark"]) .chat-subtitle { color: var(--cc-muted); }
+    :host-context([data-theme="dark"]) .chat-date-divider { color: var(--cc-muted); }
     :host-context([data-theme="dark"]) .chat-date-divider::before,
-    :host-context([data-theme="dark"]) .chat-date-divider::after { background: #2E4037; }
+    :host-context([data-theme="dark"]) .chat-date-divider::after { background: var(--cc-line); }
     :host-context([data-theme="dark"]) .message-row.incoming .message-bubble {
-      background: #1F2C26; border-color: #2E4037; color: #e8f0ec;
+      background: var(--surface); border-color: var(--cc-line); color: var(--cc-ink);
     }
     :host-context([data-theme="dark"]) .message-row.outgoing .message-bubble {
-      background: #17634f; color: #fff;
+      background: var(--primary); color: var(--on-primary);
     }
-    :host-context([data-theme="dark"]) .message-time { color: #7fa898; }
+    :host-context([data-theme="dark"]) .message-time { color: var(--cc-muted); }
     :host-context([data-theme="dark"]) .chat-input {
-      background: #1a2e28; border-color: #2E4037; color: #e8f0ec;
+      background: var(--surface); border-color: var(--cc-line); color: var(--cc-ink);
     }
-    :host-context([data-theme="dark"]) .chat-input::placeholder { color: #5a7a6e; }
+    :host-context([data-theme="dark"]) .chat-input::placeholder { color: var(--cc-muted); }
     :host-context([data-theme="dark"]) .offer-card {
-      background: #1a2e28; border-color: #d7ed9a;
+      background: var(--surface); border-color: var(--cc-lime);
     }
-    :host-context([data-theme="dark"]) .offer-card h4 { color: #e8f0ec; }
-    :host-context([data-theme="dark"]) .offer-total { color: #e8f0ec; border-color: #2E4037; }
-    :host-context([data-theme="dark"]) .offer-detail { color: #a8bfb4; }
-    :host-context([data-theme="dark"]) .modal-content { background: #1F2C26; border-color: #2E4037; }
-    :host-context([data-theme="dark"]) .modal-title { color: #e8f0ec; }
-    :host-context([data-theme="dark"]) .offer-preview { background: #18221D; }
-    :host-context([data-theme="dark"]) .offer-preview-row .label { color: #7fa898; }
-    :host-context([data-theme="dark"]) .offer-preview-row .value { color: #e8f0ec; }
-    :host-context([data-theme="dark"]) .badge-verified { background: #1a3d2e; color: #6fcf97; }
-    :host-context([data-theme="dark"]) .chat-header-info .chat-avatar { background: #1a3d2e; color: #d7ed9a; }
+    :host-context([data-theme="dark"]) .offer-card h4 { color: var(--cc-ink); }
+    :host-context([data-theme="dark"]) .offer-total { color: var(--cc-ink); border-color: var(--cc-line); }
+    :host-context([data-theme="dark"]) .offer-detail { color: var(--cc-muted); }
+    :host-context([data-theme="dark"]) .modal-content { background: var(--surface); border-color: var(--cc-line); }
+    :host-context([data-theme="dark"]) .modal-title { color: var(--cc-ink); }
+    :host-context([data-theme="dark"]) .offer-preview { background: var(--cc-paper); }
+    :host-context([data-theme="dark"]) .offer-preview-row .label { color: var(--cc-muted); }
+    :host-context([data-theme="dark"]) .offer-preview-row .value { color: var(--cc-ink); }
+    :host-context([data-theme="dark"]) .badge-verified { background: var(--cc-forest); color: var(--cc-success); }
+    :host-context([data-theme="dark"]) .chat-header-info .chat-avatar { background: var(--cc-forest); color: var(--cc-lime); }
+
+    /* TICK-076 : anciens attributs « style » du template, convertis en classes (mêmes déclarations) */
+    .st-min-44px-mh-44px { min-width: 44px; min-height: 44px; }
+    .st-fw-700 { font-weight: 700; }
+    .st-w-100-mt-4px { width: 100%; margin-top: 4px; }
+    .st-marg-4px { margin-left: 4px; }
+    .st-fs-0-78rem-c-success-ta-center { font-size: 0.78rem; color: var(--cc-success); text-align: center; padding: 4px 0; font-weight: 600; }
+    .st-fs-0-78rem-c-muted-ta-center { font-size: 0.78rem; color: var(--cc-muted); text-align: center; padding: 4px 0; }
+    .st-marg-1px { margin-left: -1px; }
+    .st-fs-88rem-c-muted-mb-16px { font-size: .88rem; color: var(--cc-muted); margin-bottom: 16px; }
+    .st-c-danger-mb-12px { color: var(--danger); margin-bottom: 12px; }
+    .st-c-danger { color: var(--danger); }
   `],
   template: `
     <!-- Overlay mobile sidebar -->
@@ -655,8 +667,8 @@ interface ChatMsg {
 
             <!-- TICK-071 : menu ⋮ — Détails / Signaler / Litige vers les bons écrans -->
             <div class="chat-more">
-              <button class="btn btn-secondary btn-sm" type="button" aria-label="Plus d'actions"
-                      [attr.aria-expanded]="moreOpen()" (click)="moreOpen.set(!moreOpen())" style="min-width:44px;min-height:44px">
+              <button class="btn btn-secondary btn-sm st-min-44px-mh-44px" type="button" aria-label="Plus d'actions"
+                      [attr.aria-expanded]="moreOpen()" (click)="moreOpen.set(!moreOpen())">
                 ⋮
               </button>
               @if (moreOpen()) {
@@ -702,7 +714,7 @@ interface ChatMsg {
                     <h4><svg lucideReceipt size="16"></svg> Détail de l'offre</h4>
                     <div class="offer-detail">
                       <span>Tarif du coursier :</span>
-                      <span style="font-weight:700;">{{ msg.offerAmount | number:'1.0-0' }} XAF</span>
+                      <span class="st-fw-700">{{ msg.offerAmount | number:'1.0-0' }} XAF</span>
                     </div>
                     <div class="offer-total">
                       <span>Tarif proposé :</span>
@@ -710,20 +722,20 @@ interface ChatMsg {
                     </div>
                     <p class="offer-note">🔒 Le coût des achats sera ajouté sur la page de paiement sécurisée.</p>
                     @if (canAccept(msg)) {
-                      <button class="btn btn-primary" style="width:100%;margin-top:4px;" (click)="acceptOffer(msg)" [disabled]="accepting">
-                        Accepter et payer <svg lucideArrowRight size="16" style="margin-left:4px;"></svg>
+                      <button class="btn btn-primary st-w-100-mt-4px" (click)="acceptOffer(msg)" [disabled]="accepting">
+                        Accepter et payer <svg class="st-marg-4px" lucideArrowRight size="16"></svg>
                       </button>
                     } @else if (msg.offerStatus === 'ACCEPTED') {
-                      <div style="font-size:0.78rem;color:var(--cc-success,#17634f);text-align:center;padding:4px 0;font-weight:600;">
+                      <div class="st-fs-0-78rem-c-success-ta-center">
                         ✓ Offre acceptée{{ courseStatus === 'ASSIGNED' ? ' — en attente de paiement' : '' }}
                       </div>
                       @if (isCLIENT && courseStatus === 'ASSIGNED') {
-                        <button class="btn btn-primary" style="width:100%;margin-top:4px;" (click)="goToPayment()">
-                          Payer maintenant <svg lucideArrowRight size="16" style="margin-left:4px;"></svg>
+                        <button class="btn btn-primary st-w-100-mt-4px" (click)="goToPayment()">
+                          Payer maintenant <svg class="st-marg-4px" lucideArrowRight size="16"></svg>
                         </button>
                       }
                     } @else {
-                      <div style="font-size:0.78rem;color:var(--cc-muted);text-align:center;padding:4px 0;">
+                      <div class="st-fs-0-78rem-c-muted-ta-center">
                         {{ offerStatusLabel(msg) }}
                       </div>
                     }
@@ -758,7 +770,7 @@ interface ChatMsg {
             (keyup.enter)="sendMessage()"
             placeholder="Écrivez votre message…"/>
           <button class="send-btn" [disabled]="!newMessage.trim()" (click)="sendMessage()">
-            <svg lucideSend size="20" style="margin-left:-1px;"></svg>
+            <svg class="st-marg-1px" lucideSend size="20"></svg>
           </button>
         </div>
 
@@ -775,7 +787,7 @@ interface ChatMsg {
           </button>
         </div>
 
-        <p style="font-size:.88rem;color:var(--cc-muted);margin-bottom:16px;">
+        <p class="st-fs-88rem-c-muted-mb-16px">
           Saisissez votre tarif pour cette course. Les frais de service ({{ commissionRateCourier ?? '…' }}%) seront déduits de ce montant.
         </p>
 
@@ -796,7 +808,7 @@ interface ChatMsg {
 
         @if (pendingReviewCourseId) {
           <!-- TICK-073 : notation obligatoire avant une nouvelle offre -->
-          <p class="form-hint" style="color:var(--danger,#dc2626);margin-bottom:12px" role="alert">
+          <p class="form-hint st-c-danger-mb-12px" role="alert">
             Notez d'abord votre course terminée avant de proposer un tarif.
             <a [routerLink]="['/courier/rate-client', pendingReviewCourseId]">Noter maintenant</a>
           </p>
@@ -810,7 +822,7 @@ interface ChatMsg {
           </div>
           <div class="offer-preview-row">
             <span class="label">Frais plateforme déduits ({{ commissionRateCourier ?? '…' }}%) :</span>
-            <span class="value" style="color:var(--danger,#dc2626);">- {{ previewFrais | number:'1.0-0' }} XAF</span>
+            <span class="value st-c-danger">- {{ previewFrais | number:'1.0-0' }} XAF</span>
           </div>
           <hr class="offer-preview-divider">
           <div class="offer-preview-row offer-preview-net">

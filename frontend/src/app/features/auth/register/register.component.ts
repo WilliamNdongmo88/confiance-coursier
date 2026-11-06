@@ -13,7 +13,7 @@ import { LucideArrowLeft, LucideBike, LucideMoon, LucideSun, LucideUser } from '
   imports: [FormsModule, RouterLink, CommonModule, LucideArrowLeft, LucideBike, LucideMoon, LucideSun, LucideUser],
   template: `
     <div class="auth-wrapper">
-      <div class="auth-card" style="max-width:520px;padding-top:20px;">
+      <div class="auth-card st-max-520px-padd-20px">
 
         <!-- Ligne 1 : Retour | FR + Thème -->
         <div class="auth-topbar">
@@ -107,8 +107,8 @@ import { LucideArrowLeft, LucideBike, LucideMoon, LucideSun, LucideUser } from '
           <!-- Champs spécifiques COURSIER -->
           @if (role === 'COURIER') {
             <div>
-              <hr style="border:0;border-top:1px solid var(--border);margin:20px 0;">
-              <p style="font-size:.9rem;font-weight:700;color:var(--primary);margin-bottom:16px;">
+              <hr class="st-bd-0-bt-1px-solid-bo-m-20px-0">
+              <p class="st-fs-9rem-fw-700-c-primary">
                 Informations professionnelles
               </p>
 
@@ -177,7 +177,7 @@ import { LucideArrowLeft, LucideBike, LucideMoon, LucideSun, LucideUser } from '
     }
 
     .role-card:hover {
-      border-color: var(--gray-400, #9ca3af);
+      border-color: var(--gray-400);
     }
 
     .role-card.selected {
@@ -205,11 +205,11 @@ import { LucideArrowLeft, LucideBike, LucideMoon, LucideSun, LucideUser } from '
     }
 
     .input-error {
-      border-color: #ef4444 !important;
+      border-color: var(--cc-danger) !important;
     }
 
     .form-error {
-      color: #ef4444;
+      color: var(--cc-danger);
       font-size: .8rem;
       margin-top: 4px;
     }
@@ -228,21 +228,21 @@ import { LucideArrowLeft, LucideBike, LucideMoon, LucideSun, LucideUser } from '
 
     /* Dark mode overrides */
     [data-theme="dark"] .role-card {
-      border-color: #2e4037;
-      background: #1f2c26;
+      border-color: var(--cc-line);
+      background: var(--surface);
     }
 
     [data-theme="dark"] .role-card:hover {
-      border-color: #3e8a6b;
+      border-color: var(--primary);
     }
 
     [data-theme="dark"] .role-card.selected {
-      border-color: #3e8a6b;
+      border-color: var(--primary);
       background: rgba(62, 138, 107, 0.15);
     }
 
     [data-theme="dark"] .role-card.selected .role-icon {
-      color: #d7ed9a;
+      color: var(--cc-lime);
     }
 
     @media (max-width: 480px) {
@@ -250,6 +250,11 @@ import { LucideArrowLeft, LucideBike, LucideMoon, LucideSun, LucideUser } from '
         padding: 14px 10px;
       }
     }
+
+    /* TICK-076 : anciens attributs « style » du template, convertis en classes (mêmes déclarations) */
+    .st-max-520px-padd-20px { max-width: 520px; padding-top: 20px; }
+    .st-bd-0-bt-1px-solid-bo-m-20px-0 { border: 0; border-top: 1px solid var(--border); margin: 20px 0; }
+    .st-fs-9rem-fw-700-c-primary { font-size: .9rem; font-weight: 700; color: var(--primary); margin-bottom: 16px; }
   `]
 })
 export class RegisterComponent {

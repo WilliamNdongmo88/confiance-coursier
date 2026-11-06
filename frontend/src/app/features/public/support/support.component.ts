@@ -8,11 +8,11 @@ import { homeForRole, hasUsableSession } from '../../../core/auth/session';
   standalone: true,
   imports: [RouterLink],
   styles: [`
-    :host { display: block; min-height: 100dvh; background: var(--bg, #f7f8f5); }
+    :host { display: block; min-height: 100dvh; background: var(--bg); }
     .wrap { max-width: 640px; margin: 0 auto; padding: 24px 16px 40px; }
-    h1 { font-size: 1.4rem; margin: 16px 0; color: var(--text, #15241f); }
-    h2 { font-size: 1rem; margin: 20px 0 6px; color: var(--text, #15241f); }
-    p { color: var(--text-muted, #6d7a71); margin: 0; line-height: 1.6; }
+    h1 { font-size: 1.4rem; margin: 16px 0; color: var(--text); }
+    h2 { font-size: 1rem; margin: 20px 0 6px; color: var(--text); }
+    p { color: var(--text-muted); margin: 0; line-height: 1.6; }
     .btn { min-height: 44px; }
   `],
   template: `

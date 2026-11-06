@@ -88,7 +88,7 @@ function buildTimeline(status: string, paidAt?: string, createdAt?: string): Tim
       position: absolute;
       left: 6px; top: 8px; bottom: 0;
       width: 2px;
-      background: var(--border, #e1e8e0);
+      background: var(--border);
     }
     .timeline-step {
       position: relative;
@@ -101,29 +101,29 @@ function buildTimeline(status: string, paidAt?: string, createdAt?: string): Tim
       left: -24px; top: 4px;
       width: 14px; height: 14px;
       border-radius: 50%;
-      background: var(--bg-card, #fff);
-      border: 2px solid var(--cc-line-2, #d1dad2);
+      background: var(--bg-card);
+      border: 2px solid var(--cc-line-2);
       z-index: 1;
     }
     .timeline-step.done::before {
-      background: var(--cc-success, #26845d);
-      border-color: var(--cc-success, #26845d);
+      background: var(--cc-success);
+      border-color: var(--cc-success);
     }
     .timeline-step.active::before {
-      background: var(--primary, #17634f);
-      border-color: var(--primary, #17634f);
-      box-shadow: 0 0 0 4px var(--primary-light, #e4f1e8);
+      background: var(--primary);
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px var(--primary-light);
     }
     .timeline-step h4 {
       font-size: .92rem;
       font-weight: 600;
-      color: var(--text, #15241f);
+      color: var(--text);
       margin: 0 0 2px;
     }
-    .timeline-step.pending h4 { color: var(--cc-muted, #6d7a71); }
+    .timeline-step.pending h4 { color: var(--cc-muted); }
     .timeline-step p {
       font-size: .8rem;
-      color: var(--text-muted, #6d7a71);
+      color: var(--text-muted);
       margin: 0;
     }
 
@@ -133,21 +133,21 @@ function buildTimeline(status: string, paidAt?: string, createdAt?: string): Tim
       justify-content: space-between;
       margin-bottom: 8px;
       font-size: .92rem;
-      color: var(--cc-muted, #6d7a71);
+      color: var(--cc-muted);
     }
     .finance-row.total {
       margin-top: 12px;
       padding-top: 12px;
-      border-top: 1px dashed var(--border, #e1e8e0);
+      border-top: 1px dashed var(--border);
       font-weight: 700;
-      color: var(--text, #15241f);
+      color: var(--text);
       font-size: 1rem;
     }
 
     /* ── Action box ── */
     .action-box {
-      background: var(--bg-card, #fff);
-      border: 1px solid var(--primary, #17634f);
+      background: var(--bg-card);
+      border: 1px solid var(--primary);
       border-radius: var(--radius-lg, 16px);
       padding: 24px;
       text-align: center;
@@ -156,12 +156,12 @@ function buildTimeline(status: string, paidAt?: string, createdAt?: string): Tim
     .action-box h3 {
       font-size: 1.1rem;
       font-weight: 700;
-      color: var(--text, #15241f);
+      color: var(--text);
       margin: 0 0 6px;
     }
     .action-box p {
       font-size: .88rem;
-      color: var(--cc-muted, #6d7a71);
+      color: var(--cc-muted);
       margin: 0 0 16px;
     }
     .action-buttons {
@@ -196,8 +196,8 @@ function buildTimeline(status: string, paidAt?: string, createdAt?: string): Tim
 
         <!-- ── Timeline ── -->
         <div class="card" style="margin-bottom:20px">
-          <div style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:.95rem;color:var(--text,#15241f);margin-bottom:16px">
-            <svg lucideActivity size="17" style="color:var(--primary,#17634f)"></svg>
+          <div style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:.95rem;color:var(--text);margin-bottom:16px">
+            <svg lucideActivity size="17" style="color:var(--primary)"></svg>
             Suivi de la course
           </div>
           <div class="timeline">
@@ -213,8 +213,8 @@ function buildTimeline(status: string, paidAt?: string, createdAt?: string): Tim
         <!-- ── Preuves soumises ── -->
         @if (course.status === 'PROOFS_SUBMITTED') {
           <div class="card" style="margin-bottom:20px">
-            <div style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:.95rem;color:var(--text,#15241f);margin-bottom:10px">
-              <svg lucideCamera size="17" style="color:var(--primary,#17634f)"></svg>
+            <div style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:.95rem;color:var(--text);margin-bottom:10px">
+              <svg lucideCamera size="17" style="color:var(--primary)"></svg>
               Preuves de la course
               <span class="status-badge status-badge--success" style="margin-left:auto;font-size:.7rem">Soumises</span>
             </div>
@@ -227,9 +227,9 @@ function buildTimeline(status: string, paidAt?: string, createdAt?: string): Tim
           </div>
         } @else if (course.status === 'OVERDUE') {
           <!-- ── TICK-065b : le coursier n'a pas soumis ses preuves à temps ── -->
-          <div class="card" style="margin-bottom:20px;border-color:var(--danger,#dc2626)">
-            <div style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:.95rem;color:var(--text,#15241f);margin-bottom:10px">
-              <svg lucideAlertTriangle size="17" style="color:var(--danger,#dc2626)"></svg>
+          <div class="card" style="margin-bottom:20px;border-color:var(--danger)">
+            <div style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:.95rem;color:var(--text);margin-bottom:10px">
+              <svg lucideAlertTriangle size="17" style="color:var(--danger)"></svg>
               Le coursier est en retard
               <span class="status-badge status-badge--danger" style="margin-left:auto;font-size:.7rem">En retard</span>
             </div>
@@ -266,8 +266,8 @@ function buildTimeline(status: string, paidAt?: string, createdAt?: string): Tim
         } @else if (course.status === 'IN_PROGRESS' || course.status === 'ASSIGNED') {
           <!-- ── En attente de preuves ── -->
           <div class="card" style="margin-bottom:20px">
-            <div style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:.95rem;color:var(--text,#15241f);margin-bottom:10px">
-              <svg lucideCamera size="17" style="color:var(--primary,#17634f)"></svg>
+            <div style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:.95rem;color:var(--text);margin-bottom:10px">
+              <svg lucideCamera size="17" style="color:var(--primary)"></svg>
               Preuves de la course
               <span class="status-badge status-badge--warning" style="margin-left:auto;font-size:.7rem">En attente</span>
             </div>
@@ -296,8 +296,8 @@ function buildTimeline(status: string, paidAt?: string, createdAt?: string): Tim
         <!-- ── Finances ── -->
         @if (course.totalAmount) {
           <div class="card" style="margin-bottom:20px">
-            <div style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:.95rem;color:var(--text,#15241f);margin-bottom:14px">
-              <svg lucideReceipt size="17" style="color:var(--primary,#17634f)"></svg>
+            <div style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:.95rem;color:var(--text);margin-bottom:14px">
+              <svg lucideReceipt size="17" style="color:var(--primary)"></svg>
               Détails financiers
             </div>
             @if (course.courierName) {

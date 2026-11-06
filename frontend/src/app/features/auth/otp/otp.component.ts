@@ -21,7 +21,7 @@ import { LucideArrowLeft, LucideBike, LucideMoon, LucideSun } from '@lucide/angu
   imports: [FormsModule, CommonModule, RouterLink, LucideArrowLeft, LucideBike, LucideMoon, LucideSun],
   template: `
     <div class="auth-wrapper">
-      <div class="auth-card" style="text-align:center;position:relative;">
+      <div class="auth-card st-ta-center-posi-relative">
 
         <!-- Bouton Retour (absolu, haut-gauche) -->
         <a routerLink="/register" class="back-link" aria-label="Retour à l'inscription">
@@ -45,27 +45,27 @@ import { LucideArrowLeft, LucideBike, LucideMoon, LucideSun } from '@lucide/angu
         </div>
 
         <!-- Logo -->
-        <div class="auth-logo" style="margin-top:16px;">
+        <div class="auth-logo st-mt-16px">
           <svg lucideBike size="22"></svg>
           <span class="auth-logo-text">ConfianceCoursier</span>
         </div>
 
         <h1 class="auth-title">Vérifiez votre téléphone</h1>
 
-        <p class="text-muted" style="margin-bottom:4px;">
+        <p class="text-muted st-mb-4px">
           Un code à 6 chiffres a été envoyé au
         </p>
-        <p style="font-weight:700;color:var(--primary);margin-bottom:0;">
+        <p class="st-fw-700-c-primary-mb-0">
           {{ maskedPhone }}
         </p>
         @if (maskedEmail) {
-          <p class="text-muted" style="font-size:.85rem;margin-top:4px;margin-bottom:0;">
+          <p class="text-muted st-fs-85rem-mt-4px-mb-0">
             et à {{ maskedEmail }}
           </p>
         }
 
         <!-- 6 inputs OTP — déclarés individuellement pour éviter tout re-render *ngFor -->
-        <form (ngSubmit)="onSubmit()" style="margin-top:0;">
+        <form class="st-mt-0" (ngSubmit)="onSubmit()">
           <div class="otp-inputs">
             <input #d0 type="text" inputmode="numeric" maxlength="1" autocomplete="one-time-code"
               class="otp-input" aria-label="Chiffre 1"
@@ -92,7 +92,7 @@ import { LucideArrowLeft, LucideBike, LucideMoon, LucideSun } from '@lucide/angu
             @if (timeLeft > 0) {
               ⏱ Renvoyer le code dans <strong>{{ timeLeft }}s</strong>
             } @else {
-              <a href="#" (click)="resendCode($event)" style="color:var(--primary);font-weight:600;">
+              <a class="st-c-primary-fw-600" href="#" (click)="resendCode($event)">
                 Renvoyer le code
               </a>
             }
@@ -167,7 +167,7 @@ import { LucideArrowLeft, LucideBike, LucideMoon, LucideSun } from '@lucide/angu
 
     .back-link:hover {
       color: var(--primary);
-      background: var(--gray-100, #f3f4f6);
+      background: var(--gray-100);
     }
 
     .top-controls {
@@ -186,6 +186,15 @@ import { LucideArrowLeft, LucideBike, LucideMoon, LucideSun } from '@lucide/angu
         font-size: 1.25rem;
       }
     }
+
+    /* TICK-076 : anciens attributs « style » du template, convertis en classes (mêmes déclarations) */
+    .st-ta-center-posi-relative { text-align: center; position: relative; }
+    .st-mt-16px { margin-top: 16px; }
+    .st-mb-4px { margin-bottom: 4px; }
+    .st-fw-700-c-primary-mb-0 { font-weight: 700; color: var(--primary); margin-bottom: 0; }
+    .st-fs-85rem-mt-4px-mb-0 { font-size: .85rem; margin-top: 4px; margin-bottom: 0; }
+    .st-mt-0 { margin-top: 0; }
+    .st-c-primary-fw-600 { color: var(--primary); font-weight: 600; }
   `]
 })
 export class OtpComponent implements OnInit, OnDestroy {

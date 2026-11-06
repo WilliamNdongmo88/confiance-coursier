@@ -9,10 +9,10 @@ import { homeForRole, hasUsableSession } from '../../../core/auth/session';
   imports: [RouterLink],
   styles: [`
     :host { display: flex; min-height: 100dvh; align-items: center; justify-content: center;
-            background: var(--bg, #f7f8f5); padding: 16px; text-align: center; }
-    .code { font-size: 3rem; font-weight: 800; color: var(--primary, #17634f); margin: 0; }
-    h1 { font-size: 1.25rem; margin: 8px 0; color: var(--text, #15241f); }
-    p { color: var(--text-muted, #6d7a71); margin: 0 0 24px; }
+            background: var(--bg); padding: 16px; text-align: center; }
+    .code { font-size: 3rem; font-weight: 800; color: var(--primary); margin: 0; }
+    h1 { font-size: 1.25rem; margin: 8px 0; color: var(--text); }
+    p { color: var(--text-muted); margin: 0 0 24px; }
     .btn { min-height: 48px; justify-content: center; }
   `],
   template: `

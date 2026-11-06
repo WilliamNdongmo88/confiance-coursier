@@ -25,17 +25,22 @@ const MOTIF_OPTIONS = [
   imports: [NgFor, NgIf, FormsModule, LucideAlertTriangle, LucideArrowLeft],
   styles: [`
     .alert-warning {
-      background: #fffbeb; border: 1px solid #fcd34d;
+      background: var(--cc-warning-bg); border: 1px solid var(--cc-warning);
       border-radius: var(--radius-md); padding: 14px 16px;
       display: flex; gap: 12px; margin-bottom: 22px; font-size: .88rem;
     }
-    .alert-warning svg { flex-shrink: 0; color: #D97706; margin-top: 1px; }
-    .alert-warning strong { display: block; color: #92400e; margin-bottom: 4px; }
-    .alert-warning p { color: #78350f; margin: 0; }
-    [data-theme="dark"] .alert-warning { background: rgba(120,53,15,.15); border-color: #92400e; }
-    [data-theme="dark"] .alert-warning strong, [data-theme="dark"] .alert-warning p { color: #fde68a; }
+    .alert-warning svg { flex-shrink: 0; color: var(--cc-warning); margin-top: 1px; }
+    .alert-warning strong { display: block; color: var(--cc-warning); margin-bottom: 4px; }
+    .alert-warning p { color: var(--cc-warning); margin: 0; }
+    [data-theme="dark"] .alert-warning { background: rgba(120,53,15,.15); border-color: var(--cc-warning); }
+    [data-theme="dark"] .alert-warning strong, [data-theme="dark"] .alert-warning p { color: var(--cc-warning); }
     .btn-row { display: flex; gap: 10px; justify-content: flex-end; margin-top: 28px; flex-wrap: wrap; }
     @media (max-width: 480px) { .btn-row { flex-direction: column-reverse; } .btn-row .btn { width: 100%; } }
+
+    /* TICK-076 : anciens attributs « style » du template, convertis en classes (mêmes déclarations) */
+    .st-mb-16px { margin-bottom: 16px; }
+    .st-bg-bg { background: var(--bg); }
+    .st-d-inline-block-w-14px-heig-14px { display: inline-block; width: 14px; height: 14px; margin-right: 8px; border: 2px solid rgba(255,255,255,.3); border-top-color: var(--surface); border-radius: 50%; animation: spin .7s linear infinite; }
   `],
   template: `
   <div class="app-main-inner">
@@ -64,15 +69,15 @@ const MOTIF_OPTIONS = [
       <form (submit)="onSubmit($event)">
 
         <!-- Utilisateur signalé (lecture seule) -->
-        <div class="form-group" style="margin-bottom:16px">
+        <div class="form-group st-mb-16px">
           <label class="form-label">Utilisateur signalé</label>
-          <input type="text" class="form-input"
+          <input type="text" class="form-input st-bg-bg"
                  [value]="targetId ? 'Utilisateur #' + targetId : '—'"
-                 readonly style="background:var(--bg)">
+                 readonly>
         </div>
 
         <!-- Motif -->
-        <div class="form-group" style="margin-bottom:16px">
+        <div class="form-group st-mb-16px">
           <label class="form-label" for="motif">Motif du signalement *</label>
           <select id="motif" class="form-select" [(ngModel)]="motif" name="motif" required>
             <option value="">Sélectionnez un motif…</option>
@@ -81,7 +86,7 @@ const MOTIF_OPTIONS = [
         </div>
 
         <!-- Description -->
-        <div class="form-group" style="margin-bottom:16px">
+        <div class="form-group st-mb-16px">
           <label class="form-label" for="desc">Description détaillée *</label>
           <textarea id="desc" class="form-textarea" rows="5"
             placeholder="Décrivez précisément ce qui s'est passé. Ces informations seront lues par l'administrateur…"
@@ -98,9 +103,7 @@ const MOTIF_OPTIONS = [
               Envoyer le signalement
             </ng-container>
             <ng-container *ngIf="isSubmitting()">
-              <span style="display:inline-block;width:14px;height:14px;margin-right:8px;
-                border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;
-                animation:spin .7s linear infinite"></span>
+              <span class="st-d-inline-block-w-14px-heig-14px"></span>
               Envoi…
             </ng-container>
           </button>

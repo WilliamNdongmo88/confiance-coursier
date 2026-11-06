@@ -40,9 +40,9 @@ import { LucideArrowLeft, LucideBike, LucideMoon, LucideSun, LucideEye, LucideEy
 
         <!-- Token manquant -->
         @if (!token) {
-          <div style="text-align:center;padding:16px 0;">
+          <div class="st-ta-center-p-16px-0">
             <h1 class="auth-title">Lien invalide</h1>
-            <p class="text-muted" style="margin-bottom:24px;">
+            <p class="text-muted st-mb-24px">
               Ce lien de réinitialisation est invalide ou a expiré.
             </p>
             <a routerLink="/forgot-password" class="btn btn-primary btn-block">
@@ -52,13 +52,12 @@ import { LucideArrowLeft, LucideBike, LucideMoon, LucideSun, LucideEye, LucideEy
 
         <!-- Succès -->
         } @else if (success) {
-          <div style="text-align:center;padding:8px 0 16px;">
-            <div style="width:64px;height:64px;background:var(--primary-light,#e8f5ee);border-radius:50%;
-                        display:flex;align-items:center;justify-content:center;margin:0 auto 20px;">
-              <svg lucideCheckCircle size="28" style="color:var(--primary,#17634f)"></svg>
+          <div class="st-ta-center-p-8px-0-16px">
+            <div class="st-w-64px-heig-64px-bg-primary-ligh">
+              <svg class="st-c-primary" lucideCheckCircle size="28"></svg>
             </div>
-            <h1 class="auth-title" style="margin-bottom:12px;">Mot de passe mis à jour !</h1>
-            <p class="text-muted" style="margin-bottom:28px;">
+            <h1 class="auth-title st-mb-12px">Mot de passe mis à jour !</h1>
+            <p class="text-muted st-mb-28px">
               Votre mot de passe a été réinitialisé avec succès. Vous pouvez maintenant vous connecter.
             </p>
             <a routerLink="/login" class="btn btn-primary btn-block btn-lg">
@@ -69,23 +68,22 @@ import { LucideArrowLeft, LucideBike, LucideMoon, LucideSun, LucideEye, LucideEy
         <!-- Formulaire -->
         } @else {
           <h1 class="auth-title">Nouveau mot de passe</h1>
-          <p class="text-muted" style="text-align:center;margin-bottom:24px;font-size:.93rem;">
+          <p class="text-muted st-ta-center-mb-24px-fs-93rem">
             Choisissez un mot de passe sécurisé d'au moins 8 caractères.
           </p>
 
           <form (ngSubmit)="onSubmit()">
             <!-- Nouveau mot de passe -->
-            <div class="form-group" style="position:relative;">
+            <div class="form-group st-posi-relative">
               <label class="form-label" for="rp-password">Nouveau mot de passe</label>
               <input [id]="'rp-password'"
                 [type]="showPassword ? 'text' : 'password'"
-                class="form-input" style="padding-right:44px;"
+                class="form-input st-padd-44px"
                 [(ngModel)]="password" name="password" required minlength="8"
                 placeholder="Min 8 caractères" autocomplete="new-password"
                 [disabled]="loading">
-              <button type="button"
-                style="position:absolute;right:12px;bottom:11px;background:none;border:none;cursor:pointer;
-                       color:var(--text-muted);padding:0;display:flex;"
+              <button class="st-posi-absolute-righ-12px-bott-11px" type="button"
+
                 (click)="showPassword = !showPassword"
                 [attr.aria-label]="showPassword ? 'Masquer' : 'Afficher'">
                 @if (showPassword) { <svg lucideEyeOff size="18"></svg> }
@@ -94,18 +92,17 @@ import { LucideArrowLeft, LucideBike, LucideMoon, LucideSun, LucideEye, LucideEy
             </div>
 
             <!-- Confirmer -->
-            <div class="form-group" style="position:relative;">
+            <div class="form-group st-posi-relative">
               <label class="form-label" for="rp-confirm">Confirmer le mot de passe</label>
               <input id="rp-confirm"
                 [type]="showConfirm ? 'text' : 'password'"
-                class="form-input" style="padding-right:44px;"
+                class="form-input st-padd-44px"
                 [(ngModel)]="confirmPassword" name="confirmPassword" required
                 placeholder="••••••••" autocomplete="new-password"
                 [disabled]="loading"
                 [class.input-error]="confirmPassword && confirmPassword !== password">
-              <button type="button"
-                style="position:absolute;right:12px;bottom:11px;background:none;border:none;cursor:pointer;
-                       color:var(--text-muted);padding:0;display:flex;"
+              <button class="st-posi-absolute-righ-12px-bott-11px" type="button"
+
                 (click)="showConfirm = !showConfirm"
                 [attr.aria-label]="showConfirm ? 'Masquer' : 'Afficher'">
                 @if (showConfirm) { <svg lucideEyeOff size="18"></svg> }
@@ -113,7 +110,7 @@ import { LucideArrowLeft, LucideBike, LucideMoon, LucideSun, LucideEye, LucideEy
               </button>
             </div>
             @if (confirmPassword && confirmPassword !== password) {
-              <p style="color:#ef4444;font-size:.8rem;margin:-12px 0 16px;">
+              <p class="st-c-danger-fs-8rem-m-12px-0-16px">
                 Les mots de passe ne correspondent pas.
               </p>
             }
@@ -131,7 +128,21 @@ import { LucideArrowLeft, LucideBike, LucideMoon, LucideSun, LucideEye, LucideEy
   `,
   styles: [`
     :host { display: block; }
-    .input-error { border-color: #ef4444 !important; }
+    .input-error { border-color: var(--cc-danger) !important; }
+
+    /* TICK-076 : anciens attributs « style » du template, convertis en classes (mêmes déclarations) */
+    .st-ta-center-p-16px-0 { text-align: center; padding: 16px 0; }
+    .st-mb-24px { margin-bottom: 24px; }
+    .st-ta-center-p-8px-0-16px { text-align: center; padding: 8px 0 16px; }
+    .st-w-64px-heig-64px-bg-primary-ligh { width: 64px; height: 64px; background: var(--primary-light); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; }
+    .st-c-primary { color: var(--primary); }
+    .st-mb-12px { margin-bottom: 12px; }
+    .st-mb-28px { margin-bottom: 28px; }
+    .st-ta-center-mb-24px-fs-93rem { text-align: center; margin-bottom: 24px; font-size: .93rem; }
+    .st-posi-relative { position: relative; }
+    .st-padd-44px { padding-right: 44px; }
+    .st-posi-absolute-righ-12px-bott-11px { position: absolute; right: 12px; bottom: 11px; background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 0; display: flex; }
+    .st-c-danger-fs-8rem-m-12px-0-16px { color: var(--cc-danger); font-size: .8rem; margin: -12px 0 16px; }
   `]
 })
 export class ResetPasswordComponent implements OnInit {

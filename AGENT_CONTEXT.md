@@ -1440,6 +1440,21 @@ Revue du code des tickets 055 à 061 contre `PLAN_AMELIORATION.md`, puis correct
 
 ---
 
+### Session 67 — TICK-076 [FE] variante 1 « socle + écrans stables » (branche `test_tick-076`, en recette)
+
+Choix utilisateur : deux variantes sur deux branches, comparées visuellement avant validation.
+- **Tailwind retiré** : dépendances `tailwindcss` / `@tailwindcss/postcss`, `postcss.config.json` et `.postcssrc.json` supprimés, `@use "tailwindcss"` remplacé par un équivalent du preflight dans `@layer base` (même priorité dans la cascade → rendu de base inchangé). Seules classes utilitaires utilisées (spinner : `animate-spin`, `opacity-25/75`) remplacées par des styles du composant.
+- **Tokens** : 226 couleurs de repli `var(--token, #hex)` retirées (tokens globaux, rendu identique). `--cc-*` redéfinis en mode sombre (ils restaient clairs) ; nouveaux `--surface`, `--surface-muted`, `--on-primary`, `--focus-ring`, `--shadow-card`.
+- **Boutons** : doublon `.btn-primary` de `styles.scss` réduit aux différences (plus de `width:100%` global ni de couleurs en dur) ; `btn-block` ajouté là où la pleine largeur était implicite (création de course, choix du coursier, validation).
+- **Badges** : `.badge` et `.status-badge` partagent la même base ; variantes sur les tokens de statut.
+- **Cibles tactiles** : `min-height: 44px` sur `.btn`, `.btn-sm`, `.btn-row`, `.mission-btn`, boutons d'icône (`min-width` 44 px).
+- `app.html` / `app.scss` supprimés ; `app.spec.ts` corrigé (router-outlet + toasts) → `ng test` 2/2 verts.
+- **Écrans stables nettoyés** (auth ×5, KYC coursier, profil, preuves, chat, litige, signalement, notation, historique, pages publiques, composants partagés) : 0 `style=""`, 0 couleur en dur — attributs convertis en classes du composant (mêmes déclarations, préfixe `st-`), couleurs → tokens.
+- Bilan : `style=""` 364 → 215, couleurs en dur 500 → 103 ; le reste est dans les 16 écrans réécrits aux Sprints 9–11 (dashboards, création, paiement, détail/validation, missions, gains, admin).
+- Build front OK.
+
+---
+
 ## 9. DOMAINES À IMPLÉMENTER (par ordre de priorité métier)
 
 ### 1. Guards Angular (prérequis avant tout)

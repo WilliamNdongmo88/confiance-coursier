@@ -152,8 +152,8 @@ import {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      border: 1px solid var(--cc-line-2, #d1dad2);
-      background: var(--cc-white, #fff);
+      border: 1px solid var(--cc-line-2);
+      background: var(--cc-white);
       color: #396b4e;
       border-radius: 7px;
       padding: 7px 10px;
@@ -368,7 +368,7 @@ import {
                       <span class="row-meta">Preuves avant le {{ mission.proofDeadline | date:'dd/MM HH:mm' }}</span>
                     }
                     @if (mission.status === 'OVERDUE') {
-                      <span class="row-meta" style="color:var(--danger,#dc2626)">En retard : envoyez vos preuves au plus vite</span>
+                      <span class="row-meta" style="color:var(--danger)">En retard : envoyez vos preuves au plus vite</span>
                     }
                     <!-- Bouton Chat : visible dès qu'une chatRoom existe (toutes missions actives) -->
                     @if (mission.chatRoomId) {

@@ -37,16 +37,16 @@ type PaymentMethod = 'STRIPE' | 'MTN' | 'ORANGE';
       align-items: center;
       margin-bottom: 8px;
       font-size: .93rem;
-      color: var(--text-muted, #6d7a71);
+      color: var(--text-muted);
       gap: 12px;
     }
     .invoice-line.total {
       margin-top: 14px;
       padding-top: 14px;
-      border-top: 1px dashed var(--border, #e1e8e0);
+      border-top: 1px dashed var(--border);
       font-size: 1.1rem;
       font-weight: 800;
-      color: var(--text, #15241f);
+      color: var(--text);
     }
     .frais-input {
       display: flex;
@@ -87,10 +87,10 @@ type PaymentMethod = 'STRIPE' | 'MTN' | 'ORANGE';
       display: flex;
       align-items: flex-start;
       gap: 12px;
-      background: var(--cc-success-bg, #e4f3e9);
+      background: var(--cc-success-bg);
       padding: 14px 16px;
       border-radius: var(--radius-md, 10px);
-      color: var(--cc-success, #26845d);
+      color: var(--cc-success);
       font-size: .85rem;
       margin-bottom: 22px;
       border: 1px solid rgba(38,132,93,.18);
@@ -102,20 +102,20 @@ type PaymentMethod = 'STRIPE' | 'MTN' | 'ORANGE';
       align-items: center;
       gap: 12px;
       padding: 14px 16px;
-      border: 1px solid var(--border, #e1e8e0);
+      border: 1px solid var(--border);
       border-radius: var(--radius-md, 10px);
       cursor: pointer;
       transition: border-color .15s, background .15s;
-      background: var(--bg, #f7f8f5);
+      background: var(--bg);
       margin-bottom: 10px;
     }
     .payment-option.selected {
-      border-color: var(--primary, #17634f);
-      background: var(--primary-light, #e4f1e8);
+      border-color: var(--primary);
+      background: var(--primary-light);
     }
     .payment-option input[type="radio"] {
       width: 17px; height: 17px;
-      accent-color: var(--primary, #17634f);
+      accent-color: var(--primary);
       flex-shrink: 0;
     }
     .payment-icon {
@@ -131,11 +131,11 @@ type PaymentMethod = 'STRIPE' | 'MTN' | 'ORANGE';
     .payment-info .payment-name {
       font-weight: 700;
       font-size: .9rem;
-      color: var(--text, #15241f);
+      color: var(--text);
     }
     .payment-info .payment-desc {
       font-size: .78rem;
-      color: var(--text-muted, #6d7a71);
+      color: var(--text-muted);
       margin-top: 2px;
     }
   `],
@@ -154,8 +154,8 @@ type PaymentMethod = 'STRIPE' | 'MTN' | 'ORANGE';
 
       <!-- ── Récapitulatif ── -->
       <div class="card" style="margin-bottom:20px">
-        <div style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:1rem;color:var(--text,#15241f);margin-bottom:16px">
-          <svg lucideFileText size="18" style="color:var(--primary,#17634f)"></svg>
+        <div style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:1rem;color:var(--text);margin-bottom:16px">
+          <svg lucideFileText size="18" style="color:var(--primary)"></svg>
           Récapitulatif de l'offre
         </div>
 
@@ -204,7 +204,7 @@ type PaymentMethod = 'STRIPE' | 'MTN' | 'ORANGE';
           @if (courseLoaded) {
             <span style="font-weight:600;">{{ tarifCoursier | number:'1.0-0' }} XAF</span>
           } @else if (courseError) {
-            <span style="color:var(--danger,#dc2626)">Erreur de chargement</span>
+            <span style="color:var(--danger)">Erreur de chargement</span>
           } @else {
             <span style="color:var(--cc-muted)">Chargement…</span>
           }
@@ -243,8 +243,8 @@ type PaymentMethod = 'STRIPE' | 'MTN' | 'ORANGE';
 
       <!-- ── Méthode de paiement ── -->
       <div class="card" style="margin-bottom:20px">
-        <div style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:1rem;color:var(--text,#15241f);margin-bottom:16px">
-          <svg lucideCreditCard size="18" style="color:var(--primary,#17634f)"></svg>
+        <div style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:1rem;color:var(--text);margin-bottom:16px">
+          <svg lucideCreditCard size="18" style="color:var(--primary)"></svg>
           Méthode de paiement
         </div>
 

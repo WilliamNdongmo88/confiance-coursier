@@ -187,7 +187,7 @@ interface ProofItem {
         <p>En validant, vous libérez définitivement les fonds au coursier (Escrow).
            Cette action est <strong>irréversible</strong>.</p>
         <div class="action-buttons">
-          <button class="btn btn-primary btn-lg"
+          <button class="btn btn-primary btn-lg btn-block"
                   [disabled]="isValidating()"
                   (click)="validateCourse()">
             <ng-container *ngIf="!isValidating()">

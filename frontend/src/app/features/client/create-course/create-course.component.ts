@@ -46,21 +46,21 @@ interface CourseType {
       width: 10px;
       height: 10px;
       border-radius: 50%;
-      background: var(--cc-line-2, #c8d5c4);
+      background: var(--cc-line-2);
       transition: all .2s;
     }
     .step-dot.active {
-      background: var(--primary, #17634f);
+      background: var(--primary);
       width: 22px;
       border-radius: 5px;
     }
     .step-dot.done {
-      background: var(--cc-success, #22c55e);
+      background: var(--cc-success);
     }
 
     .form-card {
-      background: var(--bg-card, #fff);
-      border: 1px solid var(--border, #e1e8e0);
+      background: var(--bg-card);
+      border: 1px solid var(--border);
       border-radius: var(--radius-lg, 12px);
       padding: 32px;
     }
@@ -75,30 +75,30 @@ interface CourseType {
       margin-bottom: 24px;
     }
     .type-card {
-      border: 2px solid var(--border, #e1e8e0);
+      border: 2px solid var(--border);
       border-radius: var(--radius-md, 8px);
       padding: 14px 10px;
       text-align: center;
       cursor: pointer;
       transition: border-color .15s, background .15s;
-      background: var(--bg, #f7f8f5);
+      background: var(--bg);
       user-select: none;
     }
-    .type-card:hover { border-color: var(--cc-line-2, #c8d5c4); }
+    .type-card:hover { border-color: var(--cc-line-2); }
     .type-card.selected {
-      border-color: var(--primary, #17634f);
-      background: var(--primary-light, #e8f5e9);
+      border-color: var(--primary);
+      background: var(--primary-light);
     }
     .type-card-icon {
       display: flex;
       justify-content: center;
       margin-bottom: 7px;
-      color: var(--primary, #17634f);
+      color: var(--primary);
     }
     .type-card-label {
       font-weight: 600;
       font-size: 0.88rem;
-      color: var(--text, #15241f);
+      color: var(--text);
     }
 
     .two-col-grid {
@@ -112,9 +112,9 @@ interface CourseType {
 
     .proofs-box {
       padding: 14px;
-      background: var(--bg, #f7f8f5);
+      background: var(--bg);
       border-radius: var(--radius-md, 8px);
-      border: 1px solid var(--border, #e1e8e0);
+      border: 1px solid var(--border);
     }
 
     .action-bar {
@@ -123,7 +123,7 @@ interface CourseType {
       gap: 10px;
       margin-top: 28px;
       padding-top: 22px;
-      border-top: 1px solid var(--border, #e1e8e0);
+      border-top: 1px solid var(--border);
     }
     .action-bar .btn { width: 100%; justify-content: center; }
   `],
@@ -142,7 +142,7 @@ interface CourseType {
 
       @if (pendingReview) {
         <!-- TICK-073 : notation obligatoire avant une nouvelle course -->
-        <div class="card" style="margin-bottom:20px;border-color:var(--warning,#d97706)" role="alert">
+        <div class="card" style="margin-bottom:20px;border-color:var(--warning)" role="alert">
           <p style="margin:0 0 12px;font-weight:600">
             Avant de créer une nouvelle course, notez votre course terminée
             « {{ pendingReview.description }} ».
@@ -277,7 +277,7 @@ interface CourseType {
           <div class="action-bar">
             <button
               type="submit"
-              class="btn btn-primary"
+              class="btn btn-primary btn-block"
               [disabled]="isLoading || !isFormValid()"
             >
               @if (isLoading) {

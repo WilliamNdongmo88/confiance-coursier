@@ -41,7 +41,7 @@ import { LucideArrowLeft, LucideBike, LucideMoon, LucideSun, LucideMailCheck } f
         <!-- État : formulaire -->
         @if (!sent) {
           <h1 class="auth-title">Mot de passe oublié ?</h1>
-          <p class="text-muted" style="text-align:center;margin-bottom:24px;font-size:.93rem;">
+          <p class="text-muted st-ta-center-mb-24px-fs-93rem">
             Entrez votre adresse email et nous vous enverrons un lien pour réinitialiser votre mot de passe.
           </p>
 
@@ -67,17 +67,16 @@ import { LucideArrowLeft, LucideBike, LucideMoon, LucideSun, LucideMailCheck } f
 
         <!-- État : email envoyé -->
         } @else {
-          <div style="text-align:center;padding:8px 0 16px;">
-            <div style="width:64px;height:64px;background:var(--primary-light,#e8f5ee);border-radius:50%;
-                        display:flex;align-items:center;justify-content:center;margin:0 auto 20px;">
-              <svg lucideMailCheck size="28" style="color:var(--primary,#17634f)"></svg>
+          <div class="st-ta-center-p-8px-0-16px">
+            <div class="st-w-64px-heig-64px-bg-primary-ligh">
+              <svg class="st-c-primary" lucideMailCheck size="28"></svg>
             </div>
-            <h1 class="auth-title" style="margin-bottom:12px;">Email envoyé !</h1>
-            <p class="text-muted" style="font-size:.93rem;line-height:1.6;margin-bottom:8px;">
+            <h1 class="auth-title st-mb-12px">Email envoyé !</h1>
+            <p class="text-muted st-fs-93rem-lh-1-6-mb-8px">
               Un lien de réinitialisation a été envoyé à<br>
-              <strong style="color:var(--text);">{{ email }}</strong>
+              <strong class="st-c-text">{{ email }}</strong>
             </p>
-            <p class="text-muted" style="font-size:.85rem;margin-bottom:28px;">
+            <p class="text-muted st-fs-85rem-mb-28px">
               Vérifiez vos spams si vous ne le trouvez pas. Le lien expire dans <strong>15 minutes</strong>.
             </p>
             <button class="btn btn-primary btn-block" (click)="resend()" [disabled]="resendCooldown > 0">
@@ -94,7 +93,18 @@ import { LucideArrowLeft, LucideBike, LucideMoon, LucideSun, LucideMailCheck } f
       </div>
     </div>
   `,
-  styles: [`:host { display: block; }`]
+  styles: [`:host { display: block; }
+
+    /* TICK-076 : anciens attributs « style » du template, convertis en classes (mêmes déclarations) */
+    .st-ta-center-mb-24px-fs-93rem { text-align: center; margin-bottom: 24px; font-size: .93rem; }
+    .st-ta-center-p-8px-0-16px { text-align: center; padding: 8px 0 16px; }
+    .st-w-64px-heig-64px-bg-primary-ligh { width: 64px; height: 64px; background: var(--primary-light); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; }
+    .st-c-primary { color: var(--primary); }
+    .st-mb-12px { margin-bottom: 12px; }
+    .st-fs-93rem-lh-1-6-mb-8px { font-size: .93rem; line-height: 1.6; margin-bottom: 8px; }
+    .st-c-text { color: var(--text); }
+    .st-fs-85rem-mb-28px { font-size: .85rem; margin-bottom: 28px; }
+  `]
 })
 export class ForgotPasswordComponent {
   email = '';

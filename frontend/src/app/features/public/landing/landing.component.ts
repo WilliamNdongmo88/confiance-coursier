@@ -10,15 +10,15 @@ import { RouterLink } from '@angular/router';
   standalone: true,
   imports: [RouterLink],
   styles: [`
-    :host { display: block; min-height: 100dvh; background: var(--bg, #f7f8f5); }
+    :host { display: block; min-height: 100dvh; background: var(--bg); }
     .wrap { max-width: 560px; margin: 0 auto; padding: 24px 16px 40px; }
     header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; }
-    .brand { font-weight: 800; font-size: 1.1rem; color: var(--primary, #17634f); }
-    h1 { font-size: 1.7rem; line-height: 1.25; margin: 0 0 12px; color: var(--text, #15241f); }
-    p.lead { color: var(--text-muted, #6d7a71); margin: 0 0 28px; }
+    .brand { font-weight: 800; font-size: 1.1rem; color: var(--primary); }
+    h1 { font-size: 1.7rem; line-height: 1.25; margin: 0 0 12px; color: var(--text); }
+    p.lead { color: var(--text-muted); margin: 0 0 28px; }
     .ctas { display: flex; flex-direction: column; gap: 12px; margin-bottom: 32px; }
     .ctas .btn { min-height: 48px; justify-content: center; }
-    ol { padding-left: 20px; color: var(--text, #15241f); line-height: 1.9; margin: 0 0 24px; }
+    ol { padding-left: 20px; color: var(--text); line-height: 1.9; margin: 0 0 24px; }
     footer { display: flex; gap: 16px; font-size: .85rem; }
   `],
   template: `

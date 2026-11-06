@@ -276,24 +276,24 @@ import {
     .task-action {
       font-size: .8rem;
       font-weight: 600;
-      color: var(--primary, #17634f);
+      color: var(--primary);
       text-decoration: none;
       padding: 4px 10px;
-      border: 1px solid var(--primary, #17634f);
+      border: 1px solid var(--primary);
       border-radius: 6px;
       transition: background .15s, color .15s;
       white-space: nowrap;
     }
     .task-action:hover {
-      background: var(--primary, #17634f);
+      background: var(--primary);
       color: #fff;
     }
     .task-action--danger {
-      color: var(--danger, #dc2626);
-      border-color: var(--danger, #dc2626);
+      color: var(--danger);
+      border-color: var(--danger);
     }
     .task-action--danger:hover {
-      background: var(--danger, #dc2626);
+      background: var(--danger);
       color: #fff;
     }
 

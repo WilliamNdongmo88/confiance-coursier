@@ -103,7 +103,7 @@ function statusLabel(status: string): string {
       <!-- ── État chargement ── -->
       @if (loading) {
         <section class="panel">
-          <div class="row-item" style="justify-content:center;padding:32px 0;color:#94a199;">
+          <div class="row-item st-jc-center-p-32px-0-c-muted">
             Chargement…
           </div>
         </section>
@@ -112,9 +112,9 @@ function statusLabel(status: string): string {
       <!-- ── État vide ── -->
       @if (!loading && filteredCourses().length === 0) {
         <section class="panel">
-          <div class="row-item" style="justify-content:center;flex-direction:column;gap:8px;padding:32px 0;color:#94a199;text-align:center;">
-            <svg lucidePackageOpen size="32" style="opacity:.35;margin:0 auto"></svg>
-            <p style="margin:0;font-size:14px;">
+          <div class="row-item st-jc-center-fd-column-g-8px">
+            <svg class="st-opac-35-m-0-auto" lucidePackageOpen size="32"></svg>
+            <p class="st-m-0-fs-14px">
               {{ isClient ? 'Aucune course pour le moment.' : 'Aucune mission pour le moment.' }}
             </p>
             @if (isClient) {
@@ -204,7 +204,7 @@ function statusLabel(status: string): string {
                   <tr>
                     <td>{{ course.scheduledAt | date:'dd/MM/yyyy' }}</td>
                     <td>{{ course.description }} — {{ course.zone }}</td>
-                    <td style="font-weight:600;color:{{ course.status === 'COMPLETED' ? 'var(--success,#17634f)' : 'var(--text-muted)' }}">
+                    <td class="fw-600" [class.text-success]="course.status === 'COMPLETED'" [class.text-muted]="course.status !== 'COMPLETED'">
                       {{ course.status === 'COMPLETED' ? netPercu(course) : '—' }}
                     </td>
                     <td>
@@ -238,7 +238,7 @@ function statusLabel(status: string): string {
                 <div class="hist-card-stats">
                   <div>
                     <span class="hist-card-label">Net</span>
-                    <strong [style.color]="course.status === 'COMPLETED' ? 'var(--success,#17634f)' : 'var(--text-muted)'">
+                    <strong [style.color]="course.status === 'COMPLETED' ? 'var(--success)' : 'var(--text-muted)'">
                       {{ course.status === 'COMPLETED' ? netPercu(course) : '—' }}
                     </strong>
                   </div>
@@ -270,14 +270,14 @@ function statusLabel(status: string): string {
     .filter-group label {
       font-size: 12px;
       font-weight: 600;
-      color: var(--text-muted, #7f8a82);
+      color: var(--text-muted);
     }
     .filter-group .form-select {
       padding: 8px 12px;
       border-radius: 8px;
-      border: 1px solid var(--border, #e2e8e2);
-      background: var(--bg-card, #fff);
-      color: var(--text, #18271f);
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      color: var(--text);
       font-size: 14px;
       min-width: 180px;
     }
@@ -287,25 +287,25 @@ function statusLabel(status: string): string {
     .history-table { width: 100%; border-collapse: collapse; }
     .history-table th {
       font-size: .83rem;
-      color: var(--text-muted, #7f8a82);
+      color: var(--text-muted);
       font-weight: 600;
       padding: 10px 8px;
-      border-bottom: 1px solid var(--border, #e2e8e2);
+      border-bottom: 1px solid var(--border);
       white-space: nowrap;
       text-align: left;
     }
     .history-table td {
       padding: 14px 8px;
-      border-bottom: 1px solid var(--border, #e2e8e2);
+      border-bottom: 1px solid var(--border);
       font-size: .92rem;
-      color: var(--text, #18271f);
+      color: var(--text);
     }
     .history-table tr:last-child td { border-bottom: none; }
 
     /* ── Cartes mobile (courier) ── */
     .hist-cards { display: none; }
     .hist-card-item {
-      border: 1px solid var(--border, #e2e8e2);
+      border: 1px solid var(--border);
       border-radius: 10px;
       padding: 13px;
       margin-bottom: 10px;
@@ -319,13 +319,13 @@ function statusLabel(status: string): string {
     .hist-card-title {
       font-size: .88rem;
       font-weight: 700;
-      color: var(--text, #18271f);
+      color: var(--text);
       flex: 1;
       padding-right: 8px;
     }
     .hist-card-meta {
       font-size: .8rem;
-      color: var(--text-muted, #7f8a82);
+      color: var(--text-muted);
       margin-bottom: 8px;
     }
     .hist-card-stats {
@@ -335,7 +335,7 @@ function statusLabel(status: string): string {
     }
     .hist-card-label {
       display: block;
-      color: var(--text-muted, #7f8a82);
+      color: var(--text-muted);
       font-size: .78rem;
     }
 
@@ -345,6 +345,12 @@ function statusLabel(status: string): string {
       .table-desktop { display: none !important; }
       .hist-cards { display: block; }
     }
+
+    /* TICK-076 : anciens attributs « style » du template, convertis en classes (mêmes déclarations) */
+    .st-jc-center-p-32px-0-c-muted { justify-content: center; padding: 32px 0; color: var(--cc-muted); }
+    .st-jc-center-fd-column-g-8px { justify-content: center; flex-direction: column; gap: 8px; padding: 32px 0; color: var(--cc-muted); text-align: center; }
+    .st-opac-35-m-0-auto { opacity: .35; margin: 0 auto; }
+    .st-m-0-fs-14px { margin: 0; font-size: 14px; }
   `,
 })
 export class HistoryComponent implements OnInit {

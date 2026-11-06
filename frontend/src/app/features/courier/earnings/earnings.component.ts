@@ -82,26 +82,26 @@ import {
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
           <div>
             <h2 style="margin:0;font-size:16px">Total depuis votre inscription</h2>
-            <p style="margin:4px 0 0;font-size:13px;color:var(--text-muted,#7f8a82)">
+            <p style="margin:4px 0 0;font-size:13px;color:var(--text-muted)">
               {{ completedTransactions.length }} course{{ completedTransactions.length > 1 ? 's' : '' }} terminée{{ completedTransactions.length > 1 ? 's' : '' }}
             </p>
           </div>
           <div style="display:flex;gap:24px;flex-wrap:wrap">
             <div>
-              <span style="font-size:12px;color:var(--text-muted,#7f8a82)">Brut total</span>
-              <div style="font-weight:700;font-size:18px;color:var(--text,#18271f)">
+              <span style="font-size:12px;color:var(--text-muted)">Brut total</span>
+              <div style="font-weight:700;font-size:18px;color:var(--text)">
                 {{ loading ? '—' : formatXaf(totalBrut) }}
               </div>
             </div>
             <div>
-              <span style="font-size:12px;color:var(--text-muted,#7f8a82)">Commissions déduites</span>
-              <div style="font-weight:700;font-size:18px;color:var(--danger,#dc2626)">
+              <span style="font-size:12px;color:var(--text-muted)">Commissions déduites</span>
+              <div style="font-weight:700;font-size:18px;color:var(--danger)">
                 {{ loading ? '—' : formatXaf(totalFees) }}
               </div>
             </div>
             <div>
-              <span style="font-size:12px;color:var(--text-muted,#7f8a82)">Net total</span>
-              <div style="font-weight:700;font-size:18px;color:var(--success,#17634f)">
+              <span style="font-size:12px;color:var(--text-muted)">Net total</span>
+              <div style="font-weight:700;font-size:18px;color:var(--success)">
                 {{ loading ? '—' : formatXaf(totalNet) }}
               </div>
             </div>
@@ -117,14 +117,14 @@ import {
 
         <!-- État chargement -->
         @if (loading) {
-          <div style="padding:32px;text-align:center;color:var(--text-muted,#7f8a82)">
+          <div style="padding:32px;text-align:center;color:var(--text-muted)">
             Chargement…
           </div>
         }
 
         <!-- État vide -->
         @if (!loading && completedTransactions.length === 0) {
-          <div style="padding:32px;text-align:center;color:var(--text-muted,#7f8a82)">
+          <div style="padding:32px;text-align:center;color:var(--text-muted)">
             <svg lucidePackageCheck size="32" style="opacity:.35;margin:0 auto 8px"></svg>
             <p style="margin:0;font-size:14px;">Aucune course terminée pour le moment.</p>
             <a routerLink="/courier/dashboard" class="text-link" style="margin-top:8px;display:inline-block">
@@ -153,8 +153,8 @@ import {
                     <td>{{ tx.date | date:'dd/MM/yyyy' }}</td>
                     <td>{{ tx.description }} — {{ tx.zone }}</td>
                     <td>{{ formatXaf(tx.brut) }}</td>
-                    <td style="color:var(--danger,#dc2626)">-{{ formatXaf(tx.frais) }}</td>
-                    <td style="font-weight:700;color:var(--success,#17634f)">{{ formatXaf(tx.net) }}</td>
+                    <td style="color:var(--danger)">-{{ formatXaf(tx.frais) }}</td>
+                    <td style="font-weight:700;color:var(--success)">{{ formatXaf(tx.net) }}</td>
                     <td>
                       <span class="badge badge-success">Versé</span>
                     </td>
@@ -180,11 +180,11 @@ import {
                   </div>
                   <div>
                     <span class="tx-card-label">Frais</span>
-                    <strong style="color:var(--danger,#dc2626)">-{{ formatXaf(tx.frais) }}</strong>
+                    <strong style="color:var(--danger)">-{{ formatXaf(tx.frais) }}</strong>
                   </div>
                   <div>
                     <span class="tx-card-label">Net</span>
-                    <strong style="color:var(--success,#17634f)">{{ formatXaf(tx.net) }}</strong>
+                    <strong style="color:var(--success)">{{ formatXaf(tx.net) }}</strong>
                   </div>
                 </div>
               </div>
@@ -201,25 +201,25 @@ import {
     .earnings-table { width: 100%; border-collapse: collapse; }
     .earnings-table th {
       font-size: .83rem;
-      color: var(--text-muted, #7f8a82);
+      color: var(--text-muted);
       font-weight: 600;
       padding: 10px 8px;
-      border-bottom: 1px solid var(--border, #e2e8e2);
+      border-bottom: 1px solid var(--border);
       white-space: nowrap;
       text-align: left;
     }
     .earnings-table td {
       padding: 14px 8px;
-      border-bottom: 1px solid var(--border, #e2e8e2);
+      border-bottom: 1px solid var(--border);
       font-size: .92rem;
-      color: var(--text, #18271f);
+      color: var(--text);
     }
     .earnings-table tr:last-child td { border-bottom: none; }
 
     /* ── Cartes mobile ── */
     .tx-cards { display: none; }
     .tx-card-item {
-      border: 1px solid var(--border, #e2e8e2);
+      border: 1px solid var(--border);
       border-radius: 10px;
       padding: 14px;
       margin-bottom: 10px;
@@ -233,13 +233,13 @@ import {
     .tx-card-title {
       font-size: .88rem;
       font-weight: 700;
-      color: var(--text, #18271f);
+      color: var(--text);
       flex: 1;
       padding-right: 8px;
     }
     .tx-card-meta {
       font-size: .8rem;
-      color: var(--text-muted, #7f8a82);
+      color: var(--text-muted);
       margin-bottom: 8px;
     }
     .tx-card-stats {
@@ -249,7 +249,7 @@ import {
     }
     .tx-card-label {
       display: block;
-      color: var(--text-muted, #7f8a82);
+      color: var(--text-muted);
       font-size: .78rem;
     }
 

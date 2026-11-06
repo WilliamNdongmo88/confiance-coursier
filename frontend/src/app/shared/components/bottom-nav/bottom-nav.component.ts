@@ -38,8 +38,8 @@ const BADGE_REFRESH_MS = 30_000;
     @media (max-width: 767.98px) {
       :host {
         display: block; position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
-        background: var(--surface, var(--cc-white, #fff));
-        border-top: 1px solid var(--border, #e2e8e2);
+        background: var(--surface, var(--cc-white));
+        border-top: 1px solid var(--border);
         padding-bottom: env(safe-area-inset-bottom);
       }
     }
@@ -47,16 +47,16 @@ const BADGE_REFRESH_MS = 30_000;
     a {
       position: relative; min-height: 56px; display: flex; flex-direction: column;
       align-items: center; justify-content: center; gap: 2px;
-      font-size: .7rem; font-weight: 600; color: var(--text-muted, #6d7a71); text-decoration: none;
+      font-size: .7rem; font-weight: 600; color: var(--text-muted); text-decoration: none;
     }
-    a.active { color: var(--primary, #17634f); }
+    a.active { color: var(--primary); }
     a.active::before {
       content: ''; position: absolute; top: 0; left: 25%; right: 25%; height: 3px;
-      border-radius: 0 0 3px 3px; background: var(--primary, #17634f);
+      border-radius: 0 0 3px 3px; background: var(--primary);
     }
     .badge {
       position: absolute; top: 6px; left: calc(50% + 6px); min-width: 18px; height: 18px; padding: 0 5px;
-      border-radius: 9px; background: var(--danger, #dc2626); color: #fff; font-size: .65rem;
+      border-radius: 9px; background: var(--danger); color: var(--on-primary); font-size: .65rem;
       display: flex; align-items: center; justify-content: center;
     }
   `],

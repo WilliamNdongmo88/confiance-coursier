@@ -54,14 +54,14 @@ interface UserProfile {
       gap: 22px;
       margin-bottom: 28px;
       padding-bottom: 26px;
-      border-bottom: 1px solid #e1e8e0;
+      border-bottom: 1px solid var(--cc-line);
     }
     .avatar-lg {
       width: 76px;
       height: 76px;
       border-radius: 50%;
-      background: #e8f5ef;
-      color: #123b32;
+      background: var(--cc-success-bg);
+      color: var(--cc-forest);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -77,23 +77,23 @@ interface UserProfile {
     .section-title {
       font-size: .95rem;
       font-weight: 700;
-      color: #123b32;
+      color: var(--cc-forest);
       margin-bottom: 12px;
     }
     @media (max-width: 640px) {
       .avatar-section { flex-direction: column; text-align: center; gap: 14px; }
       .profile-grid   { grid-template-columns: 1fr; gap: 0; }
     }
-    [data-theme="dark"] .avatar-section { border-bottom-color: #2e4037; }
-    [data-theme="dark"] .avatar-lg { background: #1e3029; color: #d7ed9a; }
-    [data-theme="dark"] hr { border-top-color: #2e4037 !important; }
+    [data-theme="dark"] .avatar-section { border-bottom-color: var(--cc-line); }
+    [data-theme="dark"] .avatar-lg { background: var(--surface); color: var(--cc-lime); }
+    [data-theme="dark"] hr { border-top-color: var(--cc-line) !important; }
     /* ── Bannière KYC (même style que courier/dashboard) ── */
     .kyc-banner {
       display: flex;
       align-items: center;
       gap: 14px;
-      background: linear-gradient(135deg, #78350f 0%, #92400e 100%);
-      border: 1px solid #b45309;
+      background: linear-gradient(135deg, var(--cc-warning) 0%, var(--cc-warning) 100%);
+      border: 1px solid var(--cc-warning);
       border-radius: 12px;
       padding: 14px 18px;
       margin-bottom: 16px;
@@ -107,7 +107,7 @@ interface UserProfile {
       height: 38px;
       border-radius: 10px;
       background: rgba(255,255,255,.15);
-      color: #fde68a;
+      color: var(--cc-warning);
       flex-shrink: 0;
     }
     .kyc-banner__body { flex: 1; min-width: 160px; }
@@ -115,21 +115,21 @@ interface UserProfile {
       display: block;
       font-size: 13.5px;
       font-weight: 700;
-      color: #ffffff;
+      color: var(--on-primary);
       margin-bottom: 2px;
     }
     .kyc-banner__desc {
       margin: 0;
       font-size: 12px;
-      color: #fde68a;
+      color: var(--cc-warning);
       line-height: 1.4;
     }
     .kyc-banner__cta {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      background: #fde68a;
-      color: #78350f;
+      background: var(--cc-warning);
+      color: var(--cc-warning);
       font-size: 12px;
       font-weight: 700;
       padding: 8px 14px;
@@ -139,14 +139,30 @@ interface UserProfile {
       flex-shrink: 0;
       transition: background .15s, transform .1s;
     }
-    .kyc-banner__cta:hover { background: #fef3c7; transform: translateY(-1px); }
+    .kyc-banner__cta:hover { background: var(--cc-warning-bg); transform: translateY(-1px); }
     @media (max-width: 560px) {
       .kyc-banner__body { min-width: unset; width: 100%; }
       .kyc-banner__cta  { width: 100%; justify-content: center; }
     }
+
+    /* TICK-076 : anciens attributs « style » du template, convertis en classes (mêmes déclarations) */
+    .st-mb-24px { margin-bottom: 24px; }
+    .st-ta-center-p-40px-0 { text-align: center; padding: 40px 0; }
+    .st-w-28px-heig-28px-bord-3px { width: 28px; height: 28px; border-width: 3px; display: inline-block; }
+    .st-mt-12px { margin-top: 12px; }
+    .st-fs-1-15rem-fw-700-mb-4px { font-size: 1.15rem; font-weight: 700; margin-bottom: 4px; }
+    .st-mb-8px { margin-bottom: 8px; }
+    .st-d-inline-vert-middle-marg-3px { display: inline; vertical-align: middle; margin-right: 3px; }
+    .st-bg-paper-c-muted-bd-1px-solid-li { background: var(--cc-paper); color: var(--cc-muted); border: 1px solid var(--cc-line); }
+    .st-mb-16px { margin-bottom: 16px; }
+    .st-opac-65-curs-not-allowed { opacity: .65; cursor: not-allowed; }
+    .st-bd-0-bt-1px-solid-li-m-22px-0 { border: 0; border-top: 1px solid var(--cc-line); margin: 22px 0; }
+    .st-mt-28px-padd-22px-bt-1px-solid-li { margin-top: 28px; padding-top: 22px; border-top: 1px solid var(--cc-line); }
+    .st-w-100 { width: 100%; }
+    .st-w-17px-heig-17px-bord-2px { width: 17px; height: 17px; border-width: 2px; }
   `],
   template: `
-  <div class="page-head" style="margin-bottom: 24px;">
+  <div class="page-head st-mb-24px">
     <div>
       <h1>{{ isCourier ? 'Mon profil coursier' : 'Mon profil' }}</h1>
       <p>{{ isCourier ? 'Gérez vos coordonnées et préférences de mission.' : 'Gérez vos informations personnelles.' }}</p>
@@ -157,9 +173,9 @@ interface UserProfile {
   </div>
 
   <!-- Chargement -->
-  <div *ngIf="isLoading()" style="text-align:center; padding: 40px 0;">
-    <span class="spinner" style="width:28px; height:28px; border-width:3px; display:inline-block;"></span>
-    <p class="text-muted text-sm" style="margin-top:12px;">Chargement du profil…</p>
+  <div class="st-ta-center-p-40px-0" *ngIf="isLoading()">
+    <span class="spinner st-w-28px-heig-28px-bord-3px"></span>
+    <p class="text-muted text-sm st-mt-12px">Chargement du profil…</p>
   </div>
 
   <!-- Formulaire -->
@@ -169,10 +185,10 @@ interface UserProfile {
     <div class="avatar-section">
       <div class="avatar-lg">{{ profile()!.initials }}</div>
       <div>
-        <h3 style="font-size:1.15rem; font-weight:700; margin-bottom:4px;">
+        <h3 class="st-fs-1-15rem-fw-700-mb-4px">
           {{ profile()!.fullName ?? profile()!.email }}
         </h3>
-        <p class="text-sm text-muted" style="margin-bottom: 8px;">
+        <p class="text-sm text-muted st-mb-8px">
           <ng-container *ngIf="profile()!.trustScore !== null && (profile()!.trustScore ?? 0) > 0">
             ⭐ {{ profile()!.trustScore?.toFixed(1) }} / 5 ·
           </ng-container>
@@ -181,26 +197,26 @@ interface UserProfile {
         <!-- Badge KYC pour coursier -->
         <ng-container *ngIf="isCourier">
           <span *ngIf="profile()!.kycStatus === 'APPROVED'" class="badge badge-success">
-            <svg lucideShieldCheck size="12" style="display:inline;vertical-align:middle;margin-right:3px;"></svg>
+            <svg class="st-d-inline-vert-middle-marg-3px" lucideShieldCheck size="12"></svg>
             Identité vérifiée
           </span>
           <span *ngIf="profile()!.kycStatus === 'PENDING'" class="badge badge-warning">
-            <svg lucideClock size="12" style="display:inline;vertical-align:middle;margin-right:3px;"></svg>
+            <svg class="st-d-inline-vert-middle-marg-3px" lucideClock size="12"></svg>
             KYC en attente
           </span>
           <span *ngIf="profile()!.kycStatus === 'REJECTED'" class="badge badge-danger">
-            <svg lucideXCircle size="12" style="display:inline;vertical-align:middle;margin-right:3px;"></svg>
+            <svg class="st-d-inline-vert-middle-marg-3px" lucideXCircle size="12"></svg>
             KYC rejeté
           </span>
-          <span *ngIf="profile()!.kycStatus === 'NONE'" class="badge" style="background:#f7f8f5; color:#8a9490; border:1px solid #e1e8e0;">
-            <svg lucideShieldAlert size="12" style="display:inline;vertical-align:middle;margin-right:3px;"></svg>
+          <span *ngIf="profile()!.kycStatus === 'NONE'" class="badge st-bg-paper-c-muted-bd-1px-solid-li">
+            <svg class="st-d-inline-vert-middle-marg-3px" lucideShieldAlert size="12"></svg>
             KYC non soumis
           </span>
         </ng-container>      </div>
     </div>
 
     <!-- Nom complet -->
-    <div class="form-group" style="margin-bottom: 16px;">
+    <div class="form-group st-mb-16px">
       <label class="form-label" for="fullName">Nom complet</label>
       <input id="fullName" type="text" class="form-input"
              [value]="fullName" (input)="fullName = getVal($event)"
@@ -208,12 +224,12 @@ interface UserProfile {
     </div>
 
     <!-- Email + Téléphone -->
-    <div class="profile-grid" style="margin-bottom: 16px;">
+    <div class="profile-grid st-mb-16px">
       <div class="form-group">
         <label class="form-label" for="email">Email</label>
-        <input id="email" type="email" class="form-input"
+        <input id="email" type="email" class="form-input st-opac-65-curs-not-allowed"
                [value]="profile()!.email" disabled
-               style="opacity: .65; cursor: not-allowed;"
+
                title="L'email ne peut pas être modifié.">
         <p class="form-hint">L'email ne peut pas être modifié.</p>
       </div>
@@ -226,7 +242,7 @@ interface UserProfile {
     </div>
 
     <!-- Pays + Ville -->
-    <div class="profile-grid" style="margin-bottom: 16px;">
+    <div class="profile-grid st-mb-16px">
       <div class="form-group">
         <label class="form-label" for="country">Pays de résidence</label>
         <select id="country" class="form-select"
@@ -288,7 +304,7 @@ interface UserProfile {
     </div>
 
     <!-- Section Sécurité -->
-    <hr style="border:0; border-top:1px solid #e1e8e0; margin:22px 0;">
+    <hr class="st-bd-0-bt-1px-solid-li-m-22px-0">
     <p class="section-title">Sécurité</p>
     <button type="button" class="btn btn-secondary"
             (click)="goForgotPassword()">
@@ -296,9 +312,9 @@ interface UserProfile {
     </button>
 
     <!-- Bouton Enregistrer -->
-    <div style="margin-top: 28px; padding-top: 22px; border-top: 1px solid #e1e8e0;">
-      <button type="button" class="btn btn-primary btn-lg"
-              style="width:100%;"
+    <div class="st-mt-28px-padd-22px-bt-1px-solid-li">
+      <button type="button" class="btn btn-primary btn-lg st-w-100"
+
               [disabled]="isSaving()"
               (click)="onSave()">
         <ng-container *ngIf="!isSaving(); else savingTpl">
@@ -306,7 +322,7 @@ interface UserProfile {
           Enregistrer les modifications
         </ng-container>
         <ng-template #savingTpl>
-          <span class="spinner" style="width:17px; height:17px; border-width:2px;"></span>
+          <span class="spinner st-w-17px-heig-17px-bord-2px"></span>
           Enregistrement…
         </ng-template>
       </button>

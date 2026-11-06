@@ -85,28 +85,28 @@ import { NgClass } from '@angular/common';
 
     /* ── Variantes ── */
     .toast--error {
-      background: #1c0a0a;
-      border-color: #7f1d1d;
-      color: #fecaca;
+      background: var(--cc-danger-bg);
+      border-color: var(--cc-danger);
+      color: var(--cc-danger-bg);
     }
-    .toast--error .toast__icon { color: #f87171; }
-    .toast--error .toast__progress { background: #ef4444; }
+    .toast--error .toast__icon { color: var(--cc-danger); }
+    .toast--error .toast__progress { background: var(--cc-danger); }
 
     .toast--success {
-      background: #071a0e;
-      border-color: #14532d;
-      color: #bbf7d0;
+      background: var(--cc-success-bg);
+      border-color: var(--cc-success);
+      color: var(--cc-success-bg);
     }
-    .toast--success .toast__icon { color: #4ade80; }
-    .toast--success .toast__progress { background: #22c55e; }
+    .toast--success .toast__icon { color: var(--cc-success); }
+    .toast--success .toast__progress { background: var(--cc-success); }
 
     .toast--info {
-      background: #070e1c;
-      border-color: #1e3a5f;
-      color: #bfdbfe;
+      background: var(--cc-info-bg);
+      border-color: var(--cc-info);
+      color: var(--cc-info-bg);
     }
-    .toast--info .toast__icon { color: #60a5fa; }
-    .toast--info .toast__progress { background: #3b82f6; }
+    .toast--info .toast__icon { color: var(--cc-info); }
+    .toast--info .toast__progress { background: var(--cc-info); }
 
     /* ── Icône ── */
     .toast__icon {

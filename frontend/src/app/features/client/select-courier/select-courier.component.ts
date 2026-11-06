@@ -43,20 +43,20 @@ import {
     .step-dot {
       width: 10px; height: 10px;
       border-radius: 50%;
-      background: var(--cc-line-2, #d1dad2);
+      background: var(--cc-line-2);
       transition: all .2s;
     }
     .step-dot.active {
-      background: var(--primary, #17634f);
+      background: var(--primary);
       width: 22px;
       border-radius: 5px;
     }
-    .step-dot.done { background: var(--cc-success, #26845d); }
+    .step-dot.done { background: var(--cc-success); }
 
     /* ── Carte coursier ── */
     .courier-card {
-      background: var(--bg-card, #fff);
-      border: 1px solid var(--border, #e1e8e0);
+      background: var(--bg-card);
+      border: 1px solid var(--border);
       border-radius: var(--radius-lg, 16px);
       padding: 20px;
       display: flex;
@@ -66,7 +66,7 @@ import {
       transition: border-color .15s, box-shadow .15s;
     }
     .courier-card:hover {
-      border-color: var(--primary, #17634f);
+      border-color: var(--primary);
       box-shadow: var(--shadow-md, 0 4px 6px -1px rgba(0,0,0,.1));
     }
     .courier-info {
@@ -79,8 +79,8 @@ import {
     .courier-avatar {
       width: 52px; height: 52px;
       border-radius: 50%;
-      background: var(--primary-light, #e4f1e8);
-      color: var(--primary, #17634f);
+      background: var(--primary-light);
+      color: var(--primary);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -92,7 +92,7 @@ import {
     .courier-details h3 {
       font-size: 1rem;
       font-weight: 700;
-      color: var(--text, #15241f);
+      color: var(--text);
       margin: 0 0 4px;
       display: flex;
       align-items: center;
@@ -104,7 +104,7 @@ import {
       gap: 10px;
       flex-wrap: wrap;
       font-size: 0.82rem;
-      color: var(--text-muted, #6b7280);
+      color: var(--text-muted);
       margin-top: 3px;
     }
     .courier-stats span {
@@ -131,7 +131,7 @@ import {
     .section-title {
       font-size: 1rem;
       font-weight: 700;
-      color: var(--text, #15241f);
+      color: var(--text);
       display: flex;
       align-items: center;
       gap: 7px;
@@ -142,7 +142,7 @@ import {
     .action-bar {
       margin-top: 28px;
       padding-top: 20px;
-      border-top: 1px solid var(--border, #e1e8e0);
+      border-top: 1px solid var(--border);
     }
     .action-bar .btn { width: 100%; justify-content: center; }
 
@@ -155,20 +155,20 @@ import {
       font-weight: 700;
       padding: 2px 7px;
       border-radius: 99px;
-      background: var(--cc-success-bg, #e4f3e9);
-      color: var(--cc-success, #26845d);
+      background: var(--cc-success-bg);
+      color: var(--cc-success);
     }
 
     /* ── État vide ── */
     .empty-state {
       text-align: center;
       padding: 48px 24px;
-      background: var(--bg-card, #fff);
-      border: 1px solid var(--border, #e1e8e0);
+      background: var(--bg-card);
+      border: 1px solid var(--border);
       border-radius: var(--radius-lg, 16px);
     }
-    .empty-state svg { color: var(--cc-line-2, #d1dad2); margin-bottom: 12px; }
-    .empty-state p { color: var(--text-muted, #6b7280); font-size: 0.9rem; }
+    .empty-state svg { color: var(--cc-line-2); margin-bottom: 12px; }
+    .empty-state p { color: var(--text-muted); font-size: 0.9rem; }
 
     /* ── Spinner loading ── */
     .loading-state {
@@ -177,7 +177,7 @@ import {
       justify-content: center;
       gap: 10px;
       padding: 48px;
-      color: var(--text-muted, #6b7280);
+      color: var(--text-muted);
       font-size: 0.9rem;
     }
 
@@ -231,7 +231,7 @@ import {
           <!-- Titre section -->
           <div class="section-title-row">
             <h2 class="section-title">
-              <svg lucideSparkles size="18" style="color: var(--cc-warning, #a66b16);"></svg>
+              <svg lucideSparkles size="18" style="color: var(--cc-warning);"></svg>
               Recommandés pour vous
             </h2>
           </div>
@@ -254,7 +254,7 @@ import {
                     </h3>
                     <div class="courier-stats">
                       <!-- Note -->
-                      <span style="color: var(--cc-warning, #a66b16); font-weight: 700;">
+                      <span style="color: var(--cc-warning); font-weight: 700;">
                         <svg lucideStar size="13" style="fill: currentColor;"></svg>
                         {{ courier.averageRating != null ? (courier.averageRating | number:'1.1-1') : '—' }}
                       </span>
@@ -275,7 +275,7 @@ import {
                 <!-- Action -->
                 <div class="courier-actions">
                   <button
-                    class="btn btn-primary"
+                    class="btn btn-primary btn-block"
                     [disabled]="choosingCourierId === courier.id"
                     (click)="chooseCourier(courier)"
                   >

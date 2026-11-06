@@ -129,7 +129,7 @@ export interface MediaItem {
     .mv-label {
       font-size: .88rem;
       font-weight: 600;
-      color: #e8ede8;
+      color: var(--cc-line);
       letter-spacing: .01em;
     }
     .mv-toolbar-actions { display: flex; gap: 8px; }
@@ -139,7 +139,7 @@ export interface MediaItem {
       border-radius: 8px;
       border: 1px solid rgba(255,255,255,.15);
       background: rgba(255,255,255,.08);
-      color: #e8ede8;
+      color: var(--cc-line);
       cursor: pointer;
       transition: background .15s;
       text-decoration: none;
@@ -200,7 +200,7 @@ export interface MediaItem {
       border-radius: 50%;
       background: rgba(255,255,255,.12);
       border: 1px solid rgba(255,255,255,.2);
-      color: #fff;
+      color: var(--on-primary);
       display: flex; align-items: center; justify-content: center;
       cursor: pointer;
       transition: background .15s;
@@ -227,7 +227,7 @@ export interface MediaItem {
       transition: background .15s, transform .15s;
     }
     .mv-dot-active {
-      background: #fff;
+      background: var(--surface);
       transform: scale(1.25);
     }
 

@@ -807,6 +807,7 @@ Contrôles :
 **Validation :** tour complet des pages sur 390×844 et sur desktop.
 
 #### TICK-076 🟠 [FE] Assainir le CSS et les cibles tactiles — 6 h
+**Statut :** 🔍 en recette (2026-11-06, session 67) — deux variantes à comparer : `test_tick-076` (socle + écrans stables) et `test2_tick-076` (tout)
 **Anomalie :** A-34, A-35 · **Fichiers :** `styles.scss`, `assets/css/*`, `angular.json`, composants avec `style=""`, `app.html`, `app.spec.ts`
 **Description :** ✅ décision validée : **garder les CSS de la maquette et retirer Tailwind** (dépendances, `postcss.config.json`, `@use 'tailwindcss'`, classes utilitaires remplacées). Fusionner les doublons (`.btn-primary`, `.badge`/`.status-badge`). Limiter `width:100%` à `.btn-block`. Remplacer les couleurs en dur par des tokens. Minimum de 44 px pour `.btn`, `.btn-row`, `.mission-btn` et les icônes cliquables.
 **Critères d'acceptation :**

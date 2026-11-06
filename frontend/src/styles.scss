@@ -1,44 +1,119 @@
-@use "tailwindcss";
-
 /* ============================================================
    Design system ConfianceCoursier — forêt & ivoire
    ============================================================
    Les feuilles de style de la maquette (main.css, app-layout.css,
    refonte.css) sont chargées en global via `angular.json` (tableau
    "styles"), AVANT ce fichier. Elles définissent les tokens de la
-   charte (forêt / ivoire / lime / encre) ainsi que le mode sombre
-   `[data-theme="dark"]`. Les règles ci-dessous complètent/surchargent
-   pour les besoins des composants Angular.
-   Couleurs de marque : primaire #17634f, forêt #123b32, lime #d7ed9a,
-   papier #f7f8f5, encre #18271f. */
+   charte et le mode sombre `[data-theme="dark"]`.
 
-/* Variables de marque Angular-spécifiques */
+   TICK-076 :
+   - Tailwind retiré. Son « preflight » (remise à zéro de base) est
+     reproduit ci-dessous dans `@layer base`, avec la même priorité dans
+     la cascade : le rendu existant ne change pas.
+   - Un seul système de style : les composants n'utilisent que les tokens
+     ci-dessous (aucune couleur en dur), y compris en mode sombre.
+   ============================================================ */
+
+/* ── Base (équivalent du preflight Tailwind v4, en couche « base ») ───────── */
+@layer base {
+  *, ::after, ::before, ::backdrop, ::file-selector-button {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    border: 0 solid;
+  }
+  html, :host {
+    line-height: 1.5;
+    -webkit-text-size-adjust: 100%;
+    tab-size: 4;
+    -webkit-tap-highlight-color: transparent;
+  }
+  hr { height: 0; color: inherit; border-top-width: 1px; }
+  h1, h2, h3, h4, h5, h6 { font-size: inherit; font-weight: inherit; }
+  a { color: inherit; text-decoration: inherit; }
+  b, strong { font-weight: bolder; }
+  code, kbd, samp, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 1em; }
+  small { font-size: 80%; }
+  table { text-indent: 0; border-color: inherit; border-collapse: collapse; }
+  ol, ul, menu { list-style: none; }
+  img, svg, video, canvas, audio, iframe, embed, object { display: block; vertical-align: middle; }
+  img, video { max-width: 100%; height: auto; }
+  button, input, select, optgroup, textarea, ::file-selector-button {
+    font: inherit;
+    font-feature-settings: inherit;
+    font-variation-settings: inherit;
+    letter-spacing: inherit;
+    color: inherit;
+    border-radius: 0;
+    background-color: transparent;
+    opacity: 1;
+  }
+  ::placeholder { opacity: 1; color: color-mix(in oklab, currentcolor 50%, transparent); }
+  textarea { resize: vertical; }
+  button, input:where([type="button"], [type="reset"], [type="submit"]), ::file-selector-button { appearance: button; }
+  ::-webkit-inner-spin-button, ::-webkit-outer-spin-button { height: auto; }
+  [hidden]:where(:not([hidden="until-found"])) { display: none !important; }
+}
+
+/* ── Tokens sémantiques (clair) ───────────────────────────────────────────── */
+:root {
+  /* Surfaces et texte */
+  --surface: var(--cc-white);
+  --surface-muted: var(--cc-paper-2);
+  /* Statuts — utilisés par les composants à la place des couleurs en dur */
+  --on-primary: #ffffff;
+  --focus-ring: rgba(23, 99, 79, 0.12);
+  --shadow-card: 0 20px 60px rgba(18, 59, 50, 0.1);
+}
+
+/* ── Tokens en mode sombre (TICK-076) ─────────────────────────────────────
+   Les tokens --cc-* n'étaient définis qu'en clair : les écrans qui les
+   utilisaient restaient clairs en mode sombre. Valeurs alignées sur la
+   palette sombre de refonte.css (--brand-*). */
+[data-theme="dark"] {
+  --cc-paper:      #18221D;
+  --cc-paper-2:    #1F2C26;
+  --cc-white:      #1F2C26;
+  --cc-ink:        #F3F7F5;
+  --cc-muted:      #B0C0B7;
+  --cc-line:       #2E4037;
+  --cc-line-2:     #3A5045;
+  --cc-success:    #5FBF8F;
+  --cc-success-bg: rgba(95, 191, 143, 0.16);
+  --cc-warning:    #E3A857;
+  --cc-warning-bg: rgba(227, 168, 87, 0.16);
+  --cc-danger:     #E2776F;
+  --cc-danger-bg:  rgba(226, 119, 111, 0.16);
+  --cc-info:       #6FB894;
+  --cc-info-bg:    rgba(111, 184, 148, 0.16);
+  --focus-ring:    rgba(111, 184, 148, 0.25);
+  --shadow-card:   0 20px 60px rgba(0, 0, 0, 0.35);
+}
+
 html, body {
   height: 100%;
   margin: 0;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  background-color: var(--cc-paper, #f7f8f5);
-  color: var(--cc-ink, #18271f);
+  background-color: var(--cc-paper);
+  color: var(--cc-ink);
 }
 
-/* Bouton primaire (vert forêt) — utilisé dans les composants Angular */
+/* ── Boutons ─────────────────────────────────────────────────────────────
+   Doublon de .btn-primary fusionné (main.css + refonte.css + ici) : seules
+   les différences propres à l'application restent. Plus de width:100% global :
+   la pleine largeur passe par .btn-block (TICK-076). */
 .btn-primary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  width: 100%;
   padding: 0.75rem 1.25rem;
-  background: #17634f;
-  color: #fff;
   font-weight: 700;
   border-radius: 9px;
   border: none;
   cursor: pointer;
-  transition: background 0.15s, transform 0.15s;
+  background: var(--primary);
+  color: var(--on-primary);
 
   &:hover:not(:disabled) {
-    background: #104d3d;
+    background: var(--primary-hover);
+    color: var(--on-primary);
     transform: translateY(-1px);
   }
 
@@ -48,39 +123,84 @@ html, body {
   }
 }
 
-/* Champ formulaire */
+/* ── Cibles tactiles ≥ 44 px (TICK-076, WCAG 2.5.5) ──────────────────────── */
+.btn,
+.btn-sm,
+.btn-row,
+.mission-btn,
+.app-menu-btn,
+.app-theme-btn,
+.chat-menu-btn,
+.modal-close,
+.proof-item-remove,
+.offer-trigger-btn,
+.send-btn {
+  min-height: 44px;
+}
+.app-menu-btn,
+.app-theme-btn,
+.chat-menu-btn,
+.modal-close,
+.proof-item-remove {
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Badges : un seul système (TICK-076) ──────────────────────────────────
+   .badge (maquette) et .status-badge (app) partagent la même base ;
+   les variantes de couleur utilisent les tokens de statut. */
+.badge,
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.badge-success, .status-badge--success { background: var(--cc-success-bg); color: var(--cc-success); }
+.badge-warning, .status-badge--warning { background: var(--cc-warning-bg); color: var(--cc-warning); }
+.badge-danger,  .status-badge--danger  { background: var(--cc-danger-bg);  color: var(--cc-danger); }
+.badge-primary, .status-badge--info    { background: var(--cc-info-bg);    color: var(--cc-info); }
+.badge-gray,    .status-badge--neutral { background: var(--cc-paper-2);    color: var(--cc-muted); }
+
+/* ── Champ formulaire ─────────────────────────────────────────────────────── */
 .form-input {
   width: 100%;
   padding: 0.625rem 0.875rem;
-  border: 1px solid var(--cc-line, #e2e8e2);
+  border: 1px solid var(--cc-line);
   border-radius: 10px;
   font-family: inherit;
   font-size: 0.95rem;
-  background: #fff;
-  color: var(--cc-ink, #18271f);
+  background: var(--surface);
+  color: var(--cc-ink);
   outline: none;
   transition: border-color 0.15s, box-shadow 0.15s;
 
   &:focus {
-    border-color: #17634f;
-    box-shadow: 0 0 0 3px rgba(23, 99, 79, 0.12);
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--focus-ring);
   }
 }
 
-/* Carte d'auth */
+/* ── Carte d'auth ────────────────────────────────────────────────────────── */
 .auth-card {
   width: 100%;
   max-width: 440px;
-  background: #fff;
-  border: 1px solid var(--cc-line, #e2e8e2);
+  background: var(--surface);
+  border: 1px solid var(--cc-line);
   border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(18, 59, 50, 0.1);
+  box-shadow: var(--shadow-card);
   padding: 40px;
 }
 
-/* Lien */
+/* ── Lien ────────────────────────────────────────────────────────────────── */
 .auth-link {
-  color: #17634f;
+  color: var(--primary);
   font-weight: 700;
   text-decoration: none;
 
@@ -88,3 +208,21 @@ html, body {
     text-decoration: underline;
   }
 }
+
+/* ── Classes partagées (remplacent les style="" récurrents — TICK-076) ────── */
+.text-muted   { color: var(--text-muted); }
+.text-danger  { color: var(--cc-danger); }
+.text-success { color: var(--cc-success); }
+.text-center  { text-align: center; }
+.fw-600       { font-weight: 600; }
+.fw-700       { font-weight: 700; }
+.fs-sm        { font-size: .85rem; }
+.fs-xs        { font-size: .75rem; }
+.w-full       { width: 100%; }
+.stack        { display: flex; flex-direction: column; gap: 12px; }
+.row-wrap     { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.mt-8  { margin-top: 8px; }
+.mt-16 { margin-top: 16px; }
+.mb-8  { margin-bottom: 8px; }
+.mb-16 { margin-bottom: 16px; }
+.mb-20 { margin-bottom: 20px; }
