@@ -26,6 +26,9 @@ function statusBadgeClass(status: string): string {
     case 'ASSIGNED':      return 'status-badge status-badge--warning';
     case 'IN_PROGRESS':   return 'status-badge status-badge--success';
     case 'PROOFS_SUBMITTED': return 'status-badge status-badge--purple';
+    case 'OVERDUE':       return 'status-badge status-badge--danger';
+    case 'DISPUTED':      return 'status-badge status-badge--danger';
+    case 'REFUNDED':      return 'status-badge status-badge--info';
     case 'COMPLETED':     return 'status-badge status-badge--success';
     case 'CANCELLED':     return 'status-badge status-badge--danger';
     default:              return 'status-badge';
@@ -39,6 +42,9 @@ function statusLabel(status: string): string {
     case 'ASSIGNED':         return 'À confirmer';
     case 'IN_PROGRESS':      return 'En préparation';
     case 'PROOFS_SUBMITTED': return 'Preuves soumises';
+    case 'OVERDUE':          return 'En retard';
+    case 'DISPUTED':         return 'Litige';
+    case 'REFUNDED':         return 'Remboursée';
     case 'COMPLETED':        return 'Terminée';
     case 'CANCELLED':        return 'Annulée';
     default:                 return status;

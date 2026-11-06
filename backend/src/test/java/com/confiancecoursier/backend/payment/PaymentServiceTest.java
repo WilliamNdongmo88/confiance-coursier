@@ -4,6 +4,7 @@ import com.confiancecoursier.backend.admin.api.dto.CommissionSettingsResponse;
 import com.confiancecoursier.backend.admin.service.CommissionService;
 import com.confiancecoursier.backend.course.domain.Course;
 import com.confiancecoursier.backend.course.repository.CourseRepository;
+import com.confiancecoursier.backend.course.service.ProofDeadlinePolicy;
 import com.confiancecoursier.backend.notify.service.NotificationService;
 import com.confiancecoursier.backend.payment.api.dto.PaymentInitiateRequest;
 import com.confiancecoursier.backend.payment.api.dto.PaymentInitiateResponse;
@@ -18,6 +19,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -27,6 +29,9 @@ import static org.mockito.Mockito.*;
 
 /** TICK-060 — paiement : montant lu du serveur, statut ASSIGNED exigé, idempotence. */
 class PaymentServiceTest {
+
+    private static final java.time.ZoneId ZONE = java.time.ZoneId.of("Africa/Douala");
+    private static final java.time.LocalDateTime PAID_AT = java.time.LocalDateTime.of(2026, 11, 9, 10, 0);
 
     private CourseRepository courses;
     private EscrowRepository ledger;
@@ -52,7 +57,9 @@ class PaymentServiceTest {
         when(courses.findById(1L)).thenReturn(Optional.of(course));
         when(ledger.findByIdempotencyKey(anyString())).thenReturn(Optional.empty());
 
-        service = new PaymentService(courses, ledger, mock(NotificationService.class), commissions, escrow);
+        when(commissions.getIntSetting(anyString(), anyInt())).thenAnswer(i -> i.getArgument(1)); // défauts
+        service = new PaymentService(courses, ledger, mock(NotificationService.class), commissions, escrow,
+                new ProofDeadlinePolicy(commissions), Clock.fixed(PAID_AT.atZone(ZONE).toInstant(), ZONE));
     }
 
     private static PaymentInitiateRequest request(String fraisReels, String key) {
@@ -77,6 +84,20 @@ class PaymentServiceTest {
         assertThat(course.getPaidAt()).isNotNull();
         verify(escrow).hold(eq(course), argThat(t -> t.compareTo(new BigDecimal("21000")) == 0),
                 eq("MTN"), startsWith("PAY-"), eq("k1"));
+    }
+
+    @Test
+    void proofDeadlineIsPaymentPlusTwentyFourHoursWhenAsap() {
+        service.initiate(request("0", "kd1"), 10L);
+        assertThat(course.getPaidAt()).isEqualTo(PAID_AT);
+        assertThat(course.getProofDeadline()).isEqualTo(PAID_AT.plusHours(24));
+    }
+
+    @Test
+    void proofDeadlineStartsFromScheduledDateWhenLater() {
+        course.setScheduledAt(PAID_AT.plusDays(2));
+        service.initiate(request("0", "kd2"), 10L);
+        assertThat(course.getProofDeadline()).isEqualTo(PAID_AT.plusDays(2).plusHours(24));
     }
 
     @Test

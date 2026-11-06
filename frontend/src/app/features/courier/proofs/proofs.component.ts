@@ -322,7 +322,7 @@ export class ProofsComponent implements OnInit {
     this.courseService.getCourseById(this.courseId).subscribe({
       next: (course: any) => {
         this.realCosts.set(Number(course.realCosts ?? 0));
-        if (course.status === 'IN_PROGRESS') {
+        if (course.status === 'IN_PROGRESS' || course.status === 'OVERDUE') {
           this.loadDrafts();
         } else {
           this.blockedReason.set(course.status === 'PROOFS_SUBMITTED'

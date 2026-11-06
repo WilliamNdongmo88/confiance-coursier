@@ -94,6 +94,23 @@ public class Course {
     @Column(name = "refund_platform_fees")
     private Boolean refundPlatformFees;
 
+    /** Échéance de dépôt des preuves : max(scheduledAt, paidAt) + proof_deadline_hours (TICK-065b). */
+    @Column(name = "proof_deadline")
+    private LocalDateTime proofDeadline;
+
+    /** Nombre de prolongations accordées par le client (max_extensions). */
+    @Builder.Default
+    @Column(name = "extension_count", nullable = false)
+    private Integer extensionCount = 0;
+
+    /** Date du passage en OVERDUE (point de départ du délai de grâce). */
+    @Column(name = "overdue_since")
+    private LocalDateTime overdueSince;
+
+    /** Rappel « échéance − N h » déjà envoyé au coursier. */
+    @Column(name = "proof_reminder_sent_at")
+    private LocalDateTime proofReminderSentAt;
+
     /** Verrou optimiste (TICK-060) — complète le verrou pessimiste de findByIdForUpdate. */
     @Version
     @Column(nullable = false)
@@ -107,5 +124,6 @@ public class Course {
         createdAt = LocalDateTime.now();
         publishedAt = LocalDateTime.now();
         if (realCosts == null) realCosts = BigDecimal.ZERO;
+        if (extensionCount == null) extensionCount = 0;
     }
 }

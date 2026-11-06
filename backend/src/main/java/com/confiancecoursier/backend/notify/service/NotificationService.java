@@ -216,6 +216,74 @@ public class NotificationService {
                         "Merci pour votre travail ! N'oubliez pas de noter le client."));
     }
 
+    // ─── Échéance de preuves / non-livraison (TICK-065b) ─────────────────────
+
+    private static final java.time.format.DateTimeFormatter DEADLINE_FMT =
+            java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy 'à' HH:mm");
+
+    public void notifyProofDeadlineReminder(Long courierId, Long courseId, java.time.LocalDateTime deadline) {
+        String email = resolveEmail(courierId);
+        if (email != null) sendEmail(email,
+                "Rappel : preuves attendues — " + appName,
+                buildTemplate("Vos preuves sont attendues",
+                        "La course #" + courseId + " doit être justifiée avant le " + deadline.format(DEADLINE_FMT) + ".",
+                        "Envoyez la vidéo, les photos et les reçus depuis votre espace. Passé ce délai, le client pourra annuler et être remboursé."));
+    }
+
+    public void notifyCourseOverdue(Long clientId, Long courierId, Long courseId) {
+        String courierEmail = resolveEmail(courierId);
+        if (courierEmail != null) sendEmail(courierEmail,
+                "Course en retard — " + appName,
+                buildTemplate("Échéance de preuves dépassée",
+                        "La course #" + courseId + " est en retard : aucune preuve n'a été soumise à temps.",
+                        "Vous pouvez encore envoyer vos preuves tant que le client n'a pas choisi d'annuler. Une annulation pour non-livraison est comptée comme incident."));
+        String clientEmail = resolveEmail(clientId);
+        if (clientEmail != null) sendEmail(clientEmail,
+                "Course en retard — " + appName,
+                buildTemplate("Le coursier n'a pas encore envoyé ses preuves",
+                        "L'échéance de la course #" + courseId + " est dépassée. Vos fonds restent bloqués en séquestre.",
+                        "Depuis le détail de la course, vous pouvez prolonger le délai, annuler et être remboursé, ou ouvrir un litige."));
+    }
+
+    public void notifyDeadlineExtended(Long courierId, Long courseId, java.time.LocalDateTime newDeadline) {
+        String email = resolveEmail(courierId);
+        if (email != null) sendEmail(email,
+                "Délai prolongé — " + appName,
+                buildTemplate("Le client vous accorde un délai",
+                        "Nouvelle échéance pour la course #" + courseId + " : " + newDeadline.format(DEADLINE_FMT) + ".",
+                        "Envoyez vos preuves avant cette date."));
+    }
+
+    public void notifyNoShowRefund(Long clientId, Long courierId, Long courseId, boolean automatic) {
+        String clientEmail = resolveEmail(clientId);
+        if (clientEmail != null) sendEmail(clientEmail,
+                "Remboursement — " + appName,
+                buildTemplate("Course annulée et remboursée",
+                        "La course #" + courseId + " a été annulée " + (automatic ? "automatiquement " : "")
+                                + "pour non-livraison.",
+                        "Le remboursement est en cours vers votre moyen de paiement."));
+        String courierEmail = resolveEmail(courierId);
+        if (courierEmail != null) sendEmail(courierEmail,
+                "Course annulée — " + appName,
+                buildTemplate("Course annulée pour non-livraison",
+                        "La course #" + courseId + " a été annulée faute de preuves et le client a été remboursé.",
+                        "Un incident de non-livraison a été enregistré. Deux incidents en 30 jours entraînent une suspension provisoire."));
+    }
+
+    public void notifyAutoDisputeNoShow(Long clientId, Long courierId, Long courseId) {
+        String body = "La course #" + courseId + " est restée en retard sans décision : un litige a été ouvert automatiquement.";
+        for (Long userId : new Long[]{clientId, courierId}) {
+            String email = resolveEmail(userId);
+            if (email != null) sendEmail(email,
+                    "Litige ouvert automatiquement — " + appName,
+                    buildTemplate("Un administrateur va arbitrer", body,
+                            "Des preuves partielles ou des achats ont été déclarés : les fonds restent bloqués jusqu'à la décision."));
+        }
+        notifyAdmins("Litige automatique (non-livraison) — " + appName,
+                buildTemplate("Litige automatique à arbitrer", body,
+                        "Preuves déposées mais non soumises, ou frais réels engagés. Consultez les brouillons de preuves et le chat."));
+    }
+
     // ─── Notifications Litige ─────────────────────────────────────────────────
 
     public void notifyDisputeOpened(Long openedById, Long courseId) {

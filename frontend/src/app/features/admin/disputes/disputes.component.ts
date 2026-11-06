@@ -38,7 +38,7 @@ import {
           <div class="dispute-header">
             <div>
               <div class="dispute-id">Course #{{ dispute.courseId }}</div>
-              <div class="dispute-title">{{ dispute.motifCode }}</div>
+              <div class="dispute-title">{{ dispute.motifCode === 'SYS-NL' ? 'Litige automatique : non-livraison' : dispute.motifCode }}</div>
             </div>
             @if (dispute.status === 'OPEN') {
               <span class="status-badge status-badge--danger">En cours</span>

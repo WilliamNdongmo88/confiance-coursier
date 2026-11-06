@@ -357,10 +357,17 @@ import {
                     {{ statusLabel(mission.status) }}
                   </span>
                   <div class="row-actions">
-                    @if (mission.status === 'IN_PROGRESS') {
+                    @if ((mission.status === 'IN_PROGRESS' || mission.status === 'OVERDUE')) {
                       <a [routerLink]="['/courier/proofs', mission.id]" class="mission-btn">
                         <svg lucideCamera size="13"></svg> Preuves
                       </a>
+                    }
+                    <!-- TICK-065b : échéance de dépôt des preuves -->
+                    @if (mission.status === 'IN_PROGRESS' && mission.proofDeadline) {
+                      <span class="row-meta">Preuves avant le {{ mission.proofDeadline | date:'dd/MM HH:mm' }}</span>
+                    }
+                    @if (mission.status === 'OVERDUE') {
+                      <span class="row-meta" style="color:var(--danger,#dc2626)">En retard : envoyez vos preuves au plus vite</span>
                     }
                     <!-- Bouton Chat : visible dès qu'une chatRoom existe (toutes missions actives) -->
                     @if (mission.chatRoomId) {
@@ -557,6 +564,9 @@ export class CourierDashboardComponent implements OnInit {
       case 'ASSIGNED':         return 'status-badge--warning';
       case 'IN_PROGRESS':      return 'status-badge--success';
       case 'PROOFS_SUBMITTED': return 'status-badge--purple';
+      case 'OVERDUE':          return 'status-badge--danger';
+      case 'DISPUTED':         return 'status-badge--danger';
+      case 'REFUNDED':         return 'status-badge--info';
       case 'COMPLETED':        return 'status-badge--success';
       default:                 return '';
     }
@@ -568,6 +578,9 @@ export class CourierDashboardComponent implements OnInit {
       case 'ASSIGNED':         return 'Négociation';
       case 'IN_PROGRESS':      return 'En cours';
       case 'PROOFS_SUBMITTED': return 'Preuves soumises';
+      case 'OVERDUE':          return 'En retard';
+      case 'DISPUTED':         return 'Litige';
+      case 'REFUNDED':         return 'Remboursée';
       case 'COMPLETED':        return 'Terminée';
       default:                 return status;
     }

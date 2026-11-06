@@ -29,6 +29,20 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
            "AND c.autoValidateAt IS NOT NULL AND c.autoValidateAt <= :now ORDER BY c.autoValidateAt")
     List<Long> findIdsDueForAutoValidation(@org.springframework.data.repository.query.Param("now") java.time.LocalDateTime now);
 
+    /** TICK-065b : courses payées dont l'échéance de preuves approche et sans rappel envoyé. */
+    @Query("SELECT c.id FROM Course c WHERE c.status = 'IN_PROGRESS' AND c.proofReminderSentAt IS NULL " +
+           "AND c.proofDeadline > :now AND c.proofDeadline <= :limit")
+    List<Long> findIdsForProofReminder(@org.springframework.data.repository.query.Param("now") java.time.LocalDateTime now,
+                                       @org.springframework.data.repository.query.Param("limit") java.time.LocalDateTime limit);
+
+    /** TICK-065b : courses payées dont l'échéance de preuves est dépassée sans soumission. */
+    @Query("SELECT c.id FROM Course c WHERE c.status = 'IN_PROGRESS' AND c.proofDeadline <= :now")
+    List<Long> findIdsPastProofDeadline(@org.springframework.data.repository.query.Param("now") java.time.LocalDateTime now);
+
+    /** TICK-065b : courses OVERDUE depuis au moins le délai de grâce, sans décision du client. */
+    @Query("SELECT c.id FROM Course c WHERE c.status = 'OVERDUE' AND c.overdueSince <= :before")
+    List<Long> findIdsOverdueBefore(@org.springframework.data.repository.query.Param("before") java.time.LocalDateTime before);
+
     // Récupère toutes les courses avec un statut donné (ex: PUBLISHED)
     List<Course> findByStatusOrderByCreatedAtDesc(String status);
 

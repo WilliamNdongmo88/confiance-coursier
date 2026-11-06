@@ -95,6 +95,23 @@ public class CommissionService {
                 .orElse(defaultValue);
     }
 
+    /**
+     * Lit un paramètre entier depuis {@code platform_settings} (TICK-065b).
+     * Retourne {@code defaultValue} si le paramètre est absent, illisible ou négatif.
+     */
+    public int getIntSetting(String key, int defaultValue) {
+        return settingRepository.findBySettingKey(key)
+                .map(s -> {
+                    try {
+                        int v = Integer.parseInt(s.getSettingValue().trim());
+                        return v >= 0 ? v : defaultValue;
+                    } catch (NumberFormatException e) {
+                        return defaultValue;
+                    }
+                })
+                .orElse(defaultValue);
+    }
+
     private void upsertSetting(String key, String value, Long adminId) {
         Optional<PlatformSetting> existing = settingRepository.findBySettingKey(key);
         if (existing.isPresent()) {

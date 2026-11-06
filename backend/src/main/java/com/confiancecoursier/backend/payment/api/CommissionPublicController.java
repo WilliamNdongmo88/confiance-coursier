@@ -1,6 +1,7 @@
 package com.confiancecoursier.backend.payment.api;
 
 import com.confiancecoursier.backend.admin.service.CommissionService;
+import com.confiancecoursier.backend.course.service.ProofDeadlinePolicy;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -19,9 +20,11 @@ import java.util.Map;
 public class CommissionPublicController {
 
     private final CommissionService commissionService;
+    private final ProofDeadlinePolicy deadlinePolicy;
 
-    public CommissionPublicController(CommissionService commissionService) {
+    public CommissionPublicController(CommissionService commissionService, ProofDeadlinePolicy deadlinePolicy) {
         this.commissionService = commissionService;
+        this.deadlinePolicy = deadlinePolicy;
     }
 
     /**
@@ -38,7 +41,10 @@ public class CommissionPublicController {
         return ResponseEntity.ok(Map.of(
                 "commissionRateClient",  settings.getCommissionRateClient(),
                 "commissionRateCourier", settings.getCommissionRateCourier(),
-                "tarifMinimumCoursier",  settings.getTarifMinimumCoursier()
+                "tarifMinimumCoursier",  settings.getTarifMinimumCoursier(),
+                // TICK-065b : délais affichés au client (aucune valeur codée en dur dans le front)
+                "maxExtensions",         deadlinePolicy.maxExtensions(),
+                "overdueGraceHours",     deadlinePolicy.graceHours()
         ));
     }
 }

@@ -166,6 +166,7 @@ export class DisputeFormComponent implements OnInit {
   private reasonFor(status: string): string | null {
     switch (status) {
       case 'IN_PROGRESS':
+      case 'OVERDUE':
       case 'PROOFS_SUBMITTED': return null;
       case 'DISPUTED':         return 'Un litige est déjà ouvert pour cette course.';
       case 'PUBLISHED':

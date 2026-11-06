@@ -60,7 +60,7 @@ class DisputeOpeningRulesTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"IN_PROGRESS", "PROOFS_SUBMITTED"})
+    @ValueSource(strings = {"IN_PROGRESS", "OVERDUE", "PROOFS_SUBMITTED"})
     void partyCanOpenDisputeOnPaidCourse(String status) {
         course.setStatus(status);
         service.openDispute(100L, 1L, req("L-C1"));

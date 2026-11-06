@@ -228,7 +228,7 @@ public class ProofService {
         if (!isClient && !isCourier) {
             throw new ForbiddenException("Vous n'avez pas accès aux preuves de cette course.");
         }
-        if (isClient && !isCourier && "IN_PROGRESS".equals(course.getStatus())) {
+        if (isClient && !isCourier && ("IN_PROGRESS".equals(course.getStatus()) || "OVERDUE".equals(course.getStatus()))) {
             return List.of(); // brouillons du coursier : pas encore soumis
         }
         return proofRepository.findByCourseIdOrderByUploadedAtAsc(courseId).stream()
@@ -249,8 +249,9 @@ public class ProofService {
         }
     }
 
+    /** Brouillons modifiables en IN_PROGRESS, et en OVERDUE tant que le client n'a pas tranché (TICK-065b). */
     private static void requireDraftStage(Course course) {
-        if (!"IN_PROGRESS".equals(course.getStatus())) {
+        if (!"IN_PROGRESS".equals(course.getStatus()) && !"OVERDUE".equals(course.getStatus())) {
             throw new ConflictException("Les preuves ne peuvent être modifiées que pour une course payée en cours "
                     + "(statut actuel : " + course.getStatus() + ").");
         }

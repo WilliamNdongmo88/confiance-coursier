@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { DecimalPipe, NgClass, SlicePipe } from '@angular/common';
+import { DatePipe, DecimalPipe, NgClass, SlicePipe } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import { CourseService } from '../../../core/services/course.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { AppShellComponent } from '../../../shared/components/app-shell/app-shell.component';
@@ -24,7 +25,8 @@ interface TimelineStep {
 /** Construit la timeline en fonction du statut de la course */
 function buildTimeline(status: string, paidAt?: string, createdAt?: string): TimelineStep[] {
   const statuses = ['PUBLISHED', 'ASSIGNED', 'IN_PROGRESS', 'PROOFS_SUBMITTED', 'COMPLETED'];
-  const idx = statuses.indexOf(status);
+  // OVERDUE (TICK-065b) : même étape que IN_PROGRESS — payée, preuves attendues
+  const idx = statuses.indexOf(status === 'OVERDUE' ? 'IN_PROGRESS' : status);
 
   return [
     {
@@ -63,6 +65,7 @@ function buildTimeline(status: string, paidAt?: string, createdAt?: string): Tim
   standalone: true,
   imports: [
     RouterLink,
+    DatePipe,
     DecimalPipe,
     NgClass,
     SlicePipe,
@@ -225,6 +228,44 @@ function buildTimeline(status: string, paidAt?: string, createdAt?: string): Tim
               <svg lucideCheckCircle size="17"></svg> Voir les preuves et valider
             </a>
           </div>
+        } @else if (course.status === 'OVERDUE') {
+          <!-- ── TICK-065b : le coursier n'a pas soumis ses preuves à temps ── -->
+          <div class="card" style="margin-bottom:20px;border-color:var(--danger,#dc2626)">
+            <div style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:.95rem;color:var(--text,#15241f);margin-bottom:10px">
+              <svg lucideAlertTriangle size="17" style="color:var(--danger,#dc2626)"></svg>
+              Le coursier est en retard
+              <span class="status-badge status-badge--danger" style="margin-left:auto;font-size:.7rem">En retard</span>
+            </div>
+            <p style="font-size:.85rem;color:var(--cc-muted);margin-bottom:6px">
+              L'échéance du {{ course.proofDeadline | date:'dd/MM à HH:mm' }} est dépassée sans preuves.
+              Vos fonds restent bloqués en séquestre : rien n'est versé au coursier sans preuves.
+            </p>
+            @if (autoDecisionAt()) {
+              <p style="font-size:.8rem;color:var(--cc-muted);margin-bottom:14px">
+                Sans choix de votre part avant le {{ autoDecisionAt() | date:'dd/MM à HH:mm' }}, vous serez remboursé automatiquement
+                (ou un administrateur tranchera si le coursier a déjà déposé des preuves ou engagé des achats).
+              </p>
+            }
+            <div style="display:flex;flex-direction:column;gap:10px">
+              @if (extensionsLeft() > 0) {
+                <div style="display:flex;gap:10px;flex-wrap:wrap">
+                  <button class="btn btn-secondary" style="flex:1 1 140px;min-height:48px" [disabled]="acting" (click)="extend(12)">
+                    Prolonger de 12 h
+                  </button>
+                  <button class="btn btn-secondary" style="flex:1 1 140px;min-height:48px" [disabled]="acting" (click)="extend(24)">
+                    Prolonger de 24 h
+                  </button>
+                </div>
+                <p style="font-size:.75rem;color:var(--cc-muted);margin:0">{{ extensionsLeft() }} prolongation(s) restante(s).</p>
+              }
+              <button class="btn btn-primary" style="min-height:48px;justify-content:center" [disabled]="acting" (click)="cancelOverdue()">
+                Annuler et être remboursé
+              </button>
+              <a [routerLink]="['/client/dispute-form', courseId]" class="btn btn-ghost" style="min-height:48px;justify-content:center">
+                Ouvrir un litige
+              </a>
+            </div>
+          </div>
         } @else if (course.status === 'IN_PROGRESS' || course.status === 'ASSIGNED') {
           <!-- ── En attente de preuves ── -->
           <div class="card" style="margin-bottom:20px">
@@ -236,6 +277,12 @@ function buildTimeline(status: string, paidAt?: string, createdAt?: string): Tim
             <p style="font-size:.85rem;color:var(--cc-muted)">
               Le coursier n'a pas encore soumis de preuves. Vous serez notifié dès qu'elles seront disponibles.
             </p>
+            @if (course.status === 'IN_PROGRESS' && course.proofDeadline) {
+              <p style="font-size:.85rem;margin-top:8px">
+                Échéance des preuves : <strong>{{ course.proofDeadline | date:'dd/MM à HH:mm' }}</strong>
+                ({{ timeLeft(course.proofDeadline) }})
+              </p>
+            }
           </div>
         }
 
@@ -290,17 +337,81 @@ export class CourseDetailComponent implements OnInit {
   course: any = null;
   timeline: TimelineStep[] = [];
   isLoading = false;
+  acting = false;
+
+  /** Paramètres serveur (TICK-065b) — aucune valeur codée en dur. */
+  private maxExtensions = 0;
+  private overdueGraceHours = 0;
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private courseService: CourseService,
     private toast: ToastService,
+    private http: HttpClient,
   ) {}
 
   ngOnInit(): void {
     this.courseId = Number(this.route.snapshot.paramMap.get('courseId'));
+    this.http.get<any>('/api/commissions/public').subscribe({
+      next: (p) => {
+        this.maxExtensions = Number(p.maxExtensions ?? 0);
+        this.overdueGraceHours = Number(p.overdueGraceHours ?? 0);
+      },
+      error: () => {},
+    });
     this.loadCourse();
+  }
+
+  // ── TICK-065b : course en retard ──────────────────────────────────────────
+
+  extensionsLeft(): number {
+    return Math.max(0, this.maxExtensions - Number(this.course?.extensionCount ?? 0));
+  }
+
+  /** Date de la décision automatique (remboursement ou litige) si le client ne choisit pas. */
+  autoDecisionAt(): Date | null {
+    if (!this.course?.overdueSince || !this.overdueGraceHours) return null;
+    return new Date(new Date(this.course.overdueSince).getTime() + this.overdueGraceHours * 3_600_000);
+  }
+
+  timeLeft(iso: string): string {
+    const ms = new Date(iso).getTime() - Date.now();
+    if (ms <= 0) return 'dépassée';
+    const h = Math.floor(ms / 3_600_000);
+    const m = Math.floor((ms % 3_600_000) / 60_000);
+    return h > 0 ? 'dans ' + h + ' h ' + m + ' min' : 'dans ' + m + ' min';
+  }
+
+  extend(hours: 12 | 24): void {
+    this.acting = true;
+    this.http.post<any>('/api/courses/' + this.courseId + '/extend', { hours }).subscribe({
+      next: () => {
+        this.acting = false;
+        this.toast.success('Délai prolongé de ' + hours + ' h. Le coursier a été prévenu.');
+        this.loadCourse();
+      },
+      error: (err) => {
+        this.acting = false;
+        this.toast.error(err?.error?.message ?? 'Impossible de prolonger le délai.');
+      },
+    });
+  }
+
+  cancelOverdue(): void {
+    if (!window.confirm('Annuler la course et être remboursé ? Cette action est définitive.')) return;
+    this.acting = true;
+    this.http.post<any>('/api/courses/' + this.courseId + '/cancel-overdue', {}).subscribe({
+      next: () => {
+        this.acting = false;
+        this.toast.success('Course annulée : vous allez être remboursé.');
+        this.loadCourse();
+      },
+      error: (err) => {
+        this.acting = false;
+        this.toast.error(err?.error?.message ?? "Impossible d'annuler la course.");
+      },
+    });
   }
 
   loadCourse(): void {

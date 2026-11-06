@@ -689,6 +689,7 @@ Contrôles :
 **Validation :** test d'intégration avec horloge injectée (`Clock`).
 
 #### TICK-065b 🔴 [FULL] Échéance de preuves et non-livraison — 6 h
+**Statut :** ✅ (2026-11-06, session 56)
 **Référence :** §3.1 bis · **Fichiers :** migration (`courses.proof_deadline`, `extension_count`, statut `OVERDUE`, paramètres `proof_deadline_hours`, `overdue_grace_hours`, `max_extensions`, `refund_platform_fees_on_courier_no_show`, table ou compteur d'incidents coursier), `PaymentService` (calcul de l'échéance), `ValidationScheduler` (ou nouveau `ProofDeadlineScheduler`), `EscrowService`, `NotificationService`, nouveaux endpoints client `POST /api/courses/{id}/extend` et `POST /api/courses/{id}/cancel-overdue`, `FE` détail course client, missions coursier, helper de statut
 **Critères d'acceptation :**
 - `proof_deadline` renseignée au paiement et visible des deux côtés (compte à rebours).

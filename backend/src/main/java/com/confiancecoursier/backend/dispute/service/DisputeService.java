@@ -56,8 +56,8 @@ public class DisputeService {
 
     // ─── Ouverture d'un litige ─────────────────────────────────────────────
 
-    /** Statuts dans lesquels un litige peut être ouvert : fonds en séquestre, course non clôturée (TICK-062). */
-    static final Set<String> DISPUTABLE_STATUSES = Set.of("IN_PROGRESS", "PROOFS_SUBMITTED");
+    /** Statuts dans lesquels un litige peut être ouvert : fonds en séquestre, course non clôturée (TICK-062, OVERDUE : TICK-065b). */
+    static final Set<String> DISPUTABLE_STATUSES = Set.of("IN_PROGRESS", "OVERDUE", "PROOFS_SUBMITTED");
 
     /** Motifs autorisés par partie (spec fonctionnelle §litiges). */
     static final Set<String> CLIENT_MOTIFS  = Set.of("L-C1", "L-C2", "L-C3", "L-C4", "L-C5", "L-C6");

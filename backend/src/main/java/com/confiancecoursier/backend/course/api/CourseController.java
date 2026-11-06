@@ -8,6 +8,7 @@ import com.confiancecoursier.backend.course.domain.Course;
 import com.confiancecoursier.backend.course.repository.CourseRepository;
 import com.confiancecoursier.backend.course.service.CourseService;
 import com.confiancecoursier.backend.course.service.OfferService;
+import com.confiancecoursier.backend.course.service.ProofDeadlineService;
 import com.confiancecoursier.backend.shared.exception.BusinessException;
 import com.confiancecoursier.backend.shared.exception.ForbiddenException;
 import com.confiancecoursier.backend.user.domain.User;
@@ -24,6 +25,7 @@ import java.util.Map;
 @RequestMapping("/api/courses")
 public class CourseController {
 
+    private final ProofDeadlineService proofDeadlineService;
     private final CourseService courseService;
     private final UserRepository userRepository;
     private final OfferService offerService;
@@ -34,12 +36,39 @@ public class CourseController {
                             UserRepository userRepository,
                             OfferService offerService,
                             CourseRepository courseRepository,
-                            ChatRoomRepository chatRoomRepository) {
+                            ChatRoomRepository chatRoomRepository,
+                            ProofDeadlineService proofDeadlineService) {
+        this.proofDeadlineService = proofDeadlineService;
         this.courseService = courseService;
         this.userRepository = userRepository;
         this.offerService = offerService;
         this.courseRepository = courseRepository;
         this.chatRoomRepository = chatRoomRepository;
+    }
+
+    /**
+     * POST /api/courses/{courseId}/extend — body {@code {"hours": 12 | 24}}.
+     * TICK-065b : le client prolonge l'échéance d'une course en retard (OVERDUE), {@code max_extensions} fois au plus.
+     */
+    @PostMapping("/{courseId}/extend")
+    public ResponseEntity<CourseResponse> extendProofDeadline(@PathVariable Long courseId,
+                                                              @RequestBody Map<String, Integer> body) {
+        Integer hours = body == null ? null : body.get("hours");
+        if (hours == null) {
+            throw new BusinessException("Durée de prolongation manquante (12 ou 24 heures).");
+        }
+        Course course = proofDeadlineService.extend(courseId, getCurrentUserId(), hours);
+        return ResponseEntity.ok(CourseResponse.fromEntity(course));
+    }
+
+    /**
+     * POST /api/courses/{courseId}/cancel-overdue
+     * TICK-065b : le client annule une course en retard et est remboursé (non-livraison).
+     */
+    @PostMapping("/{courseId}/cancel-overdue")
+    public ResponseEntity<CourseResponse> cancelOverdue(@PathVariable Long courseId) {
+        Course course = proofDeadlineService.cancelOverdue(courseId, getCurrentUserId());
+        return ResponseEntity.ok(CourseResponse.fromEntity(course));
     }
 
     @PostMapping("/{courseId}/accept-offer/{offerId}")

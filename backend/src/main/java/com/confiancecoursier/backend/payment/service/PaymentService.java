@@ -3,6 +3,7 @@ package com.confiancecoursier.backend.payment.service;
 import com.confiancecoursier.backend.admin.service.CommissionService;
 import com.confiancecoursier.backend.course.domain.Course;
 import com.confiancecoursier.backend.course.repository.CourseRepository;
+import com.confiancecoursier.backend.course.service.ProofDeadlinePolicy;
 import com.confiancecoursier.backend.notify.service.NotificationService;
 import com.confiancecoursier.backend.payment.api.dto.PaymentInitiateRequest;
 import com.confiancecoursier.backend.payment.api.dto.PaymentInitiateResponse;
@@ -19,6 +20,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
@@ -56,12 +58,18 @@ public class PaymentService {
     private final NotificationService notificationService;
     private final CommissionService commissionService;
     private final EscrowService escrowService;
+    private final ProofDeadlinePolicy deadlinePolicy;
+    private final Clock clock;
 
     public PaymentService(CourseRepository courseRepository,
                           EscrowRepository escrowRepository,
                           NotificationService notificationService,
                           CommissionService commissionService,
-                          EscrowService escrowService) {
+                          EscrowService escrowService,
+                          ProofDeadlinePolicy deadlinePolicy,
+                          Clock clock) {
+        this.deadlinePolicy      = deadlinePolicy;
+        this.clock               = clock;
         this.courseRepository    = courseRepository;
         this.escrowRepository    = escrowRepository;
         this.notificationService = notificationService;
@@ -139,8 +147,11 @@ public class PaymentService {
         // ── Persistance ───────────────────────────────────────────────────────
         String ref = "PAY-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
 
+        LocalDateTime paidAt = LocalDateTime.now(clock);
         course.setStatus("IN_PROGRESS");
-        course.setPaidAt(LocalDateTime.now());
+        course.setPaidAt(paidAt);
+        // TICK-065b : échéance de dépôt des preuves (protège le client si le coursier n'envoie rien)
+        course.setProofDeadline(deadlinePolicy.deadlineFor(course.getScheduledAt(), paidAt));
         course.setRealCosts(fraisReels);
         course.setCommissionRate(clientRate);
         course.setCommissionAmount(fraisServiceClient);

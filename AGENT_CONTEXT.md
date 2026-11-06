@@ -1304,6 +1304,26 @@ Revue du code des tickets 055 à 061 contre `PLAN_AMELIORATION.md`, puis correct
 
 ---
 
+### Session 56 — TICK-065b [FULL] : échéance de preuves et non-livraison (2026-11-06)
+
+**Machine à états** : IN_PROGRESS → (échéance dépassée) **OVERDUE** → prolonger (IN_PROGRESS) | annuler (REFUNDED) | litige (DISPUTED) | 48 h sans action → REFUNDED (aucune preuve et aucun achat) ou litige automatique (motif `SYS-NL`). Aucun chemin ne libère les fonds au coursier.
+
+**Backend**
+- Migration `V17__proof_deadline_no_show.sql` : `courses.proof_deadline`, `extension_count`, `overdue_since`, `proof_reminder_sent_at` (+ index) ; paramètres `proof_deadline_hours` 24, `proof_reminder_hours_before` 6, `overdue_grace_hours` 48, `max_extensions` 2, `refund_platform_fees_on_courier_no_show` true ; table `courier_incidents` (UNIQUE course/type) ; rattrapage de l'échéance des courses IN_PROGRESS.
+- `ProofDeadlinePolicy` : lecture des paramètres (défauts du plan) ; `deadlineFor(scheduledAt, paidAt)` = max(prévue, paiement) + 24 h, appliqué dans `PaymentService.initiate` (Clock injecté).
+- `ProofDeadlineService` : `extend` (12/24 h, max 2, retour IN_PROGRESS), `cancelOverdue` (remboursement selon `refund_platform_fees_on_courier_no_show`, incident NO_SHOW), `processDeadlines` (rappel −6 h une fois, passage OVERDUE, décision après 48 h) — une transaction par course sous verrou, emails après commit, erreurs isolées. 2 incidents NO_SHOW en 30 j → coursier suspendu + sessions révoquées.
+- `ProofDeadlineScheduler` : cron `${app.scheduler.proof-deadline.cron:0 5/15 * * * *}` + ShedLock `proofDeadlines`.
+- Endpoints client : `POST /api/courses/{id}/extend` `{hours}` et `POST /api/courses/{id}/cancel-overdue`.
+- `ProofService` : brouillons et soumission acceptés en OVERDUE (le coursier peut encore livrer) ; brouillons cachés au client. `DisputeService` : litige ouvrable en OVERDUE.
+- `CourseResponse` : `proofDeadline`, `extensionCount`, `overdueSince`, `autoValidateAt`. `/api/commissions/public` : `maxExtensions`, `overdueGraceHours`.
+- `NotificationService` : rappel, retard (coursier + client), prolongation, remboursement non-livraison, litige automatique (parties + admins).
+
+**Frontend** : détail client — échéance et temps restant (IN_PROGRESS) ; carte « Le coursier est en retard » avec Prolonger 12 h / 24 h (restant lu du serveur), Annuler et être remboursé (confirmation), Ouvrir un litige, date de décision automatique. Missions coursier : échéance affichée, bouton Preuves aussi en OVERDUE. Statuts OVERDUE / REFUNDED / DISPUTED ajoutés aux badges (dashboards, historique). Formulaire de litige et écran Preuves acceptent OVERDUE. Admin Litiges : `SYS-NL` affiché « Litige automatique : non-livraison ».
+
+**Tests** : `ProofDeadlineServiceTest` (14 cas : rappel unique, OVERDUE, prolongations max 2, annulation + incident, paramètre de remboursement, suspension au 2ᵉ incident, remboursement automatique, litige automatique si preuves partielles ou achats, jamais de libération, isolement des erreurs), `PaymentServiceTest` (échéance au paiement), `DisputeOpeningRulesTest` (OVERDUE) → 171 tests unitaires verts ; `BackendApplicationTests` vert (V17 appliquée).
+
+---
+
 ## 9. DOMAINES À IMPLÉMENTER (par ordre de priorité métier)
 
 ### 1. Guards Angular (prérequis avant tout)
