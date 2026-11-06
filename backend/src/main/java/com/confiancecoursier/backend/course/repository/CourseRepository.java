@@ -43,6 +43,16 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
     @Query("SELECT c.id FROM Course c WHERE c.status = 'OVERDUE' AND c.overdueSince <= :before")
     List<Long> findIdsOverdueBefore(@org.springframework.data.repository.query.Param("before") java.time.LocalDateTime before);
 
+    /**
+     * TICK-073 : courses terminées que l'utilisateur (client ou coursier) n'a pas encore notées,
+     * la plus ancienne d'abord.
+     */
+    @Query("SELECT c FROM Course c WHERE c.status = 'COMPLETED' " +
+           "AND (c.clientId = :userId OR c.courierId = :userId) " +
+           "AND NOT EXISTS (SELECT 1 FROM Review r WHERE r.courseId = c.id AND r.authorId = :userId) " +
+           "ORDER BY c.completedAt ASC")
+    List<Course> findCompletedAwaitingReviewBy(@org.springframework.data.repository.query.Param("userId") Long userId);
+
     // Récupère toutes les courses avec un statut donné (ex: PUBLISHED)
     List<Course> findByStatusOrderByCreatedAtDesc(String status);
 

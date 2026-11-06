@@ -362,6 +362,10 @@ import {
                         <svg lucideCamera size="13"></svg> Preuves
                       </a>
                     }
+                    @if (mission.reviewDue) {
+                      <!-- TICK-073 : noter le client après une course terminée -->
+                      <a [routerLink]="['/courier/rate-client', mission.id]" class="mission-btn">★ Noter le client</a>
+                    }
                     <!-- TICK-065b : échéance de dépôt des preuves -->
                     @if (mission.status === 'IN_PROGRESS' && mission.proofDeadline) {
                       <span class="row-meta">Preuves avant le {{ mission.proofDeadline | date:'dd/MM HH:mm' }}</span>

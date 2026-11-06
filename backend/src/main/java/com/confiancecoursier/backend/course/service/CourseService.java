@@ -7,6 +7,8 @@ import com.confiancecoursier.backend.course.repository.CourseOfferRepository;
 import com.confiancecoursier.backend.shared.exception.ConflictException;
 import com.confiancecoursier.backend.shared.exception.ForbiddenException;
 import com.confiancecoursier.backend.shared.exception.NotFoundException;
+import com.confiancecoursier.backend.review.repository.ReviewRepository;
+import com.confiancecoursier.backend.review.service.ReviewGate;
 import com.confiancecoursier.backend.user.domain.User;
 import com.confiancecoursier.backend.user.repository.UserRepository;
 import com.confiancecoursier.backend.course.api.dto.CreateCourseRequest;
@@ -28,9 +30,14 @@ public class CourseService {
     private final ChatRoomRepository chatRoomRepository;
     private final CourseOfferRepository offerRepository;
     private final UserRepository userRepository;
+    private final ReviewRepository reviewRepository;
+    private final ReviewGate reviewGate;
 
     public CourseService(CourseRepository courseRepository, ChatRoomRepository chatRoomRepository,
-                         CourseOfferRepository offerRepository, UserRepository userRepository) {
+                         CourseOfferRepository offerRepository, UserRepository userRepository,
+                         ReviewRepository reviewRepository, ReviewGate reviewGate) {
+        this.reviewRepository = reviewRepository;
+        this.reviewGate = reviewGate;
         this.courseRepository = courseRepository;
         this.chatRoomRepository = chatRoomRepository;
         this.offerRepository = offerRepository;
@@ -66,7 +73,25 @@ public class CourseService {
                 names.get(c.getClientId()), c.getCourierId() == null ? null : names.get(c.getCourierId()));
     }
 
+    /**
+     * TICK-073 : marque {@code reviewDue} sur les courses COMPLETED que le lecteur (client ou coursier
+     * assigné) n'a pas encore notées — une seule requête pour toute la liste.
+     */
+    private List<CourseResponse> withReviewDue(List<CourseResponse> responses, Long viewerId) {
+        List<Long> completed = responses.stream()
+                .filter(r -> "COMPLETED".equals(r.getStatus()))
+                .filter(r -> viewerId.equals(r.getClientId()) || viewerId.equals(r.getCourierId()))
+                .map(CourseResponse::getId).toList();
+        java.util.Set<Long> reviewed = completed.isEmpty() ? java.util.Set.of()
+                : new java.util.HashSet<>(reviewRepository.findReviewedCourseIds(viewerId, completed));
+        for (CourseResponse r : responses) {
+            r.setReviewDue(completed.contains(r.getId()) && !reviewed.contains(r.getId()));
+        }
+        return responses;
+    }
+
     public CourseResponse createCourse(Long clientId, CreateCourseRequest request) {
+        reviewGate.requireNoPendingReview(clientId, "créer une nouvelle course"); // TICK-073
         Course course = Course.builder()
                 .clientId(clientId)
                 .description(request.getDescription())
@@ -90,10 +115,10 @@ public class CourseService {
                 .collect(Collectors.groupingBy(ChatRoom::getCourseId));
 
         Map<Long, String> names = namesOf(courses);
-        return courses.stream()
+        return withReviewDue(courses.stream()
                 .map(course -> toResponse(course,
                         pickRoom(course, roomsByCourse.getOrDefault(course.getId(), List.of())), clientId, names))
-                .collect(Collectors.toList());
+                .collect(Collectors.toList()), clientId);
     }
 
     public List<CourseResponse> getPublishedCourses(Long courierId) {
@@ -191,7 +216,8 @@ public class CourseService {
             throw new ForbiddenException("Vous n'avez pas accès à cette course.");
         }
 
-        return toResponse(course, resolveChatRoomId(course), requesterId, namesOf(List.of(course)));
+        return withReviewDue(new java.util.ArrayList<>(List.of(
+                toResponse(course, resolveChatRoomId(course), requesterId, namesOf(List.of(course))))), requesterId).get(0);
     }
 
     public List<CourseResponse> getMyMissions(Long courierId) {
@@ -219,9 +245,9 @@ public class CourseService {
         all.addAll(chatCourses);
 
         Map<Long, String> names = namesOf(all);
-        return all.stream()
+        return withReviewDue(all.stream()
                 .map(course -> toResponse(course, roomIdByCourse.get(course.getId()), courierId, names))
-                .collect(Collectors.toList());
+                .collect(Collectors.toList()), courierId);
     }
 
     /**

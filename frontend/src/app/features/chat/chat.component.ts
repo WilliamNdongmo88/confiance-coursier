@@ -794,6 +794,14 @@ interface ChatMsg {
           }
         </div>
 
+        @if (pendingReviewCourseId) {
+          <!-- TICK-073 : notation obligatoire avant une nouvelle offre -->
+          <p class="form-hint" style="color:var(--danger,#dc2626);margin-bottom:12px" role="alert">
+            Notez d'abord votre course terminée avant de proposer un tarif.
+            <a [routerLink]="['/courier/rate-client', pendingReviewCourseId]">Noter maintenant</a>
+          </p>
+        }
+
         <!-- Récapitulatif financier en temps réel -->
         <div class="offer-preview">
           <div class="offer-preview-row">
@@ -852,6 +860,8 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   /** Autre participant du salon (cible d'un signalement) — TICK-071. */
   otherUserId: number | null = null;
   readonly moreOpen = signal(false);
+  /** TICK-073 : course terminée que le coursier doit noter avant toute nouvelle offre. */
+  pendingReviewCourseId: number | null = null;
   readonly connected = signal(false);
 
   private chatSubscription: Subscription | null = null;
@@ -949,6 +959,14 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         }
       }
     });
+    // ── 3 bis. TICK-073 : un avis dû bloque les nouvelles offres du coursier ──
+    if (this.isCOURIER) {
+      this.courseService.getPendingReviews().subscribe({
+        next: (list) => this.pendingReviewCourseId = list[0]?.courseId ?? null,
+        error: () => {},
+      });
+    }
+
     // ── 4. Charger le tarif minimum et la commission coursier (TICK-058) ──
     this.http.get<any>('/api/commissions/public').subscribe({
       next: (data) => {
@@ -1043,6 +1061,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   canSendOffer(): boolean {
     return this.tarifMinimum !== null
+        && !this.pendingReviewCourseId
         && !!this.offerAmountInput
         && this.offerAmountInput >= this.tarifMinimum;
   }

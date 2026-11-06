@@ -773,6 +773,7 @@ Contrôles :
 **Validation :** parcours litige côté coursier → retour à son dashboard (et non à `/login`).
 
 #### TICK-073 🟠 [FULL] Notation accessible et obligatoire — 4 h
+**Statut :** ✅ (2026-11-06, session 64)
 **Anomalie :** A-25 · **Fichiers :** `ReviewService`, `CourseService`, `FE/shared/rate`, détail, historique, missions
 **Critères d'acceptation :**
 - Bouton « Noter » sur toute course COMPLETED non notée (client et coursier), y compris après la validation automatique.

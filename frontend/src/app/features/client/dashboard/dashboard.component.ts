@@ -200,6 +200,10 @@ function statusLabel(status: string): string {
 
                 <!-- Actions -->
                 <div class="row-actions">
+                  @if (course.reviewDue) {
+                    <!-- TICK-073 : notation due (y compris après validation automatique à 72 h) -->
+                    <a [routerLink]="['/client/rate', course.id]" class="btn-row btn-row--green">★ Noter</a>
+                  }
                   <a [routerLink]="['/client/course-detail', course.id]"
                      class="btn-row btn-row--ghost">Détails</a>
 

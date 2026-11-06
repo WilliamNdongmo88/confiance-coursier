@@ -34,12 +34,15 @@ public class OfferService {
     private final UserRepository userRepository;
     private final NotificationService notificationService;
     private final CommissionService commissionService;
+    private final com.confiancecoursier.backend.review.service.ReviewGate reviewGate;
 
     public OfferService(CourseOfferRepository offerRepository,
                         CourseRepository courseRepository,
                         UserRepository userRepository,
                         NotificationService notificationService,
-                        CommissionService commissionService) {
+                        CommissionService commissionService,
+                        com.confiancecoursier.backend.review.service.ReviewGate reviewGate) {
+        this.reviewGate = reviewGate;
         this.offerRepository = offerRepository;
         this.courseRepository = courseRepository;
         this.userRepository = userRepository;
@@ -67,6 +70,7 @@ public class OfferService {
         if (!canMakeOffers(courier)) {
             throw new ForbiddenException("Votre identité doit être vérifiée (KYC) avant de pouvoir proposer un tarif.");
         }
+        reviewGate.requireNoPendingReview(courierId, "proposer un nouveau tarif"); // TICK-073
         if (amount == null || amount.signum() <= 0) {
             throw new BusinessException("Montant de l'offre invalide.");
         }

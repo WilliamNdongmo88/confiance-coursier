@@ -165,6 +165,9 @@ function statusLabel(status: string): string {
                   {{ getStatusLabel(course.status) }}
                 </span>
                 <div class="row-actions">
+                  @if (course.reviewDue) {
+                    <a [routerLink]="['/client/rate', course.id]" class="row-action-link">★ Noter</a>
+                  }
                   <a [routerLink]="['/client/course-detail', course.id]" class="row-action-link">
                     Voir détail <svg lucideArrowRight size="12"></svg>
                   </a>
@@ -211,6 +214,9 @@ function statusLabel(status: string): string {
                       <span [class]="getBadgeClass(course.status)">{{ getStatusLabel(course.status) }}</span>
                     </td>
                     <td>
+                      @if (course.reviewDue) {
+                        <a [routerLink]="['/courier/rate-client', course.id]" class="text-link">★ Noter</a>
+                      }
                       @if (course.chatRoomId) {
                         <a [routerLink]="['/chat', course.chatRoomId]" class="text-link">
                           Chat

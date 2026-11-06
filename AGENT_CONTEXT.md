@@ -1407,6 +1407,17 @@ Revue du code des tickets 055 à 061 contre `PLAN_AMELIORATION.md`, puis correct
 
 ---
 
+### Session 64 — TICK-073 [FULL] : notation accessible et obligatoire (2026-11-06)
+
+- `CourseRepository.findCompletedAwaitingReviewBy(userId)` (COMPLETED, participant, sans avis de sa part) ; `ReviewRepository.findReviewedCourseIds(author, ids)` (lot).
+- `ReviewGate.requireNoPendingReview(userId, action)` → 409 « Notez d'abord la course #X (« … ») avant de … » : appelé dans `CourseService.createCourse` (client) et `OfferService.submitOffer` (coursier, renvoyé dans le chat via `/user/queue/errors`).
+- `GET /api/reviews/pending` (`PendingReviewController`) : courses à noter (id, description, date, rôle à noter).
+- `CourseResponse.reviewDue` : vrai pour une course COMPLETED que le lecteur n'a pas notée (liste client, missions, détail) — une requête par liste. Couvre l'auto-validation à 72 h.
+- Front : bouton « ★ Noter » (dashboard client, historique client/coursier, missions coursier, carte dans le détail client) ; écran de notation avec les vrais noms (`courierName`/`clientName`) et retour si déjà noté ; création de course bloquée avec lien direct ; modale d'offre du chat bloquée avec lien `/courier/rate-client/:id`.
+- Tests : `ReviewGateTest` (2), `CourseServiceTest` (+2), `OfferServiceTest` (+1) → 254 tests verts (contexte inclus).
+
+---
+
 ## 9. DOMAINES À IMPLÉMENTER (par ordre de priorité métier)
 
 ### 1. Guards Angular (prérequis avant tout)

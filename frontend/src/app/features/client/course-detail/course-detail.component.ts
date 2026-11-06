@@ -286,6 +286,16 @@ function buildTimeline(status: string, paidAt?: string, createdAt?: string): Tim
           </div>
         }
 
+        @if (course.reviewDue) {
+          <!-- TICK-073 : notation due -->
+          <div class="card" style="margin-bottom:20px">
+            <p style="margin:0 0 12px;font-weight:600">Course terminée : notez {{ course.courierName || 'votre coursier' }}.</p>
+            <a [routerLink]="['/client/rate', courseId]" class="btn btn-primary" style="width:100%;justify-content:center;min-height:48px">
+              ★ Noter le coursier
+            </a>
+          </div>
+        }
+
         <!-- ── Finances ── -->
         @if (course.totalAmount) {
           <div class="card" style="margin-bottom:20px">

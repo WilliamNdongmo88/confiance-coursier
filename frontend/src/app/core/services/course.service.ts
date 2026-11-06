@@ -98,6 +98,11 @@ export class CourseService {
     return this.http.post<{ status: string; autoValidateAt: string }>(`${this.apiUrl}/${courseId}/proofs/submit`, {});
   }
 
+  /** TICK-073 — Courses terminées que l'utilisateur doit encore noter. */
+  getPendingReviews(): Observable<{ courseId: number; description: string; completedAt: string; targetRole: string }[]> {
+    return this.http.get<any[]>('/api/reviews/pending');
+  }
+
   /** Récupère la liste des preuves d'une course. */
   getProofs(courseId: number): Observable<any[]> {
     return this.http.get<any[]>(`${this.apiUrl}/${courseId}/proofs`);

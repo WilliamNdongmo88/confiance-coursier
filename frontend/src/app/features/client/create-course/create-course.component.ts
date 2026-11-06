@@ -143,6 +143,19 @@ interface CourseType {
         </a>
       </section>
 
+      @if (pendingReview) {
+        <!-- TICK-073 : notation obligatoire avant une nouvelle course -->
+        <div class="card" style="margin-bottom:20px;border-color:var(--warning,#d97706)" role="alert">
+          <p style="margin:0 0 12px;font-weight:600">
+            Avant de créer une nouvelle course, notez votre course terminée
+            « {{ pendingReview.description }} ».
+          </p>
+          <a [routerLink]="['/client/rate', pendingReview.courseId]" class="btn btn-primary" style="min-height:48px">
+            ★ Noter maintenant
+          </a>
+        </div>
+      }
+
       <!-- Formulaire -->
       <div class="form-card">
 
@@ -318,8 +331,17 @@ export class CreateCourseComponent implements OnInit {
     private toast: ToastService,
   ) {}
 
+  /** TICK-073 : première course terminée à noter (bloque la création). */
+  pendingReview: { courseId: number; description: string } | null = null;
+
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');
+    if (!id) {
+      this.courseService.getPendingReviews().subscribe({
+        next: (list) => this.pendingReview = list[0] ?? null,
+        error: () => {},
+      });
+    }
     if (id) {
       this.isEditMode = true;
       this.courseId = Number(id);

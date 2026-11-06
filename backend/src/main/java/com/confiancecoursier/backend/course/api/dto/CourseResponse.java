@@ -53,6 +53,9 @@ public class CourseResponse {
     /** Coursier et admin : montant net versé au coursier = tarif − commission + frais réels. */
     private BigDecimal courierAmount;
 
+    /** TICK-073 : la personne qui consulte doit encore noter cette course terminée. */
+    private Boolean reviewDue;
+
     /** Qui consulte la course : détermine les montants visibles. */
     public enum Viewer { CLIENT, COURIER, ADMIN, OTHER }
 

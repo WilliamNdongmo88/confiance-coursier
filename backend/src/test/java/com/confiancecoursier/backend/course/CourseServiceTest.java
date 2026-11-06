@@ -8,6 +8,9 @@ import com.confiancecoursier.backend.course.domain.CourseOffer;
 import com.confiancecoursier.backend.course.repository.CourseOfferRepository;
 import com.confiancecoursier.backend.course.repository.CourseRepository;
 import com.confiancecoursier.backend.course.service.CourseService;
+import com.confiancecoursier.backend.course.api.dto.CreateCourseRequest;
+import com.confiancecoursier.backend.review.repository.ReviewRepository;
+import com.confiancecoursier.backend.review.service.ReviewGate;
 import com.confiancecoursier.backend.shared.exception.ConflictException;
 import com.confiancecoursier.backend.shared.exception.ForbiddenException;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,6 +34,8 @@ class CourseServiceTest {
     private CourseRepository courses;
     private ChatRoomRepository rooms;
     private CourseOfferRepository offers;
+    private ReviewRepository reviews;
+    private ReviewGate reviewGate;
     private CourseService service;
     private Course course;
     private ChatRoom room1, room2;
@@ -41,7 +46,10 @@ class CourseServiceTest {
         courses = mock(CourseRepository.class);
         rooms = mock(ChatRoomRepository.class);
         offers = mock(CourseOfferRepository.class);
-        service = new CourseService(courses, rooms, offers, mock(com.confiancecoursier.backend.user.repository.UserRepository.class));
+        reviews = mock(ReviewRepository.class);
+        reviewGate = mock(ReviewGate.class);
+        service = new CourseService(courses, rooms, offers, mock(com.confiancecoursier.backend.user.repository.UserRepository.class),
+                reviews, reviewGate);
 
         course = Course.builder().id(100L).clientId(1L).description("Pharmacie").status("PUBLISHED").build();
         when(courses.findByIdForUpdate(100L)).thenReturn(Optional.of(course));
@@ -134,5 +142,33 @@ class CourseServiceTest {
         assertThat(list).extracting(CourseResponse::getChatRoomId).containsExactly(30L, 10L);
         verify(courses, never()).findById(anyLong());
         verify(rooms, never()).findByCourseIdAndCourierId(anyLong(), anyLong());
+    }
+
+    // ── TICK-073 : notation obligatoire ──────────────────────────────────────
+
+    @Test
+    void creatingACourseIsBlockedWhileAReviewIsDue() {
+        doThrow(new ConflictException("Notez d'abord la course #7")).when(reviewGate)
+                .requireNoPendingReview(eq(1L), anyString());
+        CreateCourseRequest req = new CreateCourseRequest();
+        req.setDescription("Acheter du riz au marché Mokolo");
+        assertThatThrownBy(() -> service.createCourse(1L, req)).isInstanceOf(ConflictException.class)
+                .hasMessageContaining("#7");
+        verify(courses, never()).save(any());
+    }
+
+    @Test
+    void completedCoursesNotYetReviewedAreFlagged() {
+        Course rated = Course.builder().id(1L).clientId(1L).courierId(2L).description("a").status("COMPLETED").build();
+        Course toRate = Course.builder().id(2L).clientId(1L).courierId(2L).description("b").status("COMPLETED").build();
+        Course running = Course.builder().id(3L).clientId(1L).courierId(2L).description("c").status("IN_PROGRESS").build();
+        when(courses.findByClientIdOrderByCreatedAtDesc(1L)).thenReturn(List.of(rated, toRate, running));
+        when(rooms.findByCourseIdIn(anyCollection())).thenReturn(List.of());
+        when(reviews.findReviewedCourseIds(eq(1L), anyCollection())).thenReturn(List.of(1L));
+
+        List<CourseResponse> list = service.getMyCourses(1L);
+
+        assertThat(list).extracting(CourseResponse::getReviewDue).containsExactly(false, true, false);
+        verify(reviews, times(1)).findReviewedCourseIds(eq(1L), anyCollection()); // une requête pour la liste
     }
 }

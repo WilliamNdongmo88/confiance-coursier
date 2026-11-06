@@ -24,6 +24,8 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 /** TICK-058 (offre depuis le chat) et TICK-059 (acceptation) — règles métier côté serveur. */
@@ -35,6 +37,7 @@ class OfferServiceTest {
     private NotificationService notifications;
     private OfferService service;
     private Course course;
+    private com.confiancecoursier.backend.review.service.ReviewGate reviewGate;
 
     @BeforeEach
     void setUp() {
@@ -60,7 +63,8 @@ class OfferServiceTest {
         user(4L, "CLIENT", "ACTIVE", null);
         user(5L, "COURIER", "ACTIVE", "APPROVED");
 
-        service = new OfferService(offers, courses, users, notifications, commissions);
+        reviewGate = mock(com.confiancecoursier.backend.review.service.ReviewGate.class);
+        service = new OfferService(offers, courses, users, notifications, commissions, reviewGate);
     }
 
     private void user(long id, String role, String status, String kyc) {
@@ -182,5 +186,14 @@ class OfferServiceTest {
         activeOffer(10L, 3L, "6000"); // coursier 3 : KYC PENDING
         assertThatThrownBy(() -> service.acceptOffer(100L, 10L, 1L)).isInstanceOf(ConflictException.class);
         assertThat(course.getCourierId()).isNull();
+    }
+
+    @Test
+    void offerIsBlockedWhileTheCourierOwesAReview() {
+        doThrow(new ConflictException("Notez d'abord la course #9")).when(reviewGate)
+                .requireNoPendingReview(eq(2L), anyString());
+        assertThatThrownBy(() -> service.submitOffer(100L, 2L, new BigDecimal("6000"), null))
+                .isInstanceOf(ConflictException.class).hasMessageContaining("#9");
+        verify(offers, never()).save(any());
     }
 }

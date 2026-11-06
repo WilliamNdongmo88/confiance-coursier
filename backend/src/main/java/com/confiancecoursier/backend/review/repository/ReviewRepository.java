@@ -21,4 +21,10 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
 
     /** Nombre d'avis reçus par un utilisateur (pour la moyenne glissante). */
     long countByTargetId(Long targetId);
+
+    /** TICK-073 : parmi ces courses, celles que l'auteur a déjà notées (une requête pour une liste). */
+    @org.springframework.data.jpa.repository.Query(
+            "SELECT r.courseId FROM Review r WHERE r.authorId = :authorId AND r.courseId IN :courseIds")
+    List<Long> findReviewedCourseIds(@org.springframework.data.repository.query.Param("authorId") Long authorId,
+                                     @org.springframework.data.repository.query.Param("courseIds") java.util.Collection<Long> courseIds);
 }

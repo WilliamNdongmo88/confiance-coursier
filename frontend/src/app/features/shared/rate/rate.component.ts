@@ -215,15 +215,15 @@ export class RateComponent implements OnInit {
   private loadCourse(): void {
     this.http.get<any>(`/api/courses/${this.courseId}`).subscribe({
       next: (course) => {
-        if (this.role() === 'CLIENT') {
-          // Le client note le coursier — on aimerait son nom, mais on n'a que l'ID.
-          // On reconstruit les initiales depuis le courierId.
-          this.targetName_.set(`Coursier #${course.courierId ?? '?'}`);
-          this.targetInitials_.set('CC');
-        } else {
-          // Le coursier note le client
-          this.targetName_.set(`Client #${course.clientId ?? '?'}`);
-          this.targetInitials_.set('CL');
+        // TICK-073 : vrais noms (fournis par l'API depuis TICK-070)
+        const name: string = this.role() === 'CLIENT'
+          ? (course.courierName || 'votre coursier')
+          : (course.clientName || 'votre client');
+        this.targetName_.set(name);
+        this.targetInitials_.set(name.trim().split(/\s+/).slice(0, 2).map((w: string) => w.charAt(0).toUpperCase()).join('') || '?');
+        if (course.status === 'COMPLETED' && course.reviewDue === false) {
+          this.toast.info('Vous avez déjà noté cette course.');
+          this.router.navigate([this.role() === 'CLIENT' ? '/client/dashboard' : '/courier/dashboard']);
         }
       },
       error: () => {
