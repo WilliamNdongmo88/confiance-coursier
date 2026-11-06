@@ -19,8 +19,10 @@ import java.util.List;
  *
  * <h3>Endpoints :</h3>
  * <ul>
- *   <li>{@code POST /api/courses/{courseId}/proofs} — Soumettre une preuve (coursier assigné uniquement)</li>
- *   <li>{@code GET  /api/courses/{courseId}/proofs} — Lister les preuves (client propriétaire + coursier assigné)</li>
+ *   <li>{@code POST   /api/courses/{courseId}/proofs}           — Téléverser une preuve en brouillon (coursier assigné)</li>
+ *   <li>{@code DELETE /api/courses/{courseId}/proofs/{proofId}} — Retirer un brouillon (coursier assigné, IN_PROGRESS)</li>
+ *   <li>{@code POST   /api/courses/{courseId}/proofs/submit}    — Soumettre les preuves : complétude vérifiée, démarre les 72 h</li>
+ *   <li>{@code GET    /api/courses/{courseId}/proofs}           — Lister les preuves (client : seulement après soumission)</li>
  * </ul>
  *
  * <p>Toutes les routes sont sous {@code /api/courses/**} et couvertes par
@@ -63,8 +65,24 @@ public class ProofController {
             String proofType) {
 
         Long courierId = getCurrentUserId();
-        ProofResponse response = proofService.submitProof(courseId, courierId, file, proofType);
+        ProofResponse response = proofService.uploadProof(courseId, courierId, file, proofType);
         return ResponseEntity.ok(response);
+    }
+
+    /** Retire une preuve encore en brouillon (TICK-064). */
+    @DeleteMapping("/{proofId}")
+    public ResponseEntity<Void> deleteDraft(@PathVariable Long courseId, @PathVariable Long proofId) {
+        proofService.deleteDraftProof(courseId, proofId, getCurrentUserId());
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Soumission finale (TICK-064) : 1 vidéo + au moins 1 photo (+ reçus si frais réels),
+     * puis course PROOFS_SUBMITTED et auto-validation à 72 h. Idempotent.
+     */
+    @PostMapping("/submit")
+    public ResponseEntity<ProofService.SubmissionResult> submit(@PathVariable Long courseId) {
+        return ResponseEntity.ok(proofService.submitProofs(courseId, getCurrentUserId()));
     }
 
     /**

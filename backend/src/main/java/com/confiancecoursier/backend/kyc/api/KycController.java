@@ -31,6 +31,9 @@ import java.util.Map;
 @Validated
 public class KycController {
 
+    private static final long KYC_MAX_FILE_BYTES = 10L * 1024 * 1024;
+
+
     private final KycService kycService;
     private final UserRepository userRepository;
     private final FileStorageService fileStorageService;
@@ -91,6 +94,15 @@ public class KycController {
     ) {
         Long userId = resolveUserId(principal);
         String keyPrefix = "kyc/" + userId;
+
+        // La limite multipart globale est passée à 30 Mo pour les vidéos de preuve (TICK-064) :
+        // les documents KYC gardent leur limite de 10 Mo.
+        for (MultipartFile f : new MultipartFile[]{frontFile, backFile, selfieFile}) {
+            if (f.getSize() > KYC_MAX_FILE_BYTES) {
+                throw new com.confiancecoursier.backend.shared.exception.BusinessException(
+                        "Chaque document KYC doit faire 10 Mo maximum.");
+            }
+        }
 
         // Upload des 3 fichiers vers MinIO — les clés résultantes sont des UUID uniques
         String frontKey  = fileStorageService.uploadFile(frontFile,  kycBucket, keyPrefix);

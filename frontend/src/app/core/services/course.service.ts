@@ -75,7 +75,7 @@ export class CourseService {
   }
 
   /**
-   * Soumet une preuve (photo, vidéo ou reçu) pour une course.
+   * Téléverse une preuve en brouillon (TICK-064 : la soumission finale passe par submitProofs).
    * Retourne un Observable d'événements HTTP pour la barre de progression.
    */
   submitProof(courseId: number, file: File, proofType: 'PHOTO' | 'VIDEO' | 'RECEIPT'): Observable<HttpEvent<any>> {
@@ -86,6 +86,16 @@ export class CourseService {
       reportProgress: true,
       observe: 'events'
     });
+  }
+
+  /** TICK-064 — Retire une preuve encore en brouillon (course IN_PROGRESS). */
+  deleteProof(courseId: number, proofId: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${courseId}/proofs/${proofId}`);
+  }
+
+  /** TICK-064 — Soumission finale : complétude vérifiée par le serveur, démarre les 72 h. */
+  submitProofs(courseId: number): Observable<{ status: string; autoValidateAt: string }> {
+    return this.http.post<{ status: string; autoValidateAt: string }>(`${this.apiUrl}/${courseId}/proofs/submit`, {});
   }
 
   /** Récupère la liste des preuves d'une course. */

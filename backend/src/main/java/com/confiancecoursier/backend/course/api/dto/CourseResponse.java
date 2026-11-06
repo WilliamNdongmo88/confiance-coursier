@@ -18,6 +18,8 @@ public class CourseResponse {
     private LocalDateTime createdAt;
     private BigDecimal courseAmount;
     private BigDecimal totalAmount;
+    /** Frais réels (achats) payés par le client : un reçu devient obligatoire dans les preuves s'ils sont > 0 (TICK-064). */
+    private BigDecimal realCosts;
     private String currency;
     private Long acceptedOfferId;
     /** Identifiant du salon de chat associé à cette course (nullable si aucune offre encore) */
@@ -41,6 +43,7 @@ public class CourseResponse {
         dto.setCreatedAt(course.getCreatedAt());
         dto.setCourseAmount(course.getCourseAmount());
         dto.setTotalAmount(course.getTotalAmount());
+        dto.setRealCosts(course.getRealCosts());
         dto.setCurrency(course.getCurrency());
         dto.setAcceptedOfferId(course.getAcceptedOfferId());
         dto.setChatRoomId(chatRoomId);

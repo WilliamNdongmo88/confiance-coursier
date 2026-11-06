@@ -96,6 +96,17 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
     }
 
+    // Fichier au-delà de la limite multipart (30 Mo) → 413 avec un message lisible — TICK-064
+    @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErrorResponse> handleMaxUpload(Exception ex) {
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.PAYLOAD_TOO_LARGE.value(),
+                "Fichier trop volumineux (30 Mo maximum pour une vidéo, 10 Mo pour une photo ou un reçu).",
+                LocalDateTime.now()
+        );
+        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).body(error);
+    }
+
     // Modification concurrente d'une course (@Version) → 409 — TICK-060
     @ExceptionHandler(org.springframework.orm.ObjectOptimisticLockingFailureException.class)
     public ResponseEntity<ErrorResponse> handleOptimisticLock(Exception ex) {

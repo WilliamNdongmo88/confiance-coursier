@@ -72,6 +72,13 @@ public class Proof {
     @Column(columnDefinition = "NUMERIC(10,7)")
     private Double longitude;
 
+    /**
+     * Durée de la vidéo en millisecondes, lue côté serveur (TICK-064).
+     * {@code null} pour une photo/un reçu, ou pour une vidéo dont la durée n'a pas pu être lue (« à vérifier »).
+     */
+    @Column(name = "video_duration_ms")
+    private Long videoDurationMs;
+
     /** Date/heure de capture fournie par le client (optionnel). */
     @Column(name = "captured_at")
     private LocalDateTime capturedAt;

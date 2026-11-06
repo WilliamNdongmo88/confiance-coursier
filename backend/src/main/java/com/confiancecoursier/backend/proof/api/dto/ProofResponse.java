@@ -23,7 +23,9 @@ public record ProofResponse(
         Double latitude,
         Double longitude,
         LocalDateTime capturedAt,
-        LocalDateTime uploadedAt
+        LocalDateTime uploadedAt,
+        /** Durée vidéo lue par le serveur (ms) ; null = non vidéo ou « à vérifier ». */
+        Long videoDurationMs
 ) {
     /**
      * Construit un {@link ProofResponse} à partir de l'entité JPA.
@@ -44,7 +46,8 @@ public record ProofResponse(
                 proof.getLatitude(),
                 proof.getLongitude(),
                 proof.getCapturedAt(),
-                proof.getUploadedAt()
+                proof.getUploadedAt(),
+                proof.getVideoDurationMs()
         );
     }
 }

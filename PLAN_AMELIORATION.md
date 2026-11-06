@@ -665,6 +665,7 @@ Contrôles :
 **Validation :** test unitaire de la règle 3/30 j.
 
 #### TICK-064 🟠 [FULL] Soumission de preuves complète et fiable — 6 h
+**Statut :** ✅ (2026-11-06, session 54)
 **Anomalies :** A-17, CO-10, CO-11, CO-17 · **Fichiers :** `ProofService`, `ProofController`, `application.properties`, `FE/courier/proofs`
 **Description :**
 - Les fichiers sont téléversés en brouillon. Une action explicite `POST /api/courses/{id}/proofs/submit` vérifie la complétude (1 vidéo + au moins 1 photo ; reçus obligatoires si frais réels > 0), puis passe en PROOFS_SUBMITTED et démarre les 72 h.

@@ -1,8 +1,7 @@
 import { Component, OnInit, signal, computed } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { NgFor, NgIf, DecimalPipe } from '@angular/common';
+import { DecimalPipe, NgTemplateOutlet } from '@angular/common';
 import { HttpEventType } from '@angular/common/http';
-import { FormsModule } from '@angular/forms';
 import { AppShellComponent } from '../../../shared/components/app-shell/app-shell.component';
 import { ToastService } from '../../../core/services/toast.service';
 import { CourseService } from '../../../core/services/course.service';
@@ -10,7 +9,6 @@ import {
   LucideVideo,
   LucideCamera,
   LucideReceipt,
-  LucideMessageCircle,
   LucideImagePlus,
   LucideFileText,
   LucideImage,
@@ -21,35 +19,41 @@ import {
   LucideFilm,
 } from '@lucide/angular';
 
-/** Représente un fichier sélectionné en attente d'envoi. */
-interface ProofFile {
-  id: string;
-  file: File;
-  proofType: 'PHOTO' | 'VIDEO' | 'RECEIPT';
-  uploaded: boolean;
+type ProofType = 'PHOTO' | 'VIDEO' | 'RECEIPT';
+
+/**
+ * Une preuve affichée : soit déjà reçue par le serveur (brouillon enregistré),
+ * soit un fichier local en attente / en cours / en échec d'envoi.
+ */
+interface ProofItem {
+  key: string;
+  proofType: ProofType;
+  name: string;
+  size: number;
+  state: 'pending' | 'uploading' | 'done' | 'error';
+  serverId?: number;   // id côté serveur une fois reçu
+  file?: File;         // fichier local tant qu'il n'est pas reçu
   error?: string;
+  durationMs?: number | null;
 }
 
-const MAX_FILE_SIZE_MB  = 10;
-const MAX_VIDEO_SIZE_MB = 50;
-const ALLOWED_IMAGE_TYPES   = ['image/jpeg', 'image/png', 'image/webp'];
-const ALLOWED_VIDEO_TYPES   = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm'];
-const ALLOWED_RECEIPT_TYPES = [...ALLOWED_IMAGE_TYPES, 'application/pdf'];
+// Mêmes limites que le serveur (ProofService) — TICK-064
+const MAX_IMAGE_MB = 10;
+const MAX_VIDEO_MB = 30;
+const MAX_VIDEO_SECONDS = 10;
+const MAX_PROOFS = 10;
 
 @Component({
   selector: 'app-proofs',
   standalone: true,
   imports: [
     RouterLink,
-    NgFor,
-    NgIf,
     DecimalPipe,
-    FormsModule,
+    NgTemplateOutlet,
     AppShellComponent,
     LucideVideo,
     LucideCamera,
     LucideReceipt,
-    LucideMessageCircle,
     LucideImagePlus,
     LucideFileText,
     LucideImage,
@@ -60,20 +64,8 @@ const ALLOWED_RECEIPT_TYPES = [...ALLOWED_IMAGE_TYPES, 'application/pdf'];
     LucideFilm,
   ],
   styles: [`
-    .upload-zone {
-      border: 2px dashed var(--border);
-      border-radius: var(--radius-md);
-      padding: 28px 16px;
-      text-align: center;
-      cursor: pointer;
-      background: var(--bg);
-      transition: border-color .15s, background .15s;
-    }
-    .upload-zone:hover {
-      border-color: var(--primary);
-      background: var(--primary-light, #f0fdf4);
-    }
-    .upload-zone.has-error { border-color: #dc2626; }
+    .upload-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    .upload-actions .btn { flex: 1 1 140px; min-height: 48px; justify-content: center; }
 
     .proof-items { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
     .proof-item-row {
@@ -81,17 +73,20 @@ const ALLOWED_RECEIPT_TYPES = [...ALLOWED_IMAGE_TYPES, 'application/pdf'];
       padding: 10px 14px; background: var(--bg);
       border: 1px solid var(--border); border-radius: var(--radius-md);
     }
-    .proof-item-row.uploaded  { border-color: #16a34a; background: #f0fdf4; }
-    .proof-item-row.has-error { border-color: #dc2626; background: #fef2f2; }
+    .proof-item-row.done      { border-color: var(--success, #16a34a); }
+    .proof-item-row.has-error { border-color: var(--danger, #dc2626); }
     .proof-item-info { flex: 1; min-width: 0; }
     .proof-item-info strong {
       font-size: .88rem; color: var(--text); display: block;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .proof-item-info span { font-size: .76rem; color: var(--text-muted); }
+    .state-done  { color: var(--success, #16a34a); }
+    .state-error { color: var(--danger, #dc2626); }
     .proof-item-remove {
-      border: none; background: none; color: #dc2626;
-      cursor: pointer; padding: 4px; border-radius: 6px; flex-shrink: 0;
+      border: none; background: none; color: var(--danger, #dc2626);
+      cursor: pointer; border-radius: 6px; flex-shrink: 0;
+      min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center;
     }
     .proof-item-remove:disabled { opacity: .4; cursor: not-allowed; }
 
@@ -101,243 +96,213 @@ const ALLOWED_RECEIPT_TYPES = [...ALLOWED_IMAGE_TYPES, 'application/pdf'];
     }
     .section-label .badge { margin-left: auto; }
 
-    .progress-bar-outer {
-      height: 6px; background: var(--border); border-radius: 99px; overflow: hidden; margin-top: 12px;
-    }
-    .progress-bar-inner {
-      height: 100%; background: var(--primary, #123b32); border-radius: 99px; transition: width .2s;
-    }
-    .upload-hint  { font-size: .74rem; color: var(--text-muted); margin-top: 6px; }
-    .file-error   { font-size: .78rem; color: #dc2626; margin-top: 4px; }
-
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    [data-theme="dark"] .proof-item-row.uploaded  { background: rgba(22,163,74,.12); }
-    [data-theme="dark"] .proof-item-row.has-error { background: rgba(220,38,38,.1); }
-    [data-theme="dark"] .upload-zone:hover        { background: rgba(18,59,50,.2); }
+    .progress-bar-outer { height: 6px; background: var(--border); border-radius: 99px; overflow: hidden; margin-top: 8px; }
+    .progress-bar-inner { height: 100%; background: var(--primary); border-radius: 99px; transition: width .2s; }
+    .upload-hint { font-size: .74rem; color: var(--text-muted); margin-top: 6px; }
+    .file-error  { font-size: .78rem; color: var(--danger, #dc2626); margin-top: 6px; }
+    .checklist { list-style: none; padding: 0; margin: 8px 0 0; font-size: .85rem; }
+    .checklist li { padding: 2px 0; }
+    .hidden-input { display: none; }
   `],
   template: `
 <app-shell pageTitle="Preuves de la course">
   <div class="app-main-inner">
 
-    <!-- En-tête -->
     <div class="page-head">
       <div>
         <h1>Envoyer les preuves</h1>
-        <p class="text-muted" *ngIf="courseId">Course #{{ courseId }}</p>
+        @if (courseId) { <p class="text-muted">Course #{{ courseId }}</p> }
       </div>
       <a routerLink="/courier/dashboard" class="btn btn-secondary btn-sm">
         <svg lucideArrowLeft size="15"></svg> Retour
       </a>
     </div>
 
-    <!-- Notice -->
-    <div class="app-notice" style="margin-bottom:20px">
-      <svg lucideInfo></svg>
-      <div>
-        <strong>Preuves requises par le client</strong>
-        <span>Au moins 1 photo obligatoire. Vidéo (≤ {{ MAX_VIDEO_MB }} Mo) et reçus si applicable.</span>
+    @if (loading()) {
+      <div class="card"><p class="text-muted">Chargement…</p></div>
+    } @else if (blockedReason()) {
+      <div class="app-notice">
+        <svg lucideInfo></svg>
+        <div><strong>Envoi impossible</strong><span>{{ blockedReason() }}</span></div>
       </div>
-    </div>
+    } @else {
 
-    <form (submit)="onSubmit($event)">
+      <div class="app-notice" style="margin-bottom:20px">
+        <svg lucideInfo></svg>
+        <div>
+          <strong>Preuves obligatoires</strong>
+          <ul class="checklist">
+            <li>{{ hasVideo() ? '✓' : '○' }} 1 vidéo de {{ MAX_VIDEO_SECONDS }} s maximum</li>
+            <li>{{ hasPhoto() ? '✓' : '○' }} Au moins 1 photo</li>
+            @if (receiptsRequired()) {
+              <li>{{ hasReceipt() ? '✓' : '○' }} Au moins 1 reçu d'achat ({{ realCosts() | number:'1.0-0' }} XAF d'achats payés)</li>
+            }
+          </ul>
+        </div>
+      </div>
 
-      <!-- ── Vidéo ── -->
+      <!-- ── 1. Vidéo ── -->
       <div class="card" style="margin-bottom:18px">
         <div class="section-label">
-          <svg lucideVideo size="17" style="color:var(--primary)"></svg>
-          Vidéo de la course
-          <span class="badge badge-gray" style="font-size:.7rem">Optionnel</span>
+          <svg lucideVideo size="17"></svg> 1. Vidéo *
+          <span class="badge badge-warning" style="font-size:.7rem">≤ {{ MAX_VIDEO_SECONDS }} s</span>
         </div>
-
-        <div *ngIf="!videoFile()">
-          <input #videoInput type="file"
-                 accept="video/mp4,video/quicktime,video/webm,video/x-msvideo"
-                 style="display:none" (change)="onVideoSelected($event)">
-          <div class="upload-zone" [class.has-error]="videoError()" (click)="videoInput.click()">
-            <svg lucideFilm size="32" style="color:var(--text-muted)"></svg>
-            <p class="text-sm text-muted" style="margin:6px 0 0">Importez une vidéo de la course</p>
-            <p class="text-sm" style="color:var(--primary);margin-top:4px;font-weight:600">Cliquez pour ajouter</p>
+        <input #videoCam type="file" class="hidden-input" accept="video/*" capture="environment" (change)="onVideoSelected($event)">
+        <input #videoLib type="file" class="hidden-input" accept="video/*" (change)="onVideoSelected($event)">
+        @if (!videoItem()) {
+          <div class="upload-actions">
+            <button type="button" class="btn btn-primary" (click)="videoCam.click()" [disabled]="busy()">
+              <svg lucideFilm size="18"></svg> Filmer
+            </button>
+            <button type="button" class="btn btn-secondary" (click)="videoLib.click()" [disabled]="busy()">
+              <svg lucideImagePlus size="18"></svg> Galerie
+            </button>
           </div>
-          <p class="upload-hint">MP4, MOV, WebM · max {{ MAX_VIDEO_MB }} Mo</p>
-          <p class="file-error" *ngIf="videoError()">{{ videoError() }}</p>
-        </div>
-
-        <div *ngIf="videoFile()">
+          <p class="upload-hint">MP4, MOV, WebM · {{ MAX_VIDEO_MB }} Mo maximum</p>
+        } @else {
           <div class="proof-items">
-            <div class="proof-item-row"
-                 [class.uploaded]="videoUploaded()"
-                 [class.has-error]="videoUploadError()">
-              <svg lucideVideo size="18" style="color:var(--primary)"></svg>
-              <div class="proof-item-info">
-                <strong>{{ videoFile()!.name }}</strong>
-                <span>{{ (videoFile()!.size / 1024 / 1024 | number:'1.1-1') }} Mo
-                  <span *ngIf="videoUploaded()" style="color:#16a34a"> · Envoyé ✓</span>
-                  <span *ngIf="videoUploadError()" style="color:#dc2626"> · Échec</span>
-                </span>
-              </div>
-              <button class="proof-item-remove" type="button"
-                      [disabled]="isSubmitting()" (click)="removeVideo()">
-                <svg lucideX size="15"></svg>
-              </button>
-            </div>
+            <ng-container *ngTemplateOutlet="row; context: { $implicit: videoItem() }"></ng-container>
           </div>
-        </div>
+        }
+        @if (videoError()) { <p class="file-error">{{ videoError() }}</p> }
       </div>
 
-      <!-- ── Photos ── -->
+      <!-- ── 2. Photos ── -->
       <div class="card" style="margin-bottom:18px">
         <div class="section-label">
-          <svg lucideCamera size="17" style="color:var(--primary)"></svg>
-          Photos *
-          <span class="badge badge-warning" style="font-size:.7rem">Min. 1 photo</span>
+          <svg lucideCamera size="17"></svg> 2. Photos *
+          <span class="badge badge-gray" style="font-size:.7rem">{{ items().length }}/{{ MAX_PROOFS }} fichiers</span>
         </div>
-
-        <input #photoInput type="file" accept="image/jpeg,image/png,image/webp"
-               style="display:none" multiple (change)="onPhotosSelected($event)">
-        <div class="upload-zone" [class.has-error]="photoError()" (click)="photoInput.click()">
-          <svg lucideImagePlus size="32" style="color:var(--text-muted)"></svg>
-          <p class="text-sm text-muted" style="margin:6px 0 0">Ajoutez des photos de la course</p>
-          <p class="text-sm" style="color:var(--primary);margin-top:4px;font-weight:600">
-            Cliquez pour ajouter ({{ photos().length }}/10)
-          </p>
+        <input #photoCam type="file" class="hidden-input" accept="image/*" capture="environment" (change)="onFilesSelected($event, 'PHOTO')">
+        <input #photoLib type="file" class="hidden-input" accept="image/*" multiple (change)="onFilesSelected($event, 'PHOTO')">
+        <div class="upload-actions">
+          <button type="button" class="btn btn-primary" (click)="photoCam.click()" [disabled]="busy() || full()">
+            <svg lucideCamera size="18"></svg> Photographier
+          </button>
+          <button type="button" class="btn btn-secondary" (click)="photoLib.click()" [disabled]="busy() || full()">
+            <svg lucideImagePlus size="18"></svg> Galerie
+          </button>
         </div>
-        <p class="upload-hint">JPG, PNG, WebP · max {{ MAX_FILE_MB }} Mo par fichier</p>
-        <p class="file-error" *ngIf="photoError()">{{ photoError() }}</p>
-
-        <div class="proof-items" *ngIf="photos().length > 0">
-          <div *ngFor="let p of photos()"
-               class="proof-item-row"
-               [class.uploaded]="p.uploaded"
-               [class.has-error]="!!p.error">
-            <svg lucideImage size="18" style="color:var(--primary)"></svg>
-            <div class="proof-item-info">
-              <strong>{{ p.file.name }}</strong>
-              <span>{{ (p.file.size / 1024 / 1024 | number:'1.1-1') }} Mo
-                <span *ngIf="p.uploaded" style="color:#16a34a"> · Envoyé ✓</span>
-                <span *ngIf="p.error" style="color:#dc2626"> · {{ p.error }}</span>
-              </span>
-            </div>
-            <button class="proof-item-remove" type="button"
-                    [disabled]="isSubmitting()" (click)="removePhoto(p.id)">
-              <svg lucideX size="15"></svg>
-            </button>
+        <p class="upload-hint">JPG, PNG, WebP, HEIC · {{ MAX_IMAGE_MB }} Mo maximum par photo</p>
+        @if (itemsOf('PHOTO').length > 0) {
+          <div class="proof-items">
+            @for (it of itemsOf('PHOTO'); track it.key) {
+              <ng-container *ngTemplateOutlet="row; context: { $implicit: it }"></ng-container>
+            }
           </div>
-        </div>
+        }
       </div>
 
-      <!-- ── Reçus ── -->
+      <!-- ── 3. Reçus ── -->
       <div class="card" style="margin-bottom:18px">
         <div class="section-label">
-          <svg lucideReceipt size="17" style="color:var(--primary)"></svg>
-          Reçus d'achat
-          <span class="badge badge-gray" style="font-size:.7rem">Si applicable</span>
+          <svg lucideReceipt size="17"></svg> 3. Reçus d'achat{{ receiptsRequired() ? ' *' : '' }}
+          <span class="badge badge-gray" style="font-size:.7rem">{{ receiptsRequired() ? 'Obligatoire' : 'Si applicable' }}</span>
         </div>
-
-        <input #receiptInput type="file" accept="image/jpeg,image/png,image/webp,application/pdf"
-               style="display:none" multiple (change)="onReceiptsSelected($event)">
-        <div class="upload-zone" [class.has-error]="receiptError()" (click)="receiptInput.click()">
-          <svg lucideFileText size="32" style="color:var(--text-muted)"></svg>
-          <p class="text-sm text-muted" style="margin:6px 0 0">Photo ou scan des reçus de caisse</p>
-          <p class="text-sm" style="color:var(--primary);margin-top:4px;font-weight:600">
-            Cliquez pour ajouter ({{ receipts().length }})
-          </p>
+        <input #receiptCam type="file" class="hidden-input" accept="image/*" capture="environment" (change)="onFilesSelected($event, 'RECEIPT')">
+        <input #receiptLib type="file" class="hidden-input" accept="image/*,application/pdf" multiple (change)="onFilesSelected($event, 'RECEIPT')">
+        <div class="upload-actions">
+          <button type="button" class="btn btn-secondary" (click)="receiptCam.click()" [disabled]="busy() || full()">
+            <svg lucideCamera size="18"></svg> Photographier
+          </button>
+          <button type="button" class="btn btn-secondary" (click)="receiptLib.click()" [disabled]="busy() || full()">
+            <svg lucideFileText size="18"></svg> Fichier / PDF
+          </button>
         </div>
-        <p class="upload-hint">JPG, PNG, PDF · max {{ MAX_FILE_MB }} Mo par fichier</p>
-        <p class="file-error" *ngIf="receiptError()">{{ receiptError() }}</p>
-
-        <div class="proof-items" *ngIf="receipts().length > 0">
-          <div *ngFor="let r of receipts()"
-               class="proof-item-row"
-               [class.uploaded]="r.uploaded"
-               [class.has-error]="!!r.error">
-            <svg lucideFileText size="18" style="color:var(--primary)"></svg>
-            <div class="proof-item-info">
-              <strong>{{ r.file.name }}</strong>
-              <span>{{ (r.file.size / 1024 / 1024 | number:'1.1-1') }} Mo
-                <span *ngIf="r.uploaded" style="color:#16a34a"> · Envoyé ✓</span>
-                <span *ngIf="r.error" style="color:#dc2626"> · {{ r.error }}</span>
-              </span>
-            </div>
-            <button class="proof-item-remove" type="button"
-                    [disabled]="isSubmitting()" (click)="removeReceipt(r.id)">
-              <svg lucideX size="15"></svg>
-            </button>
+        <p class="upload-hint">JPG, PNG, PDF · {{ MAX_IMAGE_MB }} Mo maximum par fichier</p>
+        @if (itemsOf('RECEIPT').length > 0) {
+          <div class="proof-items">
+            @for (it of itemsOf('RECEIPT'); track it.key) {
+              <ng-container *ngTemplateOutlet="row; context: { $implicit: it }"></ng-container>
+            }
           </div>
-        </div>
+        }
       </div>
 
-      <!-- ── Message au client ── -->
-      <div class="card" style="margin-bottom:22px">
-        <div class="section-label">
-          <svg lucideMessageCircle size="17" style="color:var(--primary)"></svg>
-          Message au client (optionnel)
-        </div>
-        <textarea class="form-textarea" rows="3"
-          placeholder="Ex: J'ai bien effectué tous les achats. Les médicaments sont conditionnés dans un sachet scellé."
-          [(ngModel)]="noteClient" name="noteClient"></textarea>
-        <p class="upload-hint">Ce message est visible par le client avec vos preuves.</p>
-      </div>
+      @if (selectionError()) { <p class="file-error" style="margin-bottom:12px">{{ selectionError() }}</p> }
 
-      <!-- ── Barre de progression ── -->
-      <div *ngIf="isSubmitting()" style="margin-bottom:18px">
-        <p class="text-sm text-muted" style="margin-bottom:6px">Envoi en cours… {{ uploadProgress() }}%</p>
-        <div class="progress-bar-outer">
-          <div class="progress-bar-inner" [style.width.%]="uploadProgress()"></div>
+      <!-- ── Progression (en octets) ── -->
+      @if (busy()) {
+        <div style="margin-bottom:18px">
+          <p class="text-sm text-muted">
+            {{ phase() === 'submitting' ? 'Validation des preuves…' : 'Envoi… ' + progress() + '%' }}
+          </p>
+          <div class="progress-bar-outer"><div class="progress-bar-inner" [style.width.%]="progress()"></div></div>
         </div>
-      </div>
+      }
 
-      <!-- ── Bouton submit ── -->
-      <button type="submit" class="btn btn-primary btn-lg"
-              style="width:100%"
-              [disabled]="!isFormValid() || isSubmitting()">
-        <ng-container *ngIf="!isSubmitting()">
-          <svg lucideSend size="17"></svg>
-          Envoyer les preuves au client
-        </ng-container>
-        <ng-container *ngIf="isSubmitting()">
-          <span style="display:inline-block;width:16px;height:16px;margin-right:8px;
-            border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;
-            animation:spin .7s linear infinite"></span>
-          Envoi en cours…
-        </ng-container>
+      <button type="button" class="btn btn-primary btn-lg btn-block" (click)="send()"
+              [disabled]="!isComplete() || busy()">
+        <svg lucideSend size="17"></svg>
+        {{ hasFailures() ? "Réessayer l'envoi" : 'Envoyer les preuves au client' }}
       </button>
+      @if (!isComplete()) {
+        <p class="upload-hint" style="text-align:center">Complétez les éléments obligatoires ci-dessus.</p>
+      }
+    }
 
-    </form>
+    <!-- Ligne de fichier réutilisable -->
+    <ng-template #row let-it>
+      <div class="proof-item-row" [class.done]="it.state === 'done'" [class.has-error]="it.state === 'error'">
+        @switch (it.proofType) {
+          @case ('VIDEO')   { <svg lucideVideo size="18"></svg> }
+          @case ('RECEIPT') { <svg lucideFileText size="18"></svg> }
+          @default          { <svg lucideImage size="18"></svg> }
+        }
+        <div class="proof-item-info">
+          <strong>{{ it.name }}</strong>
+          <span>
+            {{ (it.size / 1024 / 1024) | number:'1.1-1' }} Mo
+            @if (it.durationMs) { · {{ (it.durationMs / 1000) | number:'1.0-1' }} s }
+            @switch (it.state) {
+              @case ('done')      { <span class="state-done"> · Reçu ✓</span> }
+              @case ('uploading') { <span> · Envoi…</span> }
+              @case ('error')     { <span class="state-error"> · {{ it.error }}</span> }
+              @default            { <span> · À envoyer</span> }
+            }
+          </span>
+        </div>
+        <button class="proof-item-remove" type="button" [disabled]="busy()" (click)="remove(it)"
+                [attr.aria-label]="'Retirer ' + it.name">
+          <svg lucideX size="16"></svg>
+        </button>
+      </div>
+    </ng-template>
+
   </div>
 </app-shell>
   `
 })
 export class ProofsComponent implements OnInit {
 
-  readonly MAX_FILE_MB  = MAX_FILE_SIZE_MB;
-  readonly MAX_VIDEO_MB = MAX_VIDEO_SIZE_MB;
+  readonly MAX_IMAGE_MB = MAX_IMAGE_MB;
+  readonly MAX_VIDEO_MB = MAX_VIDEO_MB;
+  readonly MAX_VIDEO_SECONDS = MAX_VIDEO_SECONDS;
+  readonly MAX_PROOFS = MAX_PROOFS;
 
   courseId!: number;
 
-  videoFile        = signal<File | null>(null);
-  videoError       = signal<string>('');
-  videoUploaded    = signal(false);
-  videoUploadError = signal(false);
+  readonly loading = signal(true);
+  readonly blockedReason = signal<string | null>(null);
+  readonly realCosts = signal(0);
 
-  photos     = signal<ProofFile[]>([]);
-  photoError = signal<string>('');
+  readonly items = signal<ProofItem[]>([]);
+  readonly videoError = signal('');
+  readonly selectionError = signal('');
 
-  receipts     = signal<ProofFile[]>([]);
-  receiptError = signal<string>('');
+  readonly phase = signal<'idle' | 'uploading' | 'submitting'>('idle');
+  readonly progress = signal(0);
 
-  isSubmitting   = signal(false);
-  uploadProgress = signal(0);
-
-  noteClient = '';
-
-  isFormValid = computed(() =>
-    this.photos().length > 0 &&
-    this.photos().every(p => !p.error) &&
-    this.receipts().every(r => !r.error) &&
-    !this.photoError() &&
-    !this.videoError()
-  );
+  readonly busy = computed(() => this.phase() !== 'idle');
+  readonly full = computed(() => this.items().length >= MAX_PROOFS);
+  readonly videoItem = computed(() => this.items().find(i => i.proofType === 'VIDEO') ?? null);
+  readonly receiptsRequired = computed(() => this.realCosts() > 0);
+  readonly hasVideo = computed(() => this.countUsable('VIDEO') > 0);
+  readonly hasPhoto = computed(() => this.countUsable('PHOTO') > 0);
+  readonly hasReceipt = computed(() => this.countUsable('RECEIPT') > 0);
+  readonly hasFailures = computed(() => this.items().some(i => i.state === 'error'));
+  readonly isComplete = computed(() =>
+    this.hasVideo() && this.hasPhoto() && (!this.receiptsRequired() || this.hasReceipt()));
 
   constructor(
     private route: ActivatedRoute,
@@ -351,152 +316,195 @@ export class ProofsComponent implements OnInit {
     if (!this.courseId) {
       this.toast.error('Identifiant de course manquant.');
       this.router.navigate(['/courier/dashboard']);
+      return;
     }
+    // Contrôle du statut au chargement + reprise des brouillons déjà reçus par le serveur
+    this.courseService.getCourseById(this.courseId).subscribe({
+      next: (course: any) => {
+        this.realCosts.set(Number(course.realCosts ?? 0));
+        if (course.status === 'IN_PROGRESS') {
+          this.loadDrafts();
+        } else {
+          this.blockedReason.set(course.status === 'PROOFS_SUBMITTED'
+            ? 'Les preuves ont déjà été envoyées : le client les examine.'
+            : 'Les preuves ne peuvent être envoyées que pour une course payée en cours.');
+          this.loading.set(false);
+        }
+      },
+      error: () => {
+        this.blockedReason.set('Impossible de charger la course. Réessayez plus tard.');
+        this.loading.set(false);
+      },
+    });
   }
 
-  // ── Vidéo ─────────────────────────────────────────────────────────────────
-  onVideoSelected(event: Event): void {
+  private loadDrafts(): void {
+    this.courseService.getProofs(this.courseId).subscribe({
+      next: (proofs) => {
+        this.items.set(proofs.map(p => ({
+          key: 'srv-' + p.id,
+          proofType: p.proofType,
+          name: this.serverName(p),
+          size: p.fileSize ?? 0,
+          state: 'done' as const,
+          serverId: p.id,
+          durationMs: p.videoDurationMs,
+        })));
+        this.loading.set(false);
+      },
+      error: () => this.loading.set(false),
+    });
+  }
+
+  itemsOf(type: ProofType): ProofItem[] {
+    return this.items().filter(i => i.proofType === type);
+  }
+
+  private countUsable(type: ProofType): number {
+    return this.items().filter(i => i.proofType === type && i.state !== 'error').length;
+  }
+
+  // ── Sélection ──────────────────────────────────────────────────────────────
+
+  async onVideoSelected(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     input.value = '';
+    this.videoError.set('');
     if (!file) return;
-    const err = this.validateFile(file, ALLOWED_VIDEO_TYPES, MAX_VIDEO_SIZE_MB);
-    if (err) { this.videoError.set(err); return; }
-    this.videoError.set('');
-    this.videoFile.set(file);
-    this.videoUploaded.set(false);
-    this.videoUploadError.set(false);
+
+    if (!file.type.startsWith('video/')) { this.videoError.set('Ce fichier n\'est pas une vidéo.'); return; }
+    if (file.size > MAX_VIDEO_MB * 1024 * 1024) {
+      this.videoError.set(`Vidéo trop lourde (${this.mb(file.size)} Mo, maximum ${MAX_VIDEO_MB} Mo).`);
+      return;
+    }
+    const seconds = await this.videoDuration(file);
+    if (seconds !== null && seconds > MAX_VIDEO_SECONDS + 0.5) {
+      this.videoError.set(`La vidéo dure ${Math.round(seconds)} s : ${MAX_VIDEO_SECONDS} secondes maximum.`);
+      return;
+    }
+    if (this.full()) { this.selectionError.set(`Maximum ${MAX_PROOFS} fichiers.`); return; }
+    this.items.update(list => [...list, this.localItem(file, 'VIDEO', seconds === null ? null : Math.round(seconds * 1000))]);
   }
 
-  removeVideo(): void {
-    this.videoFile.set(null);
-    this.videoError.set('');
-    this.videoUploaded.set(false);
-    this.videoUploadError.set(false);
-  }
-
-  // ── Photos ────────────────────────────────────────────────────────────────
-  onPhotosSelected(event: Event): void {
+  onFilesSelected(event: Event, type: 'PHOTO' | 'RECEIPT'): void {
     const input = event.target as HTMLInputElement;
     const files = Array.from(input.files ?? []);
     input.value = '';
-    this.photoError.set('');
+    this.selectionError.set('');
 
     for (const file of files) {
-      if (this.photos().length >= 10) {
-        this.photoError.set('Maximum 10 photos atteint.');
-        break;
+      if (this.full()) { this.selectionError.set(`Maximum ${MAX_PROOFS} fichiers par course.`); break; }
+      const okType = file.type.startsWith('image/') || (type === 'RECEIPT' && file.type === 'application/pdf');
+      if (!okType) { this.selectionError.set(`« ${file.name} » : format non accepté.`); continue; }
+      if (file.size > MAX_IMAGE_MB * 1024 * 1024) {
+        this.selectionError.set(`« ${file.name} » : ${this.mb(file.size)} Mo, maximum ${MAX_IMAGE_MB} Mo.`);
+        continue;
       }
-      const err = this.validateFile(file, ALLOWED_IMAGE_TYPES, MAX_FILE_SIZE_MB);
-      this.photos.update(list => [...list, {
-        id: crypto.randomUUID(),
-        file,
-        proofType: 'PHOTO',
-        uploaded: false,
-        error: err || undefined,
-      }]);
+      this.items.update(list => [...list, this.localItem(file, type, null)]);
     }
   }
 
-  removePhoto(id: string): void {
-    this.photos.update(list => list.filter(p => p.id !== id));
-    this.photoError.set('');
-  }
-
-  // ── Reçus ─────────────────────────────────────────────────────────────────
-  onReceiptsSelected(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const files = Array.from(input.files ?? []);
-    input.value = '';
-    this.receiptError.set('');
-
-    for (const file of files) {
-      const err = this.validateFile(file, ALLOWED_RECEIPT_TYPES, MAX_FILE_SIZE_MB);
-      this.receipts.update(list => [...list, {
-        id: crypto.randomUUID(),
-        file,
-        proofType: 'RECEIPT',
-        uploaded: false,
-        error: err || undefined,
-      }]);
-    }
-  }
-
-  removeReceipt(id: string): void {
-    this.receipts.update(list => list.filter(r => r.id !== id));
-    this.receiptError.set('');
-  }
-
-  // ── Soumission séquentielle ────────────────────────────────────────────────
-  async onSubmit(event: Event): Promise<void> {
-    event.preventDefault();
-    if (!this.isFormValid() || this.isSubmitting()) return;
-
-    this.isSubmitting.set(true);
-    this.uploadProgress.set(0);
-
-    const toUpload: Array<{ file: File; proofType: 'PHOTO' | 'VIDEO' | 'RECEIPT'; id?: string }> = [];
-    if (this.videoFile()) toUpload.push({ file: this.videoFile()!, proofType: 'VIDEO' });
-    for (const p of this.photos())   toUpload.push({ file: p.file, proofType: 'PHOTO',   id: p.id });
-    for (const r of this.receipts()) toUpload.push({ file: r.file, proofType: 'RECEIPT', id: r.id });
-
-    let successCount = 0;
-    let failCount    = 0;
-
-    for (let i = 0; i < toUpload.length; i++) {
-      const item = toUpload[i];
-      try {
-        await this.uploadOne(item.file, item.proofType);
-        successCount++;
-        if (item.proofType === 'VIDEO') this.videoUploaded.set(true);
-        if (item.proofType === 'PHOTO' && item.id) {
-          this.photos.update(list => list.map(p => p.id === item.id ? { ...p, uploaded: true } : p));
-        }
-        if (item.proofType === 'RECEIPT' && item.id) {
-          this.receipts.update(list => list.map(r => r.id === item.id ? { ...r, uploaded: true } : r));
-        }
-      } catch (err: any) {
-        failCount++;
-        const msg: string = err?.error?.message ?? 'Échec';
-        if (item.proofType === 'VIDEO') this.videoUploadError.set(true);
-        if (item.proofType === 'PHOTO' && item.id) {
-          this.photos.update(list => list.map(p => p.id === item.id ? { ...p, error: msg } : p));
-        }
-        if (item.proofType === 'RECEIPT' && item.id) {
-          this.receipts.update(list => list.map(r => r.id === item.id ? { ...r, error: msg } : r));
-        }
-      }
-      this.uploadProgress.set(Math.round(((i + 1) / toUpload.length) * 100));
-    }
-
-    this.isSubmitting.set(false);
-
-    if (failCount === 0) {
-      this.toast.success('Preuves envoyées ! Le client va les examiner.');
-      setTimeout(() => this.router.navigate(['/courier/dashboard']), 1800);
-    } else if (successCount > 0) {
-      this.toast.error(`${failCount} fichier(s) n'ont pas pu être envoyés. Réessayez.`);
+  remove(item: ProofItem): void {
+    if (item.serverId) {
+      // Brouillon déjà reçu par le serveur : suppression côté serveur
+      this.courseService.deleteProof(this.courseId, item.serverId).subscribe({
+        next: () => this.items.update(list => list.filter(i => i.key !== item.key)),
+        error: (err) => this.toast.error(err?.error?.message ?? 'Impossible de retirer ce fichier.'),
+      });
     } else {
-      this.toast.error('Aucune preuve n\'a pu être envoyée. Vérifiez votre connexion.');
+      this.items.update(list => list.filter(i => i.key !== item.key));
     }
+    if (item.proofType === 'VIDEO') this.videoError.set('');
   }
 
-  private uploadOne(file: File, proofType: 'PHOTO' | 'VIDEO' | 'RECEIPT'): Promise<void> {
+  // ── Envoi : seuls les fichiers non reçus, puis soumission finale ──────────
+
+  async send(): Promise<void> {
+    if (!this.isComplete() || this.busy()) return;
+
+    const toUpload = this.items().filter(i => i.state === 'pending' || i.state === 'error');
+    const totalBytes = toUpload.reduce((s, i) => s + i.size, 0) || 1;
+    let sentBytes = 0;
+
+    this.phase.set('uploading');
+    this.progress.set(0);
+
+    for (const item of toUpload) {
+      this.patch(item.key, { state: 'uploading', error: undefined });
+      try {
+        const res = await this.uploadOne(item, loaded =>
+          this.progress.set(Math.min(99, Math.round(((sentBytes + loaded) / totalBytes) * 100))));
+        // Un fichier déjà reçu (reprise) renvoie la même preuve : pas d'erreur de doublon
+        this.patch(item.key, { state: 'done', serverId: res.id, file: undefined, durationMs: res.videoDurationMs ?? item.durationMs });
+      } catch (err: any) {
+        this.patch(item.key, { state: 'error', error: err?.error?.message ?? 'Échec réseau' });
+      }
+      sentBytes += item.size;
+    }
+
+    if (this.hasFailures()) {
+      this.phase.set('idle');
+      this.toast.error('Certains fichiers n\'ont pas pu être envoyés. Corrigez-les ou réessayez : seuls ceux-là seront renvoyés.');
+      return;
+    }
+
+    this.progress.set(100);
+    this.phase.set('submitting');
+    this.courseService.submitProofs(this.courseId).subscribe({
+      next: () => {
+        this.phase.set('idle');
+        this.toast.success('Preuves envoyées ! Le client a 72 h pour les vérifier.');
+        setTimeout(() => this.router.navigate(['/courier/dashboard']), 1500);
+      },
+      error: (err) => {
+        this.phase.set('idle');
+        this.toast.error(err?.error?.message ?? 'La soumission a échoué. Réessayez.');
+      },
+    });
+  }
+
+  private uploadOne(item: ProofItem, onProgress: (loaded: number) => void): Promise<any> {
     return new Promise((resolve, reject) => {
-      this.courseService.submitProof(this.courseId, file, proofType).subscribe({
-        next: (event) => { if (event.type === HttpEventType.Response) resolve(); },
+      this.courseService.submitProof(this.courseId, item.file!, item.proofType).subscribe({
+        next: (event) => {
+          if (event.type === HttpEventType.UploadProgress) onProgress(event.loaded ?? 0);
+          if (event.type === HttpEventType.Response) resolve(event.body);
+        },
         error: (err) => reject(err),
       });
     });
   }
 
-  private validateFile(file: File, allowedTypes: string[], maxMb: number): string {
-    if (file.size > maxMb * 1024 * 1024) {
-      return `Fichier trop volumineux (max ${maxMb} Mo). Taille : ${(file.size / 1024 / 1024).toFixed(1)} Mo.`;
-    }
-    if (!allowedTypes.includes(file.type)) {
-      return `Type de fichier non accepté (${file.type || 'inconnu'}).`;
-    }
-    return '';
+  // ── Utilitaires ────────────────────────────────────────────────────────────
+
+  private localItem(file: File, proofType: ProofType, durationMs: number | null): ProofItem {
+    return { key: crypto.randomUUID(), proofType, name: file.name, size: file.size, state: 'pending', file, durationMs };
+  }
+
+  private patch(key: string, changes: Partial<ProofItem>): void {
+    this.items.update(list => list.map(i => i.key === key ? { ...i, ...changes } : i));
+  }
+
+  /** Durée lue par le navigateur (null si illisible : le serveur vérifiera quand il le peut). */
+  private videoDuration(file: File): Promise<number | null> {
+    return new Promise(resolve => {
+      const url = URL.createObjectURL(file);
+      const video = document.createElement('video');
+      video.preload = 'metadata';
+      const done = (value: number | null) => { URL.revokeObjectURL(url); resolve(value); };
+      video.onloadedmetadata = () => done(Number.isFinite(video.duration) ? video.duration : null);
+      video.onerror = () => done(null);
+      video.src = url;
+    });
+  }
+
+  private serverName(p: any): string {
+    const label = p.proofType === 'VIDEO' ? 'Vidéo' : p.proofType === 'RECEIPT' ? 'Reçu' : 'Photo';
+    return `${label} #${p.id}`;
+  }
+
+  private mb(bytes: number): string {
+    return (bytes / 1024 / 1024).toFixed(1);
   }
 }

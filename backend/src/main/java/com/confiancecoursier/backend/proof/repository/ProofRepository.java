@@ -21,4 +21,7 @@ public interface ProofRepository extends JpaRepository<Proof, Long> {
 
     /** Nombre de preuves déjà soumises pour une course (limite = 10). */
     long countByCourseId(Long courseId);
+
+    /** Nombre de preuves d'un type donné (complétude de la soumission — TICK-064). */
+    long countByCourseIdAndProofType(Long courseId, String proofType);
 }

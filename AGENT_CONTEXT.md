@@ -1271,6 +1271,24 @@ Revue du code des tickets 055 à 061 contre `PLAN_AMELIORATION.md`, puis correct
 
 ---
 
+### Session 54 — TICK-064 [FULL] : soumission de preuves complète et fiable (2026-11-06)
+
+**Backend**
+- `ProofService` en deux temps : `uploadProof` (brouillon, course IN_PROGRESS, coursier assigné, sous verrou) puis `submitProofs` (`POST /api/courses/{id}/proofs/submit`) qui exige 1 vidéo + ≥ 1 photo (+ ≥ 1 reçu si `realCosts` > 0), passe en PROOFS_SUBMITTED et démarre les 72 h. Idempotent. La 1re preuve ne déclenche plus rien.
+- `DELETE /api/courses/{id}/proofs/{proofId}` : retrait d'un brouillon (MinIO + base).
+- Reprise sans doublon : un fichier déjà reçu (même SHA-256, même type) renvoie la preuve existante.
+- `ProofFileInspector` (sans dépendance) : type réel par signature d'octets (JPEG, PNG, WebP, HEIC, PDF, MP4/MOV/3GP, WebM) — le MIME enregistré est celui détecté ; durée vidéo lue dans `moov/mvhd` (MP4/MOV/3GP) → refus au-delà de 10 s (tolérance 10,5 s) ; WebM : durée NULL = « à vérifier ».
+- Limites : vidéo 30 Mo, photo/reçu 10 Mo, 10 fichiers, 1 vidéo. Multipart global 30 Mo / 40 Mo ; KYC garde 10 Mo par document (contrôle ajouté dans `KycController`) ; `MaxUploadSizeExceededException` → 413.
+- Le client ne voit pas les brouillons (liste vide tant que IN_PROGRESS) ; accès non participant → 403.
+- `CourseResponse.realCosts` exposé (reçu obligatoire si > 0).
+- Migration `V15__proof_video_duration.sql` : `proofs.video_duration_ms`.
+
+**Frontend** (`courier/proofs`) : statut contrôlé au chargement (bloqué hors IN_PROGRESS) ; brouillons déjà reçus rechargés ; caméra d'abord (`capture="environment"` : Filmer / Photographier) + galerie ; durée vidéo vérifiée via `video.duration` ; progression en octets ; seuls les fichiers en échec sont renvoyés ; soumission finale puis retour au dashboard ; checklist des éléments obligatoires ; cibles ≥ 44 px. Champ « Message au client » retiré (il n'était envoyé nulle part).
+
+**Tests** : `ProofFileInspectorTest` (4) + `ProofServiceTest` (15) → 147 tests unitaires verts ; `BackendApplicationTests` vert (V15 appliquée sur la base de dev).
+
+---
+
 ## 9. DOMAINES À IMPLÉMENTER (par ordre de priorité métier)
 
 ### 1. Guards Angular (prérequis avant tout)
