@@ -1,151 +1,121 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
-import { CommonModule } from '@angular/common';
 import { AuthService } from '../../../core/services/auth.service';
 import { ThemeService } from '../../../core/services/theme.service';
 import { ToastService } from '../../../core/services/toast.service';
-import { LucideArrowLeft, LucideBike, LucideMoon, LucideSun, LucideUser } from '@lucide/angular';
+import { LucideArrowLeft, LucideBike, LucideEye, LucideEyeOff, LucideMoon, LucideShieldCheck, LucideSun, LucideUser } from '@lucide/angular';
 
 @Component({
   selector: 'app-register',
   standalone: true,
-  imports: [FormsModule, RouterLink, CommonModule, LucideArrowLeft, LucideBike, LucideMoon, LucideSun, LucideUser],
+  imports: [FormsModule, RouterLink, LucideArrowLeft, LucideBike, LucideEye, LucideEyeOff, LucideMoon, LucideShieldCheck, LucideSun, LucideUser],
   template: `
     <div class="auth-wrapper">
-      <div class="auth-card st-max-520px-padd-20px">
+      <div class="auth-card auth-card--wide">
 
-        <!-- Ligne 1 : Retour | FR + Thème -->
         <div class="auth-topbar">
-          <a class="back-link" routerLink="/login" aria-label="Retour à la connexion">
+          <a class="back-link" routerLink="/" aria-label="Retour à l’accueil">
             <svg lucideArrowLeft size="16"></svg> Retour
           </a>
           <div class="top-controls">
             <button class="theme-toggle" type="button"
               [attr.aria-label]="theme.isDarkMode() ? 'Activer le thème clair' : 'Activer le thème sombre'"
               (click)="theme.toggleTheme()">
-              @if (theme.isDarkMode()) {
-                <svg lucideSun size="18"></svg>
-              } @else {
-                <svg lucideMoon size="18"></svg>
-              }
+              @if (theme.isDarkMode()) { <svg lucideSun size="18"></svg> } @else { <svg lucideMoon size="18"></svg> }
             </button>
           </div>
         </div>
 
-        <!-- Logo centré -->
         <div class="auth-logo">
-          <svg lucideBike size="22"></svg>
+          <span class="auth-mark"><svg lucideBike size="18"></svg></span>
           <span class="auth-logo-text">ConfianceCoursier</span>
         </div>
 
         <h1 class="auth-title">Créer un compte</h1>
+        <p class="auth-subtitle">Un seul compte pour confier ou réaliser des courses en toute confiance.</p>
 
-        <!-- Sélecteur de rôle -->
-        <p class="text-sm text-muted text-center mb-md">Je suis :</p>
-        <div class="role-selector">
-
-          <div class="role-card" [class.selected]="role === 'CLIENT'" (click)="role = 'CLIENT'">
-            <div class="role-icon"><svg lucideUser size="28"></svg></div>
-            <div class="role-name">Client</div>
-            <div class="text-sm text-muted mt-sm">Je commande</div>
-          </div>
-
-          <div class="role-card" [class.selected]="role === 'COURIER'" (click)="role = 'COURIER'">
-            <div class="role-icon"><svg lucideBike size="28"></svg></div>
-            <div class="role-name">Coursier</div>
-            <div class="text-sm text-muted mt-sm">J'exécute</div>
-          </div>
-
-        </div>
-
-        <!-- Formulaire -->
         <form (ngSubmit)="onSubmit()" #registerForm="ngForm">
+          <fieldset class="role-field">
+            <legend class="form-label">Vous êtes</legend>
+            <div class="role-selector" role="radiogroup" aria-label="Type de compte">
+              <button type="button" class="role-card" role="radio" [attr.aria-checked]="role === 'CLIENT'"
+                      [class.selected]="role === 'CLIENT'" (click)="role = 'CLIENT'">
+                <span class="role-icon"><svg lucideUser size="22"></svg></span>
+                <span class="role-name">Client</span>
+                <span class="role-desc">Je confie une course</span>
+              </button>
+              <button type="button" class="role-card" role="radio" [attr.aria-checked]="role === 'COURIER'"
+                      [class.selected]="role === 'COURIER'" (click)="role = 'COURIER'">
+                <span class="role-icon"><svg lucideBike size="22"></svg></span>
+                <span class="role-name">Coursier</span>
+                <span class="role-desc">Je réalise des courses</span>
+              </button>
+            </div>
+            @if (role === 'COURIER') {
+              <p class="role-note">
+                <svg lucideShieldCheck size="16"></svg>
+                <span>Après l’inscription, vous ferez vérifier votre identité. Vous pourrez ensuite proposer vos services.</span>
+              </p>
+            }
+          </fieldset>
 
           <div class="form-group">
             <label class="form-label" for="reg-fullname">Nom complet</label>
-            <input id="reg-fullname" type="text" class="form-input"
-              [(ngModel)]="fullName" name="fullName" required
+            <input id="reg-fullname" type="text" class="form-input" [(ngModel)]="fullName" name="fullName" required
               placeholder="Jean Dupont" autocomplete="name">
           </div>
 
           <div class="form-group">
             <label class="form-label" for="reg-email">Email</label>
-            <input id="reg-email" type="email" class="form-input"
-              [(ngModel)]="email" name="email" required
-              placeholder="vous@email.com" autocomplete="email">
+            <input id="reg-email" type="email" class="form-input" [(ngModel)]="email" name="email" required
+              placeholder="vous@email.com" autocomplete="email" aria-describedby="reg-email-hint">
+            <p id="reg-email-hint" class="form-hint">Votre code de confirmation sera envoyé à cette adresse.</p>
           </div>
 
           <div class="form-group">
-            <label class="form-label" for="reg-phone">Téléphone</label>
-            <input id="reg-phone" type="tel" class="form-input"
-              [(ngModel)]="phone" name="phone"
-              placeholder="+237 6XX XXX XXX" autocomplete="tel">
+            <label class="form-label" for="reg-phone">Téléphone <span class="optional">(facultatif)</span></label>
+            <input id="reg-phone" type="tel" class="form-input" [(ngModel)]="phone" name="phone"
+              placeholder="+237 6XX XXX XXX" autocomplete="tel" inputmode="tel">
           </div>
 
           <div class="form-group">
             <label class="form-label" for="reg-password">Mot de passe</label>
-            <input id="reg-password" type="password" class="form-input"
-              [(ngModel)]="password" name="password" required minlength="8"
-              placeholder="Min 8 caractères" autocomplete="new-password">
+            <div class="password-field">
+              <input id="reg-password" [type]="showPassword() ? 'text' : 'password'" class="form-input"
+                [(ngModel)]="password" name="password" required minlength="8"
+                placeholder="8 caractères minimum" autocomplete="new-password" aria-describedby="reg-password-hint">
+              <button type="button" class="password-toggle" (click)="showPassword.set(!showPassword())"
+                      [attr.aria-pressed]="showPassword()"
+                      [attr.aria-label]="showPassword() ? 'Masquer les mots de passe' : 'Afficher les mots de passe'">
+                @if (showPassword()) { <svg lucideEyeOff size="18"></svg> } @else { <svg lucideEye size="18"></svg> }
+              </button>
+            </div>
+            <p id="reg-password-hint" class="form-hint" [class.hint-ok]="password.length >= 8">
+              @if (password.length >= 8) { Longueur suffisante. } @else { Au moins 8 caractères ({{ password.length }}/8). }
+            </p>
           </div>
 
           <div class="form-group">
             <label class="form-label" for="reg-password-confirm">Confirmer le mot de passe</label>
-            <input id="reg-password-confirm" type="password" class="form-input"
+            <input id="reg-password-confirm" [type]="showPassword() ? 'text' : 'password'" class="form-input"
               [(ngModel)]="confirmPassword" name="confirmPassword" required
               placeholder="••••••••" autocomplete="new-password"
-              [class.input-error]="confirmPassword && confirmPassword !== password">
-            @if (confirmPassword && confirmPassword !== password) {
-              <p class="form-error">Les mots de passe ne correspondent pas.</p>
+              [class.input-error]="mismatch()" [attr.aria-invalid]="mismatch()">
+            @if (mismatch()) {
+              <p class="form-error" role="alert">Les mots de passe ne correspondent pas.</p>
             }
           </div>
 
-          <!-- Champs spécifiques COURSIER -->
-          @if (role === 'COURIER') {
-            <div>
-              <hr class="st-bd-0-bt-1px-solid-bo-m-20px-0">
-              <p class="st-fs-9rem-fw-700-c-primary">
-                Informations professionnelles
-              </p>
-
-              <div class="form-group">
-                <label class="form-label" for="reg-vehicle">Véhicule</label>
-                <select id="reg-vehicle" class="form-select"
-                  [(ngModel)]="vehicle" name="vehicle">
-                  <option value="MOTO">Moto</option>
-                  <option value="VELO">Vélo</option>
-                  <option value="VOITURE">Voiture</option>
-                  <option value="PIED">À pied</option>
-                </select>
-              </div>
-
-              <div class="form-group">
-                <label class="form-label" for="reg-zone">Zone d'intervention principale</label>
-                <input id="reg-zone" type="text" class="form-input"
-                  [(ngModel)]="interventionZone" name="interventionZone"
-                  placeholder="Ex: Yaoundé - Mokolo, Bastos">
-              </div>
-            </div>
-          }
-
-          <!-- CGU -->
-          <label class="form-checkbox mb-md">
+          <label class="form-checkbox cgu-check">
             <input type="checkbox" [(ngModel)]="acceptCgu" name="acceptCgu" required>
-            <span>J'accepte les <a href="#" (click)="$event.preventDefault()">CGU</a>
-              et la <a href="#" (click)="$event.preventDefault()">politique de confidentialité</a></span>
+            <span>J’accepte les <strong>conditions d’utilisation</strong> et la <strong>politique de confidentialité</strong>.</span>
           </label>
 
-          <!-- Bouton submit -->
           <button type="submit" class="btn btn-primary btn-block btn-lg"
-            [disabled]="isLoading || !acceptCgu || (!!confirmPassword && confirmPassword !== password)">
-            @if (isLoading) {
-              Création en cours…
-            } @else {
-              Créer mon compte
-            }
+            [disabled]="isLoading || !acceptCgu || mismatch()">
+            @if (isLoading) { Création en cours… } @else { Créer mon compte }
           </button>
-
         </form>
 
         <div class="auth-footer">Déjà un compte ? <a routerLink="/login">Se connecter</a></div>
@@ -153,105 +123,64 @@ import { LucideArrowLeft, LucideBike, LucideMoon, LucideSun, LucideUser } from '
     </div>
   `,
   styles: [`
-    :host { display: block; }
-
-    /* Styles spécifiques à la page register non couverts par main.css */
-    .role-selector {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-bottom: 24px;
-    }
-
+    :host { display: block; --reg-muted: #56635c; }
+    :host-context([data-theme="dark"]) { --reg-muted: var(--cc-muted); }
+    .auth-card--wide { max-width: 500px; }
+    .role-field { border: 0; padding: 0; margin: 0 0 20px; min-width: 0; }
+    .role-selector { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .role-card {
-      border: 2px solid var(--border);
-      border-radius: var(--radius-lg);
-      padding: 20px 16px;
-      text-align: center;
-      cursor: pointer;
-      transition: all 0.15s;
-      background: var(--bg);
+      display: grid; justify-items: center; gap: 4px; padding: 16px 10px 14px;
+      border: 1.5px solid var(--cc-line); border-radius: 13px; background: var(--cc-white);
+      color: var(--cc-ink); font: inherit; text-align: center; cursor: pointer;
+      transition: border-color .18s, background .18s, transform .12s, box-shadow .18s;
     }
-
-    .role-card:hover {
-      border-color: var(--gray-400);
-    }
-
+    .role-card:hover { border-color: color-mix(in oklab, var(--primary) 55%, var(--cc-line)); }
+    .role-card:active { transform: scale(.98); }
     .role-card.selected {
-      border-color: var(--primary);
-      background: var(--primary-light);
+      border-color: var(--primary); background: color-mix(in oklab, var(--primary) 9%, var(--cc-white));
+      box-shadow: 0 6px 18px color-mix(in oklab, var(--primary) 16%, transparent);
     }
-
-    .role-card .role-icon {
-      display: flex;
-      justify-content: center;
-      margin-bottom: 8px;
-      color: var(--text-muted);
-      transition: color 0.15s, transform 0.2s;
+    .role-icon {
+      width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; margin-bottom: 4px;
+      background: var(--cc-paper-2); color: var(--cc-muted);
+      transition: background .18s, color .18s, transform .25s cubic-bezier(.16,1,.3,1);
     }
-
-    .role-card.selected .role-icon {
-      color: var(--primary);
-      transform: scale(1.1);
+    .selected .role-icon { background: var(--primary); color: #fff; transform: scale(1.06); }
+    .role-name { font-weight: 750; font-size: .95rem; }
+    .role-desc { font-size: .8rem; color: var(--reg-muted); }
+    .role-note {
+      display: flex; gap: 9px; align-items: flex-start; margin: 12px 0 0; padding: 11px 13px;
+      border-radius: 10px; background: var(--cc-paper-2); color: var(--cc-ink); font-size: .84rem; line-height: 1.45;
+      animation: reg-in .3s cubic-bezier(.16,1,.3,1);
     }
-
-    .role-name {
-      font-weight: 700;
-      font-size: .95rem;
-      color: var(--text);
+    .role-note svg { flex: none; margin-top: 1px; color: var(--primary); }
+    .optional { font-weight: 500; color: var(--reg-muted); }
+    .form-hint { margin: 6px 0 0; font-size: .8rem; color: var(--reg-muted); }
+    .hint-ok { color: var(--cc-success); }
+    .input-error { border-color: var(--cc-danger) !important; }
+    .form-error { color: var(--cc-danger); font-size: .8rem; margin: 6px 0 0; animation: reg-in .2s ease-out; }
+    /* Consentement : un panneau doux, une vraie case dessinée, une validation qui se voit */
+    .cgu-check {
+      display: flex; align-items: flex-start; gap: 12px; margin: 6px 0 18px; padding: 13px 14px;
+      border: 1px solid var(--cc-line); border-radius: 12px; background: var(--cc-paper-2);
+      color: var(--cc-ink); font-size: .87rem; line-height: 1.5; cursor: pointer;
+      transition: border-color .18s, background .18s;
     }
-
-    .input-error {
-      border-color: var(--cc-danger) !important;
+    .cgu-check:hover { border-color: color-mix(in oklab, var(--primary) 45%, var(--cc-line)); }
+    .cgu-check:has(input:checked) {
+      border-color: color-mix(in oklab, var(--primary) 60%, transparent);
+      background: color-mix(in oklab, var(--primary) 8%, var(--cc-white));
     }
-
-    .form-error {
-      color: var(--cc-danger);
-      font-size: .8rem;
-      margin-top: 4px;
-    }
-
-    .form-select {
-      width: 100%;
-      padding: 11px 14px;
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      font-size: .95rem;
-      background: var(--bg);
-      color: var(--text);
-      outline: none;
-      box-sizing: border-box;
-    }
-
-    /* Dark mode overrides */
-    [data-theme="dark"] .role-card {
-      border-color: var(--cc-line);
-      background: var(--surface);
-    }
-
-    [data-theme="dark"] .role-card:hover {
-      border-color: var(--primary);
-    }
-
-    [data-theme="dark"] .role-card.selected {
-      border-color: var(--primary);
-      background: rgba(62, 138, 107, 0.15);
-    }
-
-    [data-theme="dark"] .role-card.selected .role-icon {
-      color: var(--cc-lime);
-    }
-
-    @media (max-width: 480px) {
-      .role-card {
-        padding: 14px 10px;
-      }
-    }
-
-    /* TICK-076 : anciens attributs « style » du template, convertis en classes (mêmes déclarations) */
-    .st-max-520px-padd-20px { max-width: 520px; padding-top: 20px; }
-    .st-bd-0-bt-1px-solid-bo-m-20px-0 { border: 0; border-top: 1px solid var(--border); margin: 20px 0; }
-    .st-fs-9rem-fw-700-c-primary { font-size: .9rem; font-weight: 700; color: var(--primary); margin-bottom: 16px; }
+    .cgu-check strong { font-weight: 700; }
+    /* Sombre : les règles globales (!important) des champs et aides écrasent les états — on les rétablit */
+    :host-context([data-theme="dark"]) .form-error { color: var(--cc-danger) !important; }
+    :host-context([data-theme="dark"]) .hint-ok { color: var(--cc-success) !important; }
+    :host-context([data-theme="dark"]) .form-input.input-error { border-color: var(--cc-danger) !important; }
+    :host-context([data-theme="dark"]) .cgu-check { color: #F3F7F5 !important; }
+    :host-context([data-theme="dark"]) .role-icon { background: rgba(255,255,255,.06); }
+    :host-context([data-theme="dark"]) .selected .role-icon { background: var(--cc-lime); color: #123b32; }
+    @keyframes reg-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+    @media (prefers-reduced-motion: reduce) { .role-note, .form-error { animation: none; } .role-card:active { transform: none; } }
   `]
 })
 export class RegisterComponent {
@@ -261,10 +190,12 @@ export class RegisterComponent {
   password = '';
   confirmPassword = '';
   role = 'CLIENT';
-  vehicle = 'MOTO';
-  interventionZone = '';
   acceptCgu = false;
   isLoading = false;
+  /** Mots de passe affichés en clair (bouton œil, s'applique aux deux champs). */
+  readonly showPassword = signal(false);
+
+  mismatch(): boolean { return !!this.confirmPassword && this.confirmPassword !== this.password; }
 
   readonly theme = inject(ThemeService);
 
@@ -301,7 +232,7 @@ export class RegisterComponent {
     }).subscribe({
       next: () => {
         this.isLoading = false;
-        this.toast.success('Compte créé ! Vérifiez votre téléphone pour l\'OTP.');
+        this.toast.success('Compte créé ! Saisissez le code reçu par email.');
         this.router.navigate(['/verify-otp'], {
           queryParams: { email: this.email, phone: this.phone }
         });

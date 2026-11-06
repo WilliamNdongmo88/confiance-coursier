@@ -7,13 +7,13 @@ import { NgClass } from '@angular/common';
   standalone: true,
   imports: [NgClass],
   template: `
-    <div class="toast-stack">
+    <div class="toast-stack" aria-live="polite">
       @for (toast of toastService.toasts(); track toast.id) {
         <div class="toast" [ngClass]="{
           'toast--success': toast.type === 'success',
           'toast--error':   toast.type === 'error',
           'toast--info':    toast.type === 'info'
-        }">
+        }" [attr.role]="toast.type === 'error' ? 'alert' : 'status'">
           <!-- Icône selon le type -->
           <span class="toast__icon">
             @if (toast.type === 'success') {
@@ -44,6 +44,13 @@ import { NgClass } from '@angular/common';
           <!-- Message -->
           <span class="toast__msg">{{ toast.message }}</span>
 
+          <button type="button" class="toast__close" aria-label="Fermer la notification" (click)="toastService.dismiss(toast.id)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+            </svg>
+          </button>
+
           <!-- Barre de progression -->
           <span class="toast__progress"></span>
         </div>
@@ -51,104 +58,48 @@ import { NgClass } from '@angular/common';
     </div>
   `,
   styles: [`
-    /* ── Conteneur ── */
+    /* Texte en encre sur une surface pleine teintée du statut : lisible en clair comme en sombre. */
     .toast-stack {
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
-      z-index: 9999;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      pointer-events: none;
+      position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+      display: flex; flex-direction: column; gap: 10px; pointer-events: none;
     }
-
-    /* ── Toast base ── */
     .toast {
-      position: relative;
-      display: flex;
-      align-items: flex-start;
-      gap: 11px;
-      min-width: 300px;
-      max-width: 420px;
-      padding: 13px 16px 18px;
-      border-radius: 12px;
-      border: 1px solid transparent;
-      box-shadow: 0 8px 28px rgba(0,0,0,.14), 0 2px 8px rgba(0,0,0,.08);
-      font-size: 13.5px;
-      font-weight: 500;
-      line-height: 1.45;
-      overflow: hidden;
-      animation: toastIn 0.28s cubic-bezier(.22,1,.36,1);
-      pointer-events: all;
+      --tone: var(--cc-info);
+      position: relative; display: flex; align-items: flex-start; gap: 11px;
+      width: min(420px, calc(100vw - 32px));
+      padding: 12px 6px 16px 16px; border-radius: 12px;
+      border: 1px solid color-mix(in oklab, var(--tone) 45%, transparent);
+      background: linear-gradient(color-mix(in oklab, var(--tone) 12%, transparent), color-mix(in oklab, var(--tone) 12%, transparent)), var(--cc-white);
+      color: var(--cc-ink);
+      box-shadow: 0 10px 30px rgba(0,0,0,.16), 0 2px 8px rgba(0,0,0,.08);
+      font-size: 14px; font-weight: 550; line-height: 1.45;
+      overflow: hidden; pointer-events: all;
+      animation: toastIn .32s cubic-bezier(.16,1,.3,1);
     }
-
-    /* ── Variantes ── */
-    .toast--error {
-      background: var(--cc-danger-bg);
-      border-color: var(--cc-danger);
-      color: var(--cc-danger-bg);
+    .toast--error   { --tone: var(--cc-danger); }
+    .toast--success { --tone: var(--cc-success); }
+    .toast--info    { --tone: var(--cc-info); }
+    .toast__icon { flex-shrink: 0; margin-top: 2px; display: flex; color: var(--tone); }
+    .toast__msg { flex: 1; padding-top: 1px; word-break: break-word; }
+    .toast__close {
+      flex: none; width: 36px; height: 36px; margin: -8px 0 -8px; display: grid; place-items: center;
+      border: 0; border-radius: 8px; background: none; color: inherit; opacity: .7; cursor: pointer;
     }
-    .toast--error .toast__icon { color: var(--cc-danger); }
-    .toast--error .toast__progress { background: var(--cc-danger); }
-
-    .toast--success {
-      background: var(--cc-success-bg);
-      border-color: var(--cc-success);
-      color: var(--cc-success-bg);
-    }
-    .toast--success .toast__icon { color: var(--cc-success); }
-    .toast--success .toast__progress { background: var(--cc-success); }
-
-    .toast--info {
-      background: var(--cc-info-bg);
-      border-color: var(--cc-info);
-      color: var(--cc-info-bg);
-    }
-    .toast--info .toast__icon { color: var(--cc-info); }
-    .toast--info .toast__progress { background: var(--cc-info); }
-
-    /* ── Icône ── */
-    .toast__icon {
-      flex-shrink: 0;
-      margin-top: 1px;
-      display: flex;
-    }
-
-    /* ── Message ── */
-    .toast__msg {
-      flex: 1;
-      word-break: break-word;
-    }
-
-    /* ── Barre de progression (disparition en 4s) ── */
+    .toast__close:hover { opacity: 1; background: color-mix(in oklab, var(--tone) 14%, transparent); }
     .toast__progress {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      height: 3px;
-      width: 100%;
-      border-radius: 0 0 12px 12px;
-      opacity: .7;
+      position: absolute; bottom: 0; left: 0; height: 3px; width: 100%;
+      background: var(--tone); opacity: .75; transform-origin: left;
       animation: toastProgress 4s linear forwards;
     }
-
-    /* ── Animations ── */
-    @keyframes toastIn {
-      from {
-        opacity: 0;
-        transform: translateY(14px) scale(.97);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-      }
+    /* Mobile : en haut de l'écran, au-dessus du clavier et de la barre de navigation basse */
+    @media (max-width: 600px) {
+      .toast-stack { top: calc(12px + env(safe-area-inset-top)); bottom: auto; left: 16px; right: 16px; }
+      .toast { width: 100%; animation-name: toastInTop; }
     }
-
-    @keyframes toastProgress {
-      from { transform: scaleX(1); transform-origin: left; }
-      to   { transform: scaleX(0); transform-origin: left; }
-    }
+    @keyframes toastIn { from { opacity: 0; transform: translateY(14px) scale(.97); } to { opacity: 1; transform: none; } }
+    @keyframes toastInTop { from { opacity: 0; transform: translateY(-14px) scale(.97); } to { opacity: 1; transform: none; } }
+    @keyframes toastProgress { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+    @media (prefers-reduced-motion: reduce) { .toast { animation: none; } }
   `]
 })
 export class ToastComponent {
