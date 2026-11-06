@@ -72,6 +72,15 @@ const COURIER_MOTIFS: MotifOption[] = [
         </div>
       </div>
 
+      <!-- TICK-062 : litige possible seulement sur une course payée en cours ou avec preuves soumises -->
+      <div *ngIf="blockedReason() as reason" class="alert-warning" role="alert">
+        <svg lucideAlertTriangle size="18"></svg>
+        <div>
+          <strong>Litige impossible</strong>
+          <p>{{ reason }}</p>
+        </div>
+      </div>
+
       <form (submit)="onSubmit($event)">
 
         <!-- Motif -->
@@ -79,12 +88,10 @@ const COURIER_MOTIFS: MotifOption[] = [
           <label class="form-label" for="motif">Motif du litige *</label>
           <select id="motif" class="form-select" [(ngModel)]="motifCode" name="motifCode" required>
             <option value="">Sélectionnez un motif…</option>
-            <optgroup label="Côté Client">
-              <option *ngFor="let m of clientMotifs" [value]="m.code">{{ m.label }}</option>
-            </optgroup>
-            <optgroup label="Côté Coursier">
-              <option *ngFor="let m of courierMotifs" [value]="m.code">{{ m.label }}</option>
-            </optgroup>
+            <!-- TICK-062 : seuls les motifs du rôle connecté sont proposés (le serveur revérifie) -->
+            @for (m of motifs; track m.code) {
+              <option [value]="m.code">{{ m.label }}</option>
+            }
           </select>
         </div>
 
@@ -100,7 +107,7 @@ const COURIER_MOTIFS: MotifOption[] = [
         <div class="btn-row">
           <a [routerLink]="backLink()" class="btn btn-ghost">Annuler</a>
           <button type="submit" class="btn btn-danger"
-                  [disabled]="!isFormValid() || isSubmitting()">
+                  [disabled]="!isFormValid() || isSubmitting() || !!blockedReason()">
             <ng-container *ngIf="!isSubmitting()">
               <svg lucideAlertTriangle size="15"></svg>
               Confirmer l'ouverture du litige
@@ -127,8 +134,11 @@ export class DisputeFormComponent implements OnInit {
   description = '';
   isSubmitting = signal(false);
 
-  readonly clientMotifs  = CLIENT_MOTIFS;
-  readonly courierMotifs = COURIER_MOTIFS;
+  /** Motifs proposés selon le rôle : L-C* pour le client, L-F* pour le coursier (TICK-062). */
+  motifs: MotifOption[] = CLIENT_MOTIFS;
+
+  /** Raison empêchant l'ouverture (statut de la course), ou null si le litige est possible. */
+  blockedReason = signal<string | null>(null);
 
   constructor(
     private route:  ActivatedRoute,
@@ -140,9 +150,27 @@ export class DisputeFormComponent implements OnInit {
 
   ngOnInit(): void {
     this.courseId = Number(this.route.snapshot.paramMap.get('courseId'));
+    this.motifs = this.auth.getCurrentUserRole().toUpperCase() === 'COURIER' ? COURIER_MOTIFS : CLIENT_MOTIFS;
     if (!this.courseId) {
       this.toast.error('Identifiant de course manquant.');
       this.router.navigate(['/client/dashboard']);
+      return;
+    }
+    // Vérifie le statut avant la saisie (le serveur reste la source de vérité)
+    this.http.get<{ status: string }>(`/api/courses/${this.courseId}`).subscribe({
+      next: (course) => this.blockedReason.set(this.reasonFor(course.status)),
+      error: () => this.blockedReason.set('Impossible de charger la course. Réessayez plus tard.'),
+    });
+  }
+
+  private reasonFor(status: string): string | null {
+    switch (status) {
+      case 'IN_PROGRESS':
+      case 'PROOFS_SUBMITTED': return null;
+      case 'DISPUTED':         return 'Un litige est déjà ouvert pour cette course.';
+      case 'PUBLISHED':
+      case 'ASSIGNED':         return "La course n'est pas encore payée : discutez avec le coursier ou annulez la course.";
+      default:                 return "Cette course est clôturée : un litige n'est plus possible.";
     }
   }
 
@@ -159,7 +187,7 @@ export class DisputeFormComponent implements OnInit {
 
   onSubmit(event: Event): void {
     event.preventDefault();
-    if (!this.isFormValid() || this.isSubmitting()) return;
+    if (!this.isFormValid() || this.isSubmitting() || this.blockedReason()) return;
     this.isSubmitting.set(true);
 
     const body = { motifCode: this.motifCode, description: this.description };

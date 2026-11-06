@@ -646,6 +646,7 @@ Contrôles :
 **Validation :** E2E-3 + écran Gains admin cohérent.
 
 #### TICK-062 🟠 [FULL] Règles d'ouverture des litiges — 2 h
+**Statut :** ✅ (2026-11-05, session 52)
 **Anomalies :** A-15, CL-13 · **Fichiers :** `DisputeService.openDispute`, `FE/shared/dispute-form`
 **Critères d'acceptation :**
 - Ouverture seulement en IN_PROGRESS ou PROOFS_SUBMITTED, par une partie de la course.

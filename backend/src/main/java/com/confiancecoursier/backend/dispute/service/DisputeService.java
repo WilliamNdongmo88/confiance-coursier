@@ -9,6 +9,8 @@ import com.confiancecoursier.backend.dispute.repository.DisputeRepository;
 import com.confiancecoursier.backend.notify.service.NotificationService;
 import com.confiancecoursier.backend.payment.service.EscrowService;
 import com.confiancecoursier.backend.shared.exception.BusinessException;
+import com.confiancecoursier.backend.shared.exception.ConflictException;
+import com.confiancecoursier.backend.shared.exception.ForbiddenException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -24,10 +26,11 @@ import java.util.Set;
  *
  * <h3>Règles métier :</h3>
  * <ul>
- *   <li>Un seul litige OPEN par course à la fois.</li>
- *   <li>Seuls le client propriétaire et le coursier assigné peuvent ouvrir un litige.</li>
- *   <li>L'ouverture bloque les fonds : {@code course.escrowStatus = DISPUTED}.</li>
- *   <li>La résolution (admin) applique la décision et remet la course en {@code COMPLETED}.</li>
+ *   <li>Un seul litige OPEN par course à la fois (verrou + index UNIQUE partiel V14).</li>
+ *   <li>Seuls le client propriétaire et le coursier assigné peuvent ouvrir un litige,
+ *       en IN_PROGRESS ou PROOFS_SUBMITTED, avec un motif de leur rôle (TICK-062).</li>
+ *   <li>L'ouverture gèle les fonds : {@code course.escrowStatus = DISPUTED}.</li>
+ *   <li>La résolution (admin) passe par {@link EscrowService} : COMPLETED, REFUNDED ou partage.</li>
  * </ul>
  */
 @Service
@@ -53,46 +56,66 @@ public class DisputeService {
 
     // ─── Ouverture d'un litige ─────────────────────────────────────────────
 
+    /** Statuts dans lesquels un litige peut être ouvert : fonds en séquestre, course non clôturée (TICK-062). */
+    static final Set<String> DISPUTABLE_STATUSES = Set.of("IN_PROGRESS", "PROOFS_SUBMITTED");
+
+    /** Motifs autorisés par partie (spec fonctionnelle §litiges). */
+    static final Set<String> CLIENT_MOTIFS  = Set.of("L-C1", "L-C2", "L-C3", "L-C4", "L-C5", "L-C6");
+    static final Set<String> COURIER_MOTIFS = Set.of("L-F1", "L-F2", "L-F3", "L-F4");
+
+    /**
+     * Ouvre un litige (TICK-062).
+     * <ul>
+     *   <li>Seuls le client propriétaire et le coursier assigné peuvent l'ouvrir.</li>
+     *   <li>Course en IN_PROGRESS ou PROOFS_SUBMITTED uniquement (fonds en séquestre).</li>
+     *   <li>Un seul litige OPEN par course : verrou de ligne + index UNIQUE partiel (V14).</li>
+     *   <li>Motifs L-C* réservés au client, L-F* au coursier.</li>
+     *   <li>La course passe en DISPUTED : le scheduler 72 h ne la traite plus (il ne prend que PROOFS_SUBMITTED).</li>
+     * </ul>
+     */
     @Transactional
     public DisputeResponse openDispute(Long courseId, Long openedBy, OpenDisputeRequest req) {
+        // Verrou de ligne : deux ouvertures simultanées (client + coursier) sont sérialisées
         Course course = courseRepository.findByIdForUpdate(courseId)
                 .orElseThrow(() -> new BusinessException("Course introuvable."));
 
-        // Vérifie que l'auteur est bien participant
         boolean isClient  = course.getClientId().equals(openedBy);
         boolean isCourier = course.getCourierId() != null && course.getCourierId().equals(openedBy);
         if (!isClient && !isCourier) {
-            throw new BusinessException("Vous n'êtes pas participant à cette course.");
+            throw new ForbiddenException("Vous n'êtes pas participant à cette course.");
         }
 
-        // Bloque les doublons : un seul litige OPEN par course
+        String motif = req.motifCode() == null ? "" : req.motifCode().trim().toUpperCase();
+        if (!(isClient ? CLIENT_MOTIFS : COURIER_MOTIFS).contains(motif)) {
+            throw new BusinessException(isClient
+                    ? "Motif invalide pour un client (L-C1 à L-C6)."
+                    : "Motif invalide pour un coursier (L-F1 à L-F4).");
+        }
+
         disputeRepository.findByCourseIdAndStatus(courseId, "OPEN").ifPresent(existing -> {
-            throw new BusinessException("Un litige est déjà ouvert pour cette course (#" + existing.getId() + ").");
+            throw new ConflictException("Un litige est déjà ouvert pour cette course (#" + existing.getId() + ").");
         });
 
-        // Gèle le séquestre via EscrowService (seul autorisé à modifier escrowStatus — TICK-061).
-        // Les règles d'ouverture selon le statut de la course relèvent de TICK-062.
-        if ("HELD".equals(course.getEscrowStatus())) {
-            escrowService.markDisputed(course);
+        if (!DISPUTABLE_STATUSES.contains(course.getStatus())) {
+            throw new ConflictException("Un litige ne peut être ouvert que sur une course payée en cours ou "
+                    + "dont les preuves sont soumises (statut actuel : " + course.getStatus() + ").");
         }
+
+        // Gèle le séquestre (seul EscrowService modifie escrowStatus) puis la course
+        escrowService.markDisputed(course);
         course.setStatus("DISPUTED");
         courseRepository.save(course);
 
-        Dispute dispute = Dispute.builder()
+        Dispute saved = disputeRepository.save(Dispute.builder()
                 .courseId(courseId)
                 .openedBy(openedBy)
-                .motifCode(req.motifCode())
+                .motifCode(motif)
                 .description(req.description())
                 .status("OPEN")
-                .build();
+                .build());
+        log.info("Litige ouvert : id={} courseId={} openedBy={} motif={}", saved.getId(), courseId, openedBy, motif);
 
-        Dispute saved = disputeRepository.save(dispute);
-        log.info("Litige ouvert : id={} courseId={} openedBy={} motif={}",
-                saved.getId(), courseId, openedBy, req.motifCode());
-
-        // Notification email admin + partie adverse
         notificationService.notifyDisputeOpened(openedBy, courseId);
-
         return DisputeResponse.from(saved);
     }
 

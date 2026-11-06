@@ -1247,6 +1247,18 @@ Revue du code des tickets 055 à 061 contre `PLAN_AMELIORATION.md`, puis correct
 
 ---
 
+### Session 52 — TICK-062 [FULL] : règles d'ouverture des litiges (2026-11-05)
+
+- `DisputeService.openDispute` : verrou `findByIdForUpdate` ; seuls le client propriétaire et le coursier **assigné** (sinon 403) ; statut IN_PROGRESS ou PROOFS_SUBMITTED uniquement (sinon 409) ; un seul litige OPEN (409) ; motifs par rôle (client L-C1..C6, coursier L-F1..F4, sinon 400) ; gel du séquestre via `EscrowService.markDisputed` (toujours, le statut garantissant HELD).
+- `OpenDisputeRequest` : pattern resserré `L-C[1-6]|L-F[1-4]`.
+- Migration `V14__one_open_dispute_per_course.sql` : doublons OPEN existants clos (`decision = DOUBLON`) puis index UNIQUE partiel `idx_disputes_one_open_per_course`.
+- Scheduler : déjà limité à PROOFS_SUBMITTED ; la course est rechargée sous verrou et ignorée si elle est passée en DISPUTED entre-temps (test ajouté).
+- Front `dispute-form` : seuls les motifs du rôle connecté ; statut de la course chargé à l'ouverture → message « Litige impossible » et bouton désactivé hors IN_PROGRESS/PROOFS_SUBMITTED ; `*ngFor` remplacé par `@for`.
+- Tests : `DisputeOpeningRulesTest` (13 cas) + `PaymentServiceTest.schedulerSkipsCourseDisputedInTheMeantime` → 120 tests unitaires verts ; `BackendApplicationTests` vert (V14 appliquée sur la base de dev).
+- Hors périmètre (inchangé) : redirection vers `/client/dashboard` après envoi, y compris pour le coursier (TICK-072) ; bouton litige désactivé dans le détail client (TICK-084).
+
+---
+
 ## 9. DOMAINES À IMPLÉMENTER (par ordre de priorité métier)
 
 ### 1. Guards Angular (prérequis avant tout)

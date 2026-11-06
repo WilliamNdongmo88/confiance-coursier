@@ -6,9 +6,9 @@ import jakarta.validation.constraints.Size;
 
 public record OpenDisputeRequest(
 
-    /** Code motif : L-C1..L-C6 côté client, L-F1..L-F4 côté coursier. */
+    /** Code motif : L-C1..L-C6 côté client, L-F1..L-F4 côté coursier (le rôle est vérifié par DisputeService). */
     @NotBlank(message = "Le motif est obligatoire.")
-    @Pattern(regexp = "L-[CF][1-6]", message = "Code motif invalide (ex: L-C1, L-F2).")
+    @Pattern(regexp = "L-C[1-6]|L-F[1-4]", message = "Code motif invalide (L-C1 à L-C6, L-F1 à L-F4).")
     String motifCode,
 
     @NotBlank(message = "La description est obligatoire.")

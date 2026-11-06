@@ -117,6 +117,18 @@ class PaymentServiceTest {
     }
 
     @Test
+    void schedulerSkipsCourseDisputedInTheMeantime() {
+        // TICK-062 : la course était PROOFS_SUBMITTED à la sélection, un litige a été ouvert avant le verrou
+        Course candidate = Course.builder().id(1L).clientId(10L).courierId(20L).description("x")
+                .status("PROOFS_SUBMITTED").autoValidateAt(java.time.LocalDateTime.now().minusHours(1)).build();
+        when(courses.findByStatusOrderByCreatedAtDesc("PROOFS_SUBMITTED")).thenReturn(java.util.List.of(candidate));
+        course.setStatus("DISPUTED");
+
+        assertThat(service.autoValidateExpiredCourses()).isZero();
+        verify(escrow, never()).release(any());
+    }
+
+    @Test
     void validationLocksTheCourseRow() {
         course.setStatus("PROOFS_SUBMITTED");
         service.validateCourse(1L, 10L);
