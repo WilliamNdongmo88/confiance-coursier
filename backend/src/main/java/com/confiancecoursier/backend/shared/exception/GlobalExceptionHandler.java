@@ -142,6 +142,13 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
     }
 
+    // Email non vérifié (login après mot de passe correct) → 403 + code pour le front — TICK-074
+    @ExceptionHandler(EmailNotVerifiedException.class)
+    public ResponseEntity<ErrorResponse> handleEmailNotVerified(EmailNotVerifiedException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ErrorResponse(
+                HttpStatus.FORBIDDEN.value(), ex.getMessage(), LocalDateTime.now(), EmailNotVerifiedException.CODE));
+    }
+
     // Compte suspendu / bloqué (login après mot de passe correct, ou refresh) → 403 — TICK-053
     @ExceptionHandler({AccountSuspendedException.class, LockedException.class, DisabledException.class})
     public ResponseEntity<ErrorResponse> handleAccountSuspended(Exception ex) {

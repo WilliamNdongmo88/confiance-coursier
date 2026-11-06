@@ -1110,6 +1110,7 @@ Le flux d'offre doit passer par le chat (spec fonctionnelle §2.1). Le coursier 
 | TICK-071 | 🟠 [FE] Fiabiliser le chat | ✅ |
 | TICK-072 | 🟠 [FE] Routage : landing, 404, guestGuard, redirections par rôle | ✅ |
 | TICK-073 | 🟠 [FULL] Notation accessible et obligatoire | ✅ |
+| TICK-074 | 🟡 [BE] Vérification d'email effective | ✅ |
 
 > 2026-11-05 — TICK-055 → TICK-061 revus et corrigés (session 51, voir `AGENT_CONTEXT.md` §7 et `PLAN_AMELIORATION.md` §1.4).
 

@@ -55,7 +55,7 @@ class AdminTwoFactorTest {
 
     private void user(long id, String email, String role) {
         when(users.findByEmail(email)).thenReturn(Optional.of(
-                User.builder().id(id).email(email).passwordHash("x").role(role).status("ACTIVE").build()));
+                User.builder().id(id).email(email).passwordHash("x").role(role).status("ACTIVE").emailVerified(true).build()));
     }
 
     private static LoginRequest login(String email, String password, String code) {

@@ -342,7 +342,7 @@ export class OtpComponent implements OnInit, OnDestroy {
     this.authService.verifyOtp(this.email, this.otpValue).subscribe({
       next: () => {
         this.loading = false;
-        this.toast.success('Téléphone vérifié ! Vous pouvez maintenant vous connecter.');
+        this.toast.success('Email vérifié ! Vous pouvez maintenant vous connecter.');
         this.router.navigate(['/login']);
       },
       error: (err) => {

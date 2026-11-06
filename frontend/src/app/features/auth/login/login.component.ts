@@ -228,6 +228,12 @@ export class LoginComponent implements OnInit {
       },
       error: (err) => {
         this.isLoading = false;
+        // TICK-074 : compte non vérifié → écran de saisie du code (avec « Renvoyer le code »)
+        if (err.status === 403 && err.error?.code === 'EMAIL_NOT_VERIFIED') {
+          this.toast.info(err.error.message);
+          this.router.navigate(['/verify-otp'], { queryParams: { email: this.email } });
+          return;
+        }
         const message = err.error?.message || 'Email ou mot de passe incorrect.';
         this.toast.error(message);
       }

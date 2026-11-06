@@ -7,6 +7,7 @@ import com.confiancecoursier.backend.auth.api.dto.LoginRequest;
 import com.confiancecoursier.backend.auth.api.dto.RegisterRequest;
 import com.confiancecoursier.backend.shared.exception.AccountSuspendedException;
 import com.confiancecoursier.backend.shared.exception.BusinessException;
+import com.confiancecoursier.backend.shared.exception.EmailNotVerifiedException;
 import com.confiancecoursier.backend.user.domain.User;
 import com.confiancecoursier.backend.user.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
@@ -94,6 +95,11 @@ public class AuthService {
 
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new NotFoundException("Utilisateur non trouvé."));
+
+        // ── TICK-074 : email confirmé obligatoire (vérifié après le mot de passe : rien n'est révélé sans lui) ──
+        if (!user.isEmailVerified()) {
+            throw new EmailNotVerifiedException();
+        }
 
         // ── 2. 2FA obligatoire pour tout compte ADMIN (et plus seulement l'email configuré) ──
         if (isAdmin(user)) {
@@ -183,13 +189,18 @@ public class AuthService {
         userRepository.findByEmail(email).ifPresent(user -> deleteRefreshToken(user.getId()));
     }
 
+    /** Valide l'OTP d'inscription et marque l'email comme vérifié (TICK-074). */
     public void verifyOtp(String email, String otp) {
         boolean isValid = otpService.validateOtp(email, otp);
         if (!isValid) {
             throw new BusinessException("Code OTP invalide ou expiré.");
         }
-        // Ici, on pourrait mettre à jour un champ 'emailVerified' dans la table users
-        // Pour l'instant, on considère que l'utilisateur est vérifié si l'OTP passe.
+        userRepository.findByEmail(email).ifPresent(user -> {
+            if (!user.isEmailVerified()) {
+                user.setEmailVerified(true);
+                userRepository.save(user);
+            }
+        });
     }
 
     /**

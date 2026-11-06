@@ -1418,6 +1418,17 @@ Revue du code des tickets 055 à 061 contre `PLAN_AMELIORATION.md`, puis correct
 
 ---
 
+### Session 65 — TICK-074 [BE] : vérification d'email effective (2026-11-06)
+
+- Migration `V19__email_verified.sql` : `users.email_verified` (défaut false) ; comptes existants passés à true (6 en dev).
+- `User.emailVerified` ; `AdminSeeder` crée l'admin vérifié.
+- `AuthService.verifyOtp` marque l'email vérifié ; `login` : mot de passe d'abord, puis compte non vérifié → `EmailNotVerifiedException` → 403 avec `code: "EMAIL_NOT_VERIFIED"` (`ErrorResponse.code`, facultatif, omis si null).
+- Front : login → redirection vers `/verify-otp?email=…` (bouton « Renvoyer le code ») ; message de succès « Email vérifié ».
+- Tests : `EmailVerificationTest` (5) → 259 tests verts (contexte inclus).
+- **Sprint 7 terminé** (TICK-051 → TICK-074 + TICK-065b). Jalon du plan : rejouer E2E-1 à E2E-5 manuellement avant le Sprint 8.
+
+---
+
 ## 9. DOMAINES À IMPLÉMENTER (par ordre de priorité métier)
 
 ### 1. Guards Angular (prérequis avant tout)

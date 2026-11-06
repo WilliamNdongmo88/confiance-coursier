@@ -71,6 +71,7 @@ public class AdminSeeder implements CommandLineRunner {
                 .role("ADMIN")
                 .status("ACTIVE")
                 .kycStatus("NONE")
+                .emailVerified(true) // compte créé par le système à partir de ADMIN_EMAIL
                 .build();
 
         userRepository.save(admin);

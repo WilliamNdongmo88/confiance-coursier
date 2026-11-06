@@ -782,6 +782,7 @@ Contrôles :
 **Validation :** E2E-2 puis notation depuis l'accueil.
 
 #### TICK-074 🟡 [BE] Vérification d'email effective — 2 h
+**Statut :** ✅ (2026-11-06, session 65)
 **Anomalie :** A-26 · **Fichiers :** `User` (+ `email_verified`), migration, `AuthService.verifyOtp`, `login`
 **Critères d'acceptation :**
 - `verifyOtp` marque l'email comme vérifié.
