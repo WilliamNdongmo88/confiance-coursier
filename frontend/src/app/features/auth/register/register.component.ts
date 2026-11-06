@@ -1,6 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../../core/services/auth.service';
 import { ThemeService } from '../../../core/services/theme.service';
@@ -270,6 +270,13 @@ export class RegisterComponent {
   private authService = inject(AuthService);
   private router      = inject(Router);
   private toast       = inject(ToastService);
+  private route       = inject(ActivatedRoute);
+
+  constructor() {
+    // TICK-072 : rôle présélectionné depuis la landing (/register?role=CLIENT|COURIER)
+    const r = this.route.snapshot.queryParamMap.get('role')?.toUpperCase();
+    if (r === 'CLIENT' || r === 'COURIER') this.role = r;
+  }
 
   toggleLang(): void {
     const next = this.lang() === 'fr' ? 'en' : 'fr';

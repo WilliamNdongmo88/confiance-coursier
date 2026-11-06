@@ -1,6 +1,11 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router, ActivatedRouteSnapshot } from '@angular/router';
+import { homeForRole } from '../auth/session';
 
+/**
+ * Rôle requis par la route (`data.role`). Mauvais rôle → accueil de SON rôle (TICK-072),
+ * et non plus /login (qui déconnectait de fait l'utilisateur).
+ */
 export const roleGuard: CanActivateFn = (route: ActivatedRouteSnapshot) => {
   const router = inject(Router);
   const requiredRole: string = route.data['role'];
@@ -9,6 +14,5 @@ export const roleGuard: CanActivateFn = (route: ActivatedRouteSnapshot) => {
   if (userRole && userRole === requiredRole) {
     return true;
   }
-
-  return router.createUrlTree(['/login']);
+  return router.createUrlTree([homeForRole(userRole)]);
 };

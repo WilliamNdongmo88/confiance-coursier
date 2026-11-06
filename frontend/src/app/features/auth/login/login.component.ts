@@ -2,6 +2,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { NgIf } from '@angular/common';
+import { homeForRole } from '../../../core/auth/session';
 import { AuthService } from '../../../core/services/auth.service';
 import { ThemeService } from '../../../core/services/theme.service';
 import { ToastService } from '../../../core/services/toast.service';
@@ -242,13 +243,23 @@ export class LoginComponent implements OnInit {
     }
   }
 
+  /**
+   * Après connexion : page demandée avant la redirection vers /login (returnUrl) si elle est interne
+   * et compatible avec le rôle, sinon l'accueil du rôle (TICK-072).
+   */
   private redirectByRole(role: string): void {
-    if (role === 'COURIER') {
-      this.router.navigate(['/courier/dashboard']);
-    } else if (role === 'ADMIN') {
-      this.router.navigate(['/admin/dashboard']);
-    } else {
-      this.router.navigate(['/client/dashboard']);
+    const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
+    if (returnUrl && this.isSafeReturnUrl(returnUrl, role)) {
+      this.router.navigateByUrl(returnUrl);
+      return;
     }
+    this.router.navigate([homeForRole(role)]);
+  }
+
+  /** Chemin interne uniquement (pas de « //hote »), et pas l'espace d'un autre rôle. */
+  private isSafeReturnUrl(url: string, role: string): boolean {
+    if (!url.startsWith('/') || url.startsWith('//') || url.includes('\\') || url.includes(':')) return false;
+    const spaces: Record<string, string> = { CLIENT: '/client/', COURIER: '/courier/', ADMIN: '/admin/' };
+    return Object.entries(spaces).every(([r, prefix]) => r === role || !url.startsWith(prefix));
   }
 }

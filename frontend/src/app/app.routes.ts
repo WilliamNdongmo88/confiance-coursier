@@ -30,15 +30,20 @@ import { AdminGainsComponent } from './features/admin/gains/gains.component';
 import { AdminPayoutSettingsComponent } from './features/admin/payout-settings/payout-settings.component';
 import { authGuard } from './core/guards/auth.guard';
 import { roleGuard } from './core/guards/role.guard';
+import { guestGuard } from './core/guards/guest.guard';
+import { LandingComponent } from './features/public/landing/landing.component';
+import { NotFoundComponent } from './features/public/not-found/not-found.component';
+import { SupportComponent } from './features/public/support/support.component';
 
 export const routes: Routes = [
-  // Routes publiques
-  { path: '', redirectTo: '/login', pathMatch: 'full' },
-  { path: 'login',            component: LoginComponent },
-  { path: 'register',         component: RegisterComponent },
-  { path: 'verify-otp',       component: OtpComponent },
-  { path: 'forgot-password',  component: ForgotPasswordComponent },
+  // Routes publiques — TICK-072 : un utilisateur connecté est envoyé vers son espace (guestGuard)
+  { path: '',                 component: LandingComponent,        canActivate: [guestGuard], pathMatch: 'full' },
+  { path: 'login',            component: LoginComponent,          canActivate: [guestGuard] },
+  { path: 'register',         component: RegisterComponent,       canActivate: [guestGuard] },
+  { path: 'verify-otp',       component: OtpComponent,            canActivate: [guestGuard] },
+  { path: 'forgot-password',  component: ForgotPasswordComponent, canActivate: [guestGuard] },
   { path: 'reset-password',   component: ResetPasswordComponent },
+  { path: 'support',          component: SupportComponent },
 
   // Routes CLIENT — token requis + rôle CLIENT
   {
@@ -221,4 +226,7 @@ export const routes: Routes = [
     canActivate: [authGuard, roleGuard],
     data: { role: 'ADMIN' }
   },
+
+  // TICK-072 : toute route inconnue → page 404 (doit rester en dernier)
+  { path: '**', component: NotFoundComponent },
 ];

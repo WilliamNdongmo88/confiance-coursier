@@ -6,6 +6,7 @@ import { HttpClient } from '@angular/common/http';
 import { AppShellComponent } from '../../../shared/components/app-shell/app-shell.component';
 import { ToastService } from '../../../core/services/toast.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { homeForRole } from '../../../core/auth/session';
 import {
   LucideAlertTriangle,
   LucideArrowLeft,
@@ -153,7 +154,7 @@ export class DisputeFormComponent implements OnInit {
     this.motifs = this.auth.getCurrentUserRole().toUpperCase() === 'COURIER' ? COURIER_MOTIFS : CLIENT_MOTIFS;
     if (!this.courseId) {
       this.toast.error('Identifiant de course manquant.');
-      this.router.navigate(['/client/dashboard']);
+      this.router.navigate([homeForRole(this.auth.getCurrentUserRole())]);
       return;
     }
     // Vérifie le statut avant la saisie (le serveur reste la source de vérité)
@@ -197,7 +198,7 @@ export class DisputeFormComponent implements OnInit {
       next: () => {
         this.isSubmitting.set(false);
         this.toast.success('Litige ouvert. L\'admin va examiner votre dossier.');
-        setTimeout(() => this.router.navigate(['/client/dashboard']), 1800);
+        setTimeout(() => this.router.navigate([homeForRole(this.auth.getCurrentUserRole())]), 1800);
       },
       error: (err) => {
         this.isSubmitting.set(false);

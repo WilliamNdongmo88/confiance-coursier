@@ -5,6 +5,8 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { AppShellComponent } from '../../../shared/components/app-shell/app-shell.component';
 import { ToastService } from '../../../core/services/toast.service';
+import { AuthService } from '../../../core/services/auth.service';
+import { homeForRole } from '../../../core/auth/session';
 import {
   LucideAlertTriangle,
   LucideArrowLeft,
@@ -128,6 +130,7 @@ export class ReportUserComponent implements OnInit {
     private router:  Router,
     private http:    HttpClient,
     private toast:   ToastService,
+    private auth:    AuthService,
   ) {}
 
   ngOnInit(): void {
@@ -136,7 +139,7 @@ export class ReportUserComponent implements OnInit {
     this.previousUrl = document.referrer || '/client/dashboard';
     if (!this.targetId) {
       this.toast.error('Identifiant d\'utilisateur manquant.');
-      this.router.navigate(['/client/dashboard']);
+      this.router.navigate([homeForRole(this.auth.getCurrentUserRole())]);
     }
   }
 
@@ -163,7 +166,7 @@ export class ReportUserComponent implements OnInit {
       next: () => {
         this.isSubmitting.set(false);
         this.toast.success('Signalement envoyé. L\'admin va examiner votre dossier.');
-        setTimeout(() => this.router.navigate(['/client/dashboard']), 1800);
+        setTimeout(() => this.router.navigate([homeForRole(this.auth.getCurrentUserRole())]), 1800);
       },
       error: (err) => {
         this.isSubmitting.set(false);

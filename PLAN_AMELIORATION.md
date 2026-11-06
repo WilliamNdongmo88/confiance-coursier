@@ -761,6 +761,7 @@ Contrôles :
 **Validation :** chat sur un téléphone du réseau local (clavier ouvert) ; couper le wifi puis le rétablir.
 
 #### TICK-072 🟠 [FE] Routage : landing, 404, guestGuard, redirections par rôle — 3 h
+**Statut :** ✅ (2026-11-06, session 63)
 **Anomalies :** A-20, CL-25 · **Fichiers :** `app.routes.ts`, nouveaux `guest.guard.ts` et `not-found.component.ts`, `dispute-form`, `report-user`, `auth.guard.ts`
 **Critères d'acceptation :**
 - `''` affiche la landing (placeholder jusqu'à TICK-079).

@@ -1396,6 +1396,17 @@ Revue du code des tickets 055 à 061 contre `PLAN_AMELIORATION.md`, puis correct
 
 ---
 
+### Session 63 — TICK-072 [FE] : routage, landing, 404, redirections par rôle (2026-11-06)
+
+- `core/auth/session.ts` : `homeForRole(role)`, `jwtExpiry`, `isJwtExpired`, `hasUsableSession` (accès valide, ou accès expiré + refresh valide).
+- `authGuard` : vérifie l'expiration du JWT ; session périmée → nettoyage + `/login?returnUrl=…`. `roleGuard` : mauvais rôle → accueil **de son rôle** (plus `/login`). Nouveau `guestGuard` sur `''`, `/login`, `/register`, `/verify-otp`, `/forgot-password` : utilisateur connecté → son espace.
+- Routes : `''` = `LandingComponent` provisoire (CTA `/register?role=CLIENT|COURIER`, remplacée par TICK-079) ; `/support` = `SupportComponent` (page simple, FAQ complète TICK-102) ; `**` = `NotFoundComponent` (retour vers l'espace ou l'accueil).
+- Litige et signalement : redirection vers `homeForRole(rôle)` (le coursier n'est plus renvoyé vers `/client/dashboard` puis `/login`).
+- Login : retour vers `returnUrl` s'il est interne (pas de `//`, `\`, `:`) et compatible avec le rôle, sinon accueil du rôle. Inscription : rôle présélectionné depuis `?role=`.
+- Build front OK. Tests unitaires des guards : TICK-099 (outillage de test front à réparer, A-38).
+
+---
+
 ## 9. DOMAINES À IMPLÉMENTER (par ordre de priorité métier)
 
 ### 1. Guards Angular (prérequis avant tout)

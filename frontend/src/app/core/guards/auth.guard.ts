@@ -1,13 +1,20 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
+import { AuthService } from '../services/auth.service';
+import { hasUsableSession } from '../auth/session';
 
-export const authGuard: CanActivateFn = () => {
+/**
+ * Accès réservé aux utilisateurs connectés (TICK-072 : l'expiration du JWT est vérifiée).
+ * Jeton d'accès expiré mais refresh token valide → accès autorisé, l'intercepteur renouvelle la session.
+ * Session expirée → nettoyage puis /login (avec retour vers la page demandée).
+ */
+export const authGuard: CanActivateFn = (_route, state) => {
   const router = inject(Router);
-  const token = localStorage.getItem('jwt_token');
-
-  if (token) {
+  if (hasUsableSession()) {
     return true;
   }
-
-  return router.createUrlTree(['/login']);
+  if (localStorage.getItem('jwt_token')) {
+    inject(AuthService).logout(); // session périmée : on repart proprement
+  }
+  return router.createUrlTree(['/login'], { queryParams: { returnUrl: state.url } });
 };
