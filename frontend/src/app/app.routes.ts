@@ -16,6 +16,8 @@ export const routes: Routes = [
   { path: 'forgot-password',  loadComponent: () => import('./features/auth/forgot-password/forgot-password.component').then(m => m.ForgotPasswordComponent), canActivate: [guestGuard] },
   { path: 'reset-password',   loadComponent: () => import('./features/auth/reset-password/reset-password.component').then(m => m.ResetPasswordComponent) },
   { path: 'support',          loadComponent: () => import('./features/public/support/support.component').then(m => m.SupportComponent) },
+  { path: 'conditions-utilisation', loadComponent: () => import('./features/public/legal/legal-page.component').then(m => m.LegalPageComponent), data: { doc: 'cgu' }, title: 'Conditions d’utilisation — ConfianceCoursier' },
+  { path: 'confidentialite',        loadComponent: () => import('./features/public/legal/legal-page.component').then(m => m.LegalPageComponent), data: { doc: 'privacy' }, title: 'Politique de confidentialité — ConfianceCoursier' },
 
   // ── TICK-075 : le shell (sidebar desktop + barre basse mobile) est déclaré UNE fois par espace ──
   // Les pages ne l'enveloppent plus ; titre et largeur viennent de data.title / data.narrow.

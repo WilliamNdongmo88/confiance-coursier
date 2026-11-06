@@ -109,7 +109,7 @@ import { LucideArrowLeft, LucideBike, LucideEye, LucideEyeOff, LucideMoon, Lucid
 
           <label class="form-checkbox cgu-check">
             <input type="checkbox" [(ngModel)]="acceptCgu" name="acceptCgu" required>
-            <span>J’accepte les <strong>conditions d’utilisation</strong> et la <strong>politique de confidentialité</strong>.</span>
+            <span>J’accepte les <a class="cgu-link" routerLink="/conditions-utilisation" target="_blank">conditions d’utilisation</a> et la <a class="cgu-link" routerLink="/confidentialite" target="_blank">politique de confidentialité</a>.</span>
           </label>
 
           <button type="submit" class="btn btn-primary btn-block btn-lg"
@@ -171,7 +171,8 @@ import { LucideArrowLeft, LucideBike, LucideEye, LucideEyeOff, LucideMoon, Lucid
       border-color: color-mix(in oklab, var(--primary) 60%, transparent);
       background: color-mix(in oklab, var(--primary) 8%, var(--cc-white));
     }
-    .cgu-check strong { font-weight: 700; }
+    .cgu-link { color: var(--primary); font-weight: 700; text-underline-offset: 3px; }
+    :host-context([data-theme="dark"]) .cgu-link { color: var(--cc-success); }
     /* Sombre : les règles globales (!important) des champs et aides écrasent les états — on les rétablit */
     :host-context([data-theme="dark"]) .form-error { color: var(--cc-danger) !important; }
     :host-context([data-theme="dark"]) .hint-ok { color: var(--cc-success) !important; }
