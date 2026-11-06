@@ -961,3 +961,43 @@
 @media (max-width: 359px) {
   .lp .brand-name { display: none; }
 }
+
+/* ── Mouvement ──────────────────────────────────────────────────────────────
+   Moment signature : la photo se dévoile, la carte « Course protégée » vient se poser
+   dessus, puis « Vérifié » s'allume — la garantie arrive au premier plan.
+   Contenu visible par défaut : sans animation (reduced-motion), rien n'est masqué. */
+@keyframes lp-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes lp-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes lp-unveil {
+  from { opacity: .2; clip-path: inset(10% 6% 10% 6% round 18px); transform: scale(1.03); }
+  to { opacity: 1; clip-path: inset(0 round 0); transform: none; }
+}
+@keyframes lp-settle {
+  from { opacity: 0; transform: translateY(18px) scale(.96); box-shadow: 0 2px 6px #142b1d10; }
+  to { opacity: 1; transform: none; box-shadow: 0 15px 45px #142b1d1c; }
+}
+@keyframes lp-verify { from { opacity: 0; transform: translateX(-6px); } to { opacity: 1; transform: none; } }
+@keyframes lp-drop { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+
+.lp { --lp-ease: cubic-bezier(.16, 1, .3, 1); }
+.lp .hero-content > * { animation: lp-rise .6s var(--lp-ease) both; }
+.lp .hero-content > :nth-child(2) { animation-delay: .07s; }
+.lp .hero-content > :nth-child(3) { animation-delay: .14s; }
+.lp .hero-content > :nth-child(4) { animation-delay: .21s; }
+.lp .hero-photo { animation: lp-unveil .9s var(--lp-ease) both; }
+.lp .photo-location { animation: lp-fade .5s ease-out .55s both; }
+.lp .photo-caption { animation: lp-rise .6s var(--lp-ease) .6s both; }
+.lp .proof-card { animation: lp-settle .7s var(--lp-ease) .45s both; }
+.lp .proof-footer b { display: inline-block; animation: lp-verify .45s var(--lp-ease) 1.05s both; }
+.lp .public-links.open { animation: lp-drop .22s var(--lp-ease); }
+
+/* Les trois étapes apparaissent dans l'ordre quand on les atteint (navigateurs compatibles) */
+@supports (animation-timeline: view()) {
+  .lp .step-card, .lp .trust-item {
+    animation: lp-rise linear both;
+    animation-timeline: view();
+    animation-range: entry 5% entry 55%;
+  }
+  .lp .step-card:nth-child(2), .lp .trust-item:nth-child(2n) { animation-range: entry 12% entry 62%; }
+  .lp .step-card:nth-child(3) { animation-range: entry 19% entry 69%; }
+}

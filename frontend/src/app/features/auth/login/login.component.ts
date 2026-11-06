@@ -7,13 +7,13 @@ import { AuthService } from '../../../core/services/auth.service';
 import { ThemeService } from '../../../core/services/theme.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { SpinnerComponent } from '../../../shared/spinner/spinner.component';
-import { LucideArrowLeft, LucideBike, LucideMoon, LucideSun, LucideShieldCheck } from '@lucide/angular';
+import { LucideArrowLeft, LucideBike, LucideEye, LucideEyeOff, LucideMoon, LucideSun, LucideShieldCheck } from '@lucide/angular';
 
 @Component({
   selector: 'app-login',
   standalone: true,
   imports: [FormsModule, RouterLink, NgIf, SpinnerComponent,
-            LucideArrowLeft, LucideBike, LucideMoon, LucideSun, LucideShieldCheck],
+            LucideArrowLeft, LucideBike, LucideEye, LucideEyeOff, LucideMoon, LucideSun, LucideShieldCheck],
   template: `
     <div class="auth-wrapper">
       <div class="auth-card">
@@ -38,11 +38,12 @@ import { LucideArrowLeft, LucideBike, LucideMoon, LucideSun, LucideShieldCheck }
 
         <!-- Logo centré sur sa propre ligne -->
         <div class="auth-logo">
-          <svg lucideBike size="22"></svg>
+          <span class="auth-mark"><svg lucideBike size="18"></svg></span>
           <span class="auth-logo-text">ConfianceCoursier</span>
         </div>
 
         <h1 class="auth-title">Se connecter</h1>
+        <p class="auth-subtitle">Retrouvez vos courses, vos échanges et vos paiements sous séquestre.</p>
 
         <form (ngSubmit)="onSubmit()">
           <div class="form-group">
@@ -52,8 +53,15 @@ import { LucideArrowLeft, LucideBike, LucideMoon, LucideSun, LucideShieldCheck }
           </div>
           <div class="form-group">
             <label class="form-label" for="login-password">Mot de passe</label>
-            <input id="login-password" type="password" [(ngModel)]="password" name="password" required
-              class="form-input" placeholder="••••••••" autocomplete="current-password">
+            <div class="password-field">
+              <input id="login-password" [type]="showPassword() ? 'text' : 'password'" [(ngModel)]="password" name="password" required
+                class="form-input" placeholder="••••••••" autocomplete="current-password">
+              <button type="button" class="password-toggle" (click)="showPassword.set(!showPassword())"
+                      [attr.aria-pressed]="showPassword()"
+                      [attr.aria-label]="showPassword() ? 'Masquer le mot de passe' : 'Afficher le mot de passe'">
+                @if (showPassword()) { <svg lucideEyeOff size="18"></svg> } @else { <svg lucideEye size="18"></svg> }
+              </button>
+            </div>
           </div>
 
           <!-- Champ OTP admin — affiché uniquement après requestAdminOtp() -->
@@ -87,7 +95,7 @@ import { LucideArrowLeft, LucideBike, LucideMoon, LucideSun, LucideShieldCheck }
           <button type="submit" [disabled]="isLoading" class="btn btn-primary btn-block btn-lg">
             @if (isLoading) {
               <app-spinner></app-spinner>
-              Connexion en cours...
+              Connexion en cours…
             } @else if (otpRequired()) {
               <svg lucideShieldCheck size="16"></svg>
               Vérifier et se connecter
@@ -132,6 +140,9 @@ export class LoginComponent implements OnInit {
   otp      = '';
   remember = true;
   isLoading = false;
+
+  /** Mot de passe affiché en clair (bouton œil). */
+  readonly showPassword = signal(false);
 
   /** true = l'email est admin → le champ OTP est affiché */
   readonly otpRequired = signal<boolean>(false);
