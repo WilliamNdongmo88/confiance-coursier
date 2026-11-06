@@ -1,20 +1,21 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { ThemeService } from '../../../core/services/theme.service';
-import { ToastService } from '../../../core/services/toast.service';
-import { LucideArrowLeft, LucideBike, LucideMoon, LucideSun, LucideEye, LucideEyeOff, LucideCheckCircle } from '@lucide/angular';
+import { LucideArrowLeft, LucideBike, LucideCheckCircle, LucideEye, LucideEyeOff, LucideLink2Off, LucideLockKeyhole, LucideMoon, LucideSun } from '@lucide/angular';
 
+/**
+ * Nouveau mot de passe (lien reçu par email, token valable 15 min côté serveur).
+ * Un lien invalide ou expiré bascule sur un état dédié ; les autres erreurs restent sur le formulaire.
+ */
 @Component({
   selector: 'app-reset-password',
   standalone: true,
-  imports: [FormsModule, RouterLink, LucideArrowLeft, LucideBike, LucideMoon, LucideSun, LucideEye, LucideEyeOff, LucideCheckCircle],
+  imports: [FormsModule, RouterLink, LucideArrowLeft, LucideBike, LucideCheckCircle, LucideEye, LucideEyeOff, LucideLink2Off, LucideLockKeyhole, LucideMoon, LucideSun],
   template: `
     <div class="auth-wrapper">
       <div class="auth-card">
-
-        <!-- Topbar -->
         <div class="auth-topbar">
           <a class="back-link" routerLink="/login" aria-label="Retour à la connexion">
             <svg lucideArrowLeft size="16"></svg> Retour
@@ -23,165 +24,107 @@ import { LucideArrowLeft, LucideBike, LucideMoon, LucideSun, LucideEye, LucideEy
             <button class="theme-toggle" type="button"
               [attr.aria-label]="theme.isDarkMode() ? 'Activer le thème clair' : 'Activer le thème sombre'"
               (click)="theme.toggleTheme()">
-              @if (theme.isDarkMode()) { <svg lucideSun size="18"></svg> }
-              @else { <svg lucideMoon size="18"></svg> }
+              @if (theme.isDarkMode()) { <svg lucideSun size="18"></svg> } @else { <svg lucideMoon size="18"></svg> }
             </button>
           </div>
         </div>
 
-        <!-- Logo -->
         <div class="auth-logo">
-          <svg lucideBike size="22"></svg>
+          <span class="auth-mark"><svg lucideBike size="18"></svg></span>
           <span class="auth-logo-text">ConfianceCoursier</span>
         </div>
 
-        <!-- Token manquant -->
-        @if (!token) {
-          <div class="st-ta-center-p-16px-0">
-            <h1 class="auth-title">Lien invalide</h1>
-            <p class="text-muted st-mb-24px">
-              Ce lien de réinitialisation est invalide ou a expiré.
-            </p>
-            <a routerLink="/forgot-password" class="btn btn-primary btn-block">
-              Faire une nouvelle demande
-            </a>
+        @if (!token || linkExpired) {
+          <div class="auth-state">
+            <span class="auth-badge auth-badge--warn" aria-hidden="true"><svg lucideLink2Off size="26"></svg></span>
+            <h1 class="auth-title">Lien invalide ou expiré</h1>
+            <p class="auth-subtitle">Les liens de réinitialisation sont valables 15 minutes et ne servent qu’une fois. Demandez-en un nouveau.</p>
+            <a routerLink="/forgot-password" class="btn btn-primary btn-block btn-lg">Recevoir un nouveau lien</a>
           </div>
-
-        <!-- Succès -->
         } @else if (success) {
-          <div class="st-ta-center-p-8px-0-16px">
-            <div class="st-w-64px-heig-64px-bg-primary-ligh">
-              <svg class="st-c-primary" lucideCheckCircle size="28"></svg>
-            </div>
-            <h1 class="auth-title st-mb-12px">Mot de passe mis à jour !</h1>
-            <p class="text-muted st-mb-28px">
-              Votre mot de passe a été réinitialisé avec succès. Vous pouvez maintenant vous connecter.
-            </p>
-            <a routerLink="/login" class="btn btn-primary btn-block btn-lg">
-              Se connecter
-            </a>
+          <div class="auth-state">
+            <span class="auth-badge auth-badge--ok" aria-hidden="true"><svg lucideCheckCircle size="26"></svg></span>
+            <h1 class="auth-title">Mot de passe mis à jour</h1>
+            <p class="auth-subtitle">Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.</p>
+            <a routerLink="/login" class="btn btn-primary btn-block btn-lg">Se connecter</a>
           </div>
-
-        <!-- Formulaire -->
         } @else {
+          <span class="auth-badge" aria-hidden="true"><svg lucideLockKeyhole size="26"></svg></span>
           <h1 class="auth-title">Nouveau mot de passe</h1>
-          <p class="text-muted st-ta-center-mb-24px-fs-93rem">
-            Choisissez un mot de passe sécurisé d'au moins 8 caractères.
-          </p>
+          <p class="auth-subtitle">Choisissez un mot de passe d’au moins 8 caractères.</p>
 
           <form (ngSubmit)="onSubmit()">
-            <!-- Nouveau mot de passe -->
-            <div class="form-group st-posi-relative">
+            <div class="form-group">
               <label class="form-label" for="rp-password">Nouveau mot de passe</label>
-              <input [id]="'rp-password'"
-                [type]="showPassword ? 'text' : 'password'"
-                class="form-input st-padd-44px"
-                [(ngModel)]="password" name="password" required minlength="8"
-                placeholder="Min 8 caractères" autocomplete="new-password"
-                [disabled]="loading">
-              <button class="st-posi-absolute-righ-12px-bott-11px" type="button"
-
-                (click)="showPassword = !showPassword"
-                [attr.aria-label]="showPassword ? 'Masquer' : 'Afficher'">
-                @if (showPassword) { <svg lucideEyeOff size="18"></svg> }
-                @else { <svg lucideEye size="18"></svg> }
-              </button>
-            </div>
-
-            <!-- Confirmer -->
-            <div class="form-group st-posi-relative">
-              <label class="form-label" for="rp-confirm">Confirmer le mot de passe</label>
-              <input id="rp-confirm"
-                [type]="showConfirm ? 'text' : 'password'"
-                class="form-input st-padd-44px"
-                [(ngModel)]="confirmPassword" name="confirmPassword" required
-                placeholder="••••••••" autocomplete="new-password"
-                [disabled]="loading"
-                [class.input-error]="confirmPassword && confirmPassword !== password">
-              <button class="st-posi-absolute-righ-12px-bott-11px" type="button"
-
-                (click)="showConfirm = !showConfirm"
-                [attr.aria-label]="showConfirm ? 'Masquer' : 'Afficher'">
-                @if (showConfirm) { <svg lucideEyeOff size="18"></svg> }
-                @else { <svg lucideEye size="18"></svg> }
-              </button>
-            </div>
-            @if (confirmPassword && confirmPassword !== password) {
-              <p class="st-c-danger-fs-8rem-m-12px-0-16px">
-                Les mots de passe ne correspondent pas.
+              <div class="password-field">
+                <input id="rp-password" [type]="showPassword ? 'text' : 'password'" class="form-input"
+                  [(ngModel)]="password" name="password" required minlength="8" placeholder="8 caractères minimum"
+                  autocomplete="new-password" [disabled]="loading" aria-describedby="rp-hint" autofocus>
+                <button type="button" class="password-toggle" (click)="showPassword = !showPassword" [attr.aria-pressed]="showPassword"
+                        [attr.aria-label]="showPassword ? 'Masquer les mots de passe' : 'Afficher les mots de passe'">
+                  @if (showPassword) { <svg lucideEyeOff size="18"></svg> } @else { <svg lucideEye size="18"></svg> }
+                </button>
+              </div>
+              <p id="rp-hint" class="auth-hint" [class.auth-hint--ok]="password.length >= 8">
+                @if (password.length >= 8) { Longueur suffisante. } @else { Au moins 8 caractères ({{ password.length }}/8). }
               </p>
-            }
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="rp-confirm">Confirmer le mot de passe</label>
+              <input id="rp-confirm" [type]="showPassword ? 'text' : 'password'" class="form-input"
+                [(ngModel)]="confirmPassword" name="confirmPassword" required placeholder="••••••••"
+                autocomplete="new-password" [disabled]="loading"
+                [class.input-error]="mismatch()" [attr.aria-invalid]="mismatch()">
+              @if (mismatch()) { <p class="auth-error auth-error--field" role="alert">Les mots de passe ne correspondent pas.</p> }
+            </div>
+
+            @if (error) { <p class="auth-error" role="alert">{{ error }}</p> }
 
             <button type="submit" class="btn btn-primary btn-block btn-lg"
-              [disabled]="loading || !password || password !== confirmPassword || password.length < 8">
-              @if (loading) { Mise à jour… }
-              @else { Enregistrer le nouveau mot de passe }
+              [disabled]="loading || password.length < 8 || password !== confirmPassword">
+              @if (loading) { Enregistrement… } @else { Enregistrer le mot de passe }
             </button>
           </form>
         }
-
       </div>
     </div>
   `,
-  styles: [`
-    :host { display: block; }
-    .input-error { border-color: var(--cc-danger) !important; }
-
-    /* TICK-076 : anciens attributs « style » du template, convertis en classes (mêmes déclarations) */
-    .st-ta-center-p-16px-0 { text-align: center; padding: 16px 0; }
-    .st-mb-24px { margin-bottom: 24px; }
-    .st-ta-center-p-8px-0-16px { text-align: center; padding: 8px 0 16px; }
-    .st-w-64px-heig-64px-bg-primary-ligh { width: 64px; height: 64px; background: var(--primary-light); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; }
-    .st-c-primary { color: var(--primary); }
-    .st-mb-12px { margin-bottom: 12px; }
-    .st-mb-28px { margin-bottom: 28px; }
-    .st-ta-center-mb-24px-fs-93rem { text-align: center; margin-bottom: 24px; font-size: .93rem; }
-    .st-posi-relative { position: relative; }
-    .st-padd-44px { padding-right: 44px; }
-    .st-posi-absolute-righ-12px-bott-11px { position: absolute; right: 12px; bottom: 11px; background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 0; display: flex; }
-    .st-c-danger-fs-8rem-m-12px-0-16px { color: var(--cc-danger); font-size: .8rem; margin: -12px 0 16px; }
-  `]
+  styles: [`:host { display: block; }`],
 })
 export class ResetPasswordComponent implements OnInit {
   token = '';
   password = '';
   confirmPassword = '';
   showPassword = false;
-  showConfirm = false;
   loading = false;
   success = false;
+  linkExpired = false;
+  error = '';
 
   readonly theme = inject(ThemeService);
   private route  = inject(ActivatedRoute);
-  private router = inject(Router);
   private http   = inject(HttpClient);
-  private toast  = inject(ToastService);
 
   ngOnInit(): void {
-    this.route.queryParams.subscribe((params) => {
-      this.token = params['token'] || '';
-    });
+    this.route.queryParams.subscribe((params) => { this.token = params['token'] || ''; });
   }
+
+  mismatch(): boolean { return !!this.confirmPassword && this.confirmPassword !== this.password; }
 
   onSubmit(): void {
-    if (!this.password || this.password !== this.confirmPassword) return;
+    if (this.loading || this.password.length < 8 || this.password !== this.confirmPassword) return;
     this.loading = true;
-
-    this.http.post('/api/auth/reset-password', {
-      token: this.token,
-      newPassword: this.password,
-    }).subscribe({
-      next: () => {
-        this.loading = false;
-        this.success = true;
-      },
+    this.error = '';
+    this.http.post('/api/auth/reset-password', { token: this.token, newPassword: this.password }).subscribe({
+      next: () => { this.loading = false; this.success = true; },
       error: (err) => {
         this.loading = false;
-        this.toast.error(err.error?.message || 'Lien invalide ou expiré. Veuillez refaire une demande.');
-        // Si le token est expiré, redirige vers forgot-password après 3s
-        setTimeout(() => this.router.navigate(['/forgot-password']), 3000);
+        const msg: string = err?.error?.message || '';
+        // Token refusé par le serveur (« Lien de réinitialisation invalide ou expiré… ») → état dédié
+        if (/lien|expir|token/i.test(msg)) { this.linkExpired = true; return; }
+        this.error = msg || 'Enregistrement impossible pour le moment. Vérifiez votre connexion et réessayez.';
       },
     });
   }
-
 }
