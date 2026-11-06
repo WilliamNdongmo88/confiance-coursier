@@ -741,6 +741,7 @@ Contrôles :
 **Validation :** annuler une course avec 2 conversations → OK.
 
 #### TICK-070 🟠 [FULL] Exposer les données financières et de suivi — 3 h
+**Statut :** ✅ (2026-11-06, session 61)
 **Anomalies :** A-21, CO-12, CL-09 · **Fichiers :** `CourseResponse`, composants `course-detail`, `validate`, `earnings`, `history`, `chat`
 **Critères d'acceptation :**
 - `commissionRate`, `commissionAmount`, `realCosts`, `courierAmount`, `paidAt`, `autoValidateAt`, `courierName`, `clientName` exposés (selon le rôle : le client ne voit pas la commission coursier).

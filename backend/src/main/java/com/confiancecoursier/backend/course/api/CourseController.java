@@ -59,8 +59,9 @@ public class CourseController {
         if (hours == null) {
             throw new BusinessException("Durée de prolongation manquante (12 ou 24 heures).");
         }
-        Course course = proofDeadlineService.extend(courseId, getCurrentUserId(), hours);
-        return ResponseEntity.ok(CourseResponse.fromEntity(course));
+        Long clientId = getCurrentUserId();
+        proofDeadlineService.extend(courseId, clientId, hours);
+        return ResponseEntity.ok(courseService.getCourseById(courseId, clientId));
     }
 
     /**
@@ -69,8 +70,9 @@ public class CourseController {
      */
     @PostMapping("/{courseId}/cancel-overdue")
     public ResponseEntity<CourseResponse> cancelOverdue(@PathVariable Long courseId) {
-        Course course = proofDeadlineService.cancelOverdue(courseId, getCurrentUserId());
-        return ResponseEntity.ok(CourseResponse.fromEntity(course));
+        Long clientId = getCurrentUserId();
+        proofDeadlineService.cancelOverdue(courseId, clientId);
+        return ResponseEntity.ok(courseService.getCourseById(courseId, clientId));
     }
 
     @PostMapping("/{courseId}/accept-offer/{offerId}")

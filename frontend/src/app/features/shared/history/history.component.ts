@@ -388,11 +388,10 @@ export class HistoryComponent implements OnInit {
   getBadgeClass(status: string): string  { return statusBadgeClass(status); }
   getStatusLabel(status: string): string { return statusLabel(status); }
 
-  /** Net perçu par le coursier = tarif × (1 - 20% commission par défaut). */
+  /** Net perçu par le coursier (tarif − commission, hors remboursement d'achats), fourni par le serveur — TICK-070. */
   netPercu(course: any): string {
-    const amount = course.courseAmount;
-    if (!amount || amount <= 0) return '—';
-    const net = amount * 0.80; // 20% commission par défaut
+    if (course.courierAmount == null) return '—';
+    const net = Number(course.courierAmount) - Number(course.realCosts ?? 0);
     return `${Math.round(net).toLocaleString('fr-FR')} XAF`;
   }
 

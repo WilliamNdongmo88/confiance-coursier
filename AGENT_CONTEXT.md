@@ -1373,6 +1373,18 @@ Revue du code des tickets 055 à 061 contre `PLAN_AMELIORATION.md`, puis correct
 
 ---
 
+### Session 61 — TICK-070 [FULL] : données financières et de suivi exposées (2026-11-06)
+
+- `CourseResponse` : `paidAt`, `completedAt`, `escrowStatus`, `clientName`, `courierName` (+ `proofDeadline`, `autoValidateAt`… de TICK-065b) ; montants selon la personne qui consulte (`CourseResponse.of(course, roomId, Viewer, …)`) :
+  - **CLIENT** : `commissionRate`, `commissionAmount` (frais de service), `totalAmount`, `realCosts` — jamais la commission coursier ;
+  - **COURIER** (assigné) : `commissionRateCourier`, `courierCommissionAmount` (= tarif − (net − achats)), `courierAmount` (net) — pas les frais client ni le total ;
+  - **ADMIN** : tout ; **OTHER** (coursier consultant une demande publiée) : aucun montant de paiement.
+- `CourseService` : toutes les réponses passent par `toResponse` (noms chargés en une requête via `UserRepository.findAllById`) ; `extend` / `cancel-overdue` renvoient la vue complète du client.
+- Front : gains coursier = montants serveur (`courseAmount`, `courierCommissionAmount`, `courierAmount − realCosts`, date de clôture), taux affiché lu de `/api/commissions/public` ; historique : net coursier serveur (plus de `× 0.80`) ; admin commissions : plus de 5000 par défaut ; détail client : coursier, achats avancés, date de paiement. Grep : plus de `0.20`, `× 0.8`, `5000` métier dans le front.
+- Tests : `CourseResponseVisibilityTest` (5) → 248 tests unitaires verts ; `BackendApplicationTests` vert.
+
+---
+
 ## 9. DOMAINES À IMPLÉMENTER (par ordre de priorité métier)
 
 ### 1. Guards Angular (prérequis avant tout)

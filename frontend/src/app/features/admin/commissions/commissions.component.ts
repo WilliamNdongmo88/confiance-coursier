@@ -247,7 +247,7 @@ export class AdminCommissionsComponent implements OnInit {
 
   readonly clientRate = signal(0);
   readonly courierRate = signal(20);
-  readonly minTarif = signal(5000);
+  readonly minTarif = signal(0); // valeur réelle chargée depuis /api/admin/commissions (TICK-070)
   readonly loading = signal(false);
   readonly saving = signal(false);
 

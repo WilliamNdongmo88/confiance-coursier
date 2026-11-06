@@ -1,3 +1,4 @@
+import { HttpClient } from '@angular/common/http';
 import { Component, OnInit, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { DatePipe } from '@angular/common';
@@ -12,8 +13,6 @@ import {
   LucideArrowLeft,
 } from '@lucide/angular';
 
-/** Taux de commission coursier par défaut (20 %). Configurable côté admin. */
-const COURIER_COMMISSION_RATE = 20;
 
 @Component({
   selector: 'app-earnings',
@@ -64,7 +63,7 @@ const COURIER_COMMISSION_RATE = 20;
           </span>
           <div>
             <span class="metric-label">Frais de service</span>
-            <strong class="metric-value">{{ COURIER_COMMISSION_RATE }}%</strong>
+            <strong class="metric-value">{{ currentCommissionRate === null ? '…' : currentCommissionRate + '%' }}</strong>
             <div class="metric-note">Sur chaque course terminée</div>
           </div>
         </article>
@@ -146,7 +145,7 @@ const COURIER_COMMISSION_RATE = 20;
                   <th>Date</th>
                   <th>Course</th>
                   <th>Brut</th>
-                  <th>Frais ({{ COURIER_COMMISSION_RATE }}%)</th>
+                  <th>Commission</th>
                   <th>Net</th>
                   <th>Statut</th>
                 </tr>
@@ -267,8 +266,8 @@ const COURIER_COMMISSION_RATE = 20;
 })
 export class EarningsComponent implements OnInit {
 
-  /** Taux de commission coursier (20% par défaut, configurable admin). */
-  readonly COURIER_COMMISSION_RATE = COURIER_COMMISSION_RATE;
+  /** Taux de commission coursier actuel (lu du serveur — TICK-070 : plus de valeur codée en dur). */
+  currentCommissionRate: number | null = null;
 
   loading = true;
 
@@ -315,7 +314,13 @@ export class EarningsComponent implements OnInit {
 
   // ─── Lifecycle ────────────────────────────────────────────────────────────
 
+  private http = inject(HttpClient);
+
   ngOnInit(): void {
+    this.http.get<any>('/api/commissions/public').subscribe({
+      next: (p) => this.currentCommissionRate = p.commissionRateCourier ?? null,
+      error: () => {},
+    });
     this.loadData();
   }
 
@@ -324,14 +329,16 @@ export class EarningsComponent implements OnInit {
     this.courseService.getMyMissions().subscribe({
       next: (data) => {
         this.completedTransactions = data
-          .filter(c => c.status === 'COMPLETED' && c.courseAmount > 0)
+          // TICK-070 : montants figés au paiement, fournis par le serveur
+          .filter(c => c.status === 'COMPLETED' && c.courierAmount != null)
           .map(c => {
-            const brut = c.courseAmount;
-            const frais = Math.round(brut * COURIER_COMMISSION_RATE / 100);
-            const net = brut - frais;
+            const brut = Number(c.courseAmount ?? 0);
+            const frais = Number(c.courierCommissionAmount ?? 0);
+            // Gain = net versé hors remboursement des achats avancés
+            const net = Number(c.courierAmount) - Number(c.realCosts ?? 0);
             return {
               id: c.id,
-              date: c.createdAt || c.scheduledAt,
+              date: c.completedAt || c.paidAt || c.createdAt,
               description: c.description,
               zone: c.zone,
               brut,

@@ -7,6 +7,8 @@ import com.confiancecoursier.backend.course.repository.CourseOfferRepository;
 import com.confiancecoursier.backend.shared.exception.ConflictException;
 import com.confiancecoursier.backend.shared.exception.ForbiddenException;
 import com.confiancecoursier.backend.shared.exception.NotFoundException;
+import com.confiancecoursier.backend.user.domain.User;
+import com.confiancecoursier.backend.user.repository.UserRepository;
 import com.confiancecoursier.backend.course.api.dto.CreateCourseRequest;
 import com.confiancecoursier.backend.course.api.dto.CourseResponse;
 import com.confiancecoursier.backend.course.domain.Course;
@@ -25,12 +27,43 @@ public class CourseService {
     private final CourseRepository courseRepository;
     private final ChatRoomRepository chatRoomRepository;
     private final CourseOfferRepository offerRepository;
+    private final UserRepository userRepository;
 
     public CourseService(CourseRepository courseRepository, ChatRoomRepository chatRoomRepository,
-                         CourseOfferRepository offerRepository) {
+                         CourseOfferRepository offerRepository, UserRepository userRepository) {
         this.courseRepository = courseRepository;
         this.chatRoomRepository = chatRoomRepository;
         this.offerRepository = offerRepository;
+        this.userRepository = userRepository;
+    }
+
+    // ── TICK-070 : assemblage des réponses (noms en lot, montants selon la personne qui consulte) ──
+
+    private static CourseResponse.Viewer viewerOf(Course course, Long viewerId) {
+        if (viewerId != null && viewerId.equals(course.getClientId())) return CourseResponse.Viewer.CLIENT;
+        if (viewerId != null && viewerId.equals(course.getCourierId())) return CourseResponse.Viewer.COURIER;
+        return CourseResponse.Viewer.OTHER;
+    }
+
+    /** Noms complets des utilisateurs, chargés en une seule requête. */
+    private Map<Long, String> namesOf(java.util.Collection<Course> courses) {
+        java.util.Set<Long> ids = new java.util.HashSet<>();
+        for (Course c : courses) {
+            ids.add(c.getClientId());
+            if (c.getCourierId() != null) ids.add(c.getCourierId());
+        }
+        if (ids.isEmpty()) return Map.of();
+        return userRepository.findAllById(ids).stream()
+                .collect(Collectors.toMap(User::getId, CourseService::displayName));
+    }
+
+    private static String displayName(User u) {
+        return u.getFullName() != null && !u.getFullName().isBlank() ? u.getFullName() : "Utilisateur";
+    }
+
+    private static CourseResponse toResponse(Course c, Long roomId, Long viewerId, Map<Long, String> names) {
+        return CourseResponse.of(c, roomId, viewerOf(c, viewerId),
+                names.get(c.getClientId()), c.getCourierId() == null ? null : names.get(c.getCourierId()));
     }
 
     public CourseResponse createCourse(Long clientId, CreateCourseRequest request) {
@@ -43,7 +76,7 @@ public class CourseService {
                 .build();
 
         Course savedCourse = courseRepository.save(course);
-        return CourseResponse.fromEntity(savedCourse);
+        return toResponse(savedCourse, null, clientId, namesOf(List.of(savedCourse)));
     }
 
     /** TICK-069 : 2 requêtes au total (courses, puis tous leurs salons) au lieu d'une par course. */
@@ -56,9 +89,10 @@ public class CourseService {
                 .stream()
                 .collect(Collectors.groupingBy(ChatRoom::getCourseId));
 
+        Map<Long, String> names = namesOf(courses);
         return courses.stream()
-                .map(course -> CourseResponse.fromEntity(course,
-                        pickRoom(course, roomsByCourse.getOrDefault(course.getId(), List.of()))))
+                .map(course -> toResponse(course,
+                        pickRoom(course, roomsByCourse.getOrDefault(course.getId(), List.of())), clientId, names))
                 .collect(Collectors.toList());
     }
 
@@ -69,11 +103,14 @@ public class CourseService {
                 .map(ChatRoom::getCourseId)
                 .collect(Collectors.toSet());
 
-        return courseRepository.findByStatusOrderByCreatedAtDesc("PUBLISHED")
+        List<Course> published = courseRepository.findByStatusOrderByCreatedAtDesc("PUBLISHED")
                 .stream()
                 // Exclure les courses où le coursier est déjà engagé
                 .filter(course -> !alreadyEngagedCourseIds.contains(course.getId()))
-                .map(CourseResponse::fromEntity)
+                .toList();
+        Map<Long, String> names = namesOf(published);
+        return published.stream()
+                .map(course -> toResponse(course, null, courierId, names))
                 .collect(Collectors.toList());
     }
 
@@ -95,7 +132,7 @@ public class CourseService {
         course.setScheduledAt(request.getScheduledAt());
 
         Course updated = courseRepository.save(course);
-        return CourseResponse.fromEntity(updated, resolveChatRoomId(updated));
+        return toResponse(updated, resolveChatRoomId(updated), clientId, namesOf(List.of(updated)));
     }
 
     /**
@@ -154,7 +191,7 @@ public class CourseService {
             throw new ForbiddenException("Vous n'avez pas accès à cette course.");
         }
 
-        return CourseResponse.fromEntity(course, resolveChatRoomId(course));
+        return toResponse(course, resolveChatRoomId(course), requesterId, namesOf(List.of(course)));
     }
 
     public List<CourseResponse> getMyMissions(Long courierId) {
@@ -181,8 +218,9 @@ public class CourseService {
         all.addAll(assigned);
         all.addAll(chatCourses);
 
+        Map<Long, String> names = namesOf(all);
         return all.stream()
-                .map(course -> CourseResponse.fromEntity(course, roomIdByCourse.get(course.getId())))
+                .map(course -> toResponse(course, roomIdByCourse.get(course.getId()), courierId, names))
                 .collect(Collectors.toList());
     }
 

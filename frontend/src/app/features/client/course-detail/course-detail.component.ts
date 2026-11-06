@@ -293,10 +293,22 @@ function buildTimeline(status: string, paidAt?: string, createdAt?: string): Tim
               <svg lucideReceipt size="17" style="color:var(--primary,#17634f)"></svg>
               Détails financiers
             </div>
+            @if (course.courierName) {
+              <div class="finance-row">
+                <span>Coursier :</span>
+                <span>{{ course.courierName }}</span>
+              </div>
+            }
             <div class="finance-row">
               <span>Tarif du coursier :</span>
               <span>{{ course.courseAmount | number:'1.0-0' }} XAF</span>
             </div>
+            @if (course.realCosts > 0) {
+              <div class="finance-row">
+                <span>Achats avancés par le coursier :</span>
+                <span>{{ course.realCosts | number:'1.0-0' }} XAF</span>
+              </div>
+            }
             <div class="finance-row">
               <span>Frais de service ({{ course.commissionRate | number:'1.0-0' }}%) :</span>
               <span>{{ course.commissionAmount | number:'1.0-0' }} XAF</span>
@@ -305,6 +317,11 @@ function buildTimeline(status: string, paidAt?: string, createdAt?: string): Tim
               <span>Total payé :</span>
               <span>{{ course.totalAmount | number:'1.0-0' }} XAF</span>
             </div>
+            @if (course.paidAt) {
+              <p style="font-size:.78rem;color:var(--cc-muted);margin:8px 0 0">
+                Payé le {{ course.paidAt | date:'dd/MM/yyyy à HH:mm' }}
+              </p>
+            }
           </div>
         }
 

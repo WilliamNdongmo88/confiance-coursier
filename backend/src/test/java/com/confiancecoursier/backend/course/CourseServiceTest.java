@@ -41,7 +41,7 @@ class CourseServiceTest {
         courses = mock(CourseRepository.class);
         rooms = mock(ChatRoomRepository.class);
         offers = mock(CourseOfferRepository.class);
-        service = new CourseService(courses, rooms, offers);
+        service = new CourseService(courses, rooms, offers, mock(com.confiancecoursier.backend.user.repository.UserRepository.class));
 
         course = Course.builder().id(100L).clientId(1L).description("Pharmacie").status("PUBLISHED").build();
         when(courses.findByIdForUpdate(100L)).thenReturn(Optional.of(course));
