@@ -1440,7 +1440,7 @@ Revue du code des tickets 055 à 061 contre `PLAN_AMELIORATION.md`, puis correct
 
 ---
 
-### Session 67 — TICK-076 [FE] variante 1 « socle + écrans stables » (branche `test_tick-076`, en recette)
+### Session 67 — TICK-076 [FE] variante 1 « socle + écrans stables » — ✅ retenue et fusionnée dans `features` (la variante 2, branche `test2_tick-076`, n'est pas retenue)
 
 Choix utilisateur : deux variantes sur deux branches, comparées visuellement avant validation.
 - **Tailwind retiré** : dépendances `tailwindcss` / `@tailwindcss/postcss`, `postcss.config.json` et `.postcssrc.json` supprimés, `@use "tailwindcss"` remplacé par un équivalent du preflight dans `@layer base` (même priorité dans la cascade → rendu de base inchangé). Seules classes utilitaires utilisées (spinner : `animate-spin`, `opacity-25/75`) remplacées par des styles du composant.
