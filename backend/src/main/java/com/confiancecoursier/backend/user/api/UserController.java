@@ -1,5 +1,7 @@
 package com.confiancecoursier.backend.user.api;
 
+
+import com.confiancecoursier.backend.shared.exception.NotFoundException;
 import com.confiancecoursier.backend.shared.exception.BusinessException;
 import com.confiancecoursier.backend.user.api.dto.CourierSummaryResponse;
 import com.confiancecoursier.backend.user.api.dto.UpdateProfileRequest;
@@ -109,6 +111,6 @@ public class UserController {
 
     private User resolveUser(Principal principal) {
         return userRepository.findByEmail(principal.getName())
-                .orElseThrow(() -> new BusinessException("Utilisateur non trouvé."));
+                .orElseThrow(() -> new NotFoundException("Utilisateur non trouvé."));
     }
 }

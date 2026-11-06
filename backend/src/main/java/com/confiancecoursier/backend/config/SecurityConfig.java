@@ -1,5 +1,7 @@
 package com.confiancecoursier.backend.config;
 
+import org.springframework.http.HttpMethod;
+
 import com.confiancecoursier.backend.auth.service.JwtAuthenticationFilter;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
@@ -48,7 +50,11 @@ public class SecurityConfig {
                 // et peut déclencher le mécanisme de refresh token.
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint((request, response, authException) ->
-                                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Non authentifié"))
+                                writeError(response, HttpServletResponse.SC_UNAUTHORIZED, "Non authentifié."))
+                        // TICK-067 : rôle insuffisant → 403 JSON (et non 400 ou une page HTML)
+                        .accessDeniedHandler((request, response, denied) ->
+                                writeError(response, HttpServletResponse.SC_FORBIDDEN,
+                                        "Accès refusé : action non autorisée pour votre rôle."))
                 )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
@@ -56,6 +62,38 @@ public class SecurityConfig {
                         .requestMatchers("/ws/**").permitAll()
                         // ── Routes admin : seul le rôle ADMIN peut accéder ──
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
+
+                        // ── TICK-067 : rôles par route ─────────────────────────────────
+                        // COURIER : preuves (écriture), KYC, demandes publiées, missions
+                        .requestMatchers(HttpMethod.POST,   "/api/courses/*/proofs/**").hasRole("COURIER")
+                        .requestMatchers(HttpMethod.DELETE, "/api/courses/*/proofs/**").hasRole("COURIER")
+                        .requestMatchers("/api/kyc/**").hasRole("COURIER")
+                        .requestMatchers(HttpMethod.GET, "/api/courses/published", "/api/courses/my-missions").hasRole("COURIER")
+
+                        // CLIENT : création / modification / suppression de course, acceptation d'offre,
+                        // paiement, validation, actions sur une course en retard, recherche de coursiers
+                        .requestMatchers(HttpMethod.POST, "/api/courses").hasRole("CLIENT")
+                        .requestMatchers(HttpMethod.PUT, "/api/courses/*").hasRole("CLIENT")
+                        .requestMatchers(HttpMethod.DELETE, "/api/courses/*").hasRole("CLIENT")
+                        .requestMatchers(HttpMethod.GET, "/api/courses/my-courses").hasRole("CLIENT")
+                        .requestMatchers(HttpMethod.POST,
+                                "/api/courses/*/offers/*/accept",
+                                "/api/courses/*/accept-offer/*",
+                                "/api/courses/*/validate",
+                                "/api/courses/*/extend",
+                                "/api/courses/*/cancel-overdue").hasRole("CLIENT")
+                        .requestMatchers("/api/payment/**").hasRole("CLIENT")
+                        .requestMatchers(HttpMethod.GET, "/api/users/couriers").hasRole("CLIENT")
+
+                        // CLIENT ou COURIER : conversation, litige, signalement, avis
+                        .requestMatchers(HttpMethod.POST,
+                                "/api/courses/*/conversations",
+                                "/api/courses/*/review",
+                                "/api/disputes",
+                                "/api/reports").hasAnyRole("CLIENT", "COURIER")
+
+                        // Lecture (détail de course, chat, offres, preuves, avis, profil) : authentifié,
+                        // l'appartenance est vérifiée dans les services (403 sinon)
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -65,6 +103,15 @@ public class SecurityConfig {
                 .httpBasic(AbstractHttpConfigurer::disable);
 
         return http.build();
+    }
+
+    /** Corps JSON identique à {@code ErrorResponse} pour les refus de la chaîne de sécurité. */
+    private static void writeError(HttpServletResponse response, int status, String message) throws java.io.IOException {
+        response.setStatus(status);
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+        response.getWriter().write("{\"status\":" + status + ",\"message\":\"" + message
+                + "\",\"timestamp\":\"" + java.time.LocalDateTime.now() + "\"}");
     }
 
     @Bean

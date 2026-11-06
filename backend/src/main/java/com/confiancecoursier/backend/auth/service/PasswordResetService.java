@@ -1,5 +1,7 @@
 package com.confiancecoursier.backend.auth.service;
 
+
+import com.confiancecoursier.backend.shared.exception.NotFoundException;
 import com.confiancecoursier.backend.shared.exception.BusinessException;
 import com.confiancecoursier.backend.user.domain.User;
 import com.confiancecoursier.backend.user.repository.UserRepository;
@@ -87,7 +89,7 @@ public class PasswordResetService {
         }
 
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new BusinessException("Utilisateur non trouvé."));
+                .orElseThrow(() -> new NotFoundException("Utilisateur non trouvé."));
 
         user.setPasswordHash(passwordEncoder.encode(newPassword));
         userRepository.save(user);

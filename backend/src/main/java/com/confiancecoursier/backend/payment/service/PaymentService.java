@@ -1,5 +1,9 @@
 package com.confiancecoursier.backend.payment.service;
 
+
+
+import com.confiancecoursier.backend.shared.exception.ForbiddenException;
+import com.confiancecoursier.backend.shared.exception.NotFoundException;
 import com.confiancecoursier.backend.admin.service.CommissionService;
 import com.confiancecoursier.backend.course.domain.Course;
 import com.confiancecoursier.backend.course.repository.CourseRepository;
@@ -87,7 +91,7 @@ public class PaymentService {
         if (existing.isPresent()) {
             EscrowEntry existingEntry = existing.get();
             Course existingCourse = courseRepository.findById(existingEntry.getCourseId())
-                    .orElseThrow(() -> new BusinessException("Course introuvable"));
+                    .orElseThrow(() -> new NotFoundException("Course introuvable"));
             // Une clé rejouée n'est valable que pour le même client et la même course
             if (!existingCourse.getClientId().equals(clientId)
                     || !existingEntry.getCourseId().equals(req.getCourseId())) {
@@ -104,7 +108,7 @@ public class PaymentService {
 
         // ── Verrou pessimiste — empêche le double paiement concurrent ──────────
         Course course = courseRepository.findByIdForUpdate(req.getCourseId())
-                .orElseThrow(() -> new BusinessException("Course introuvable"));
+                .orElseThrow(() -> new NotFoundException("Course introuvable"));
 
         if (!course.getClientId().equals(clientId)) {
             throw new BusinessException("Cette course ne vous appartient pas");
@@ -120,7 +124,7 @@ public class PaymentService {
             throw new BusinessException("Aucun coursier assigné à cette course.");
         }
         if (course.getCourseAmount() == null) {
-            throw new BusinessException("Le montant de l'offre acceptée est introuvable.");
+            throw new NotFoundException("Le montant de l'offre acceptée est introuvable.");
         }
 
         // ── Tarif lu du serveur — jamais du frontend ───────────────────────────
@@ -195,10 +199,10 @@ public class PaymentService {
     public void validateCourse(Long courseId, Long clientId) {
         // Verrou de ligne : empêche une double libération (clic + scheduler 72 h)
         Course course = courseRepository.findByIdForUpdate(courseId)
-                .orElseThrow(() -> new BusinessException("Course introuvable."));
+                .orElseThrow(() -> new NotFoundException("Course introuvable."));
 
         if (!course.getClientId().equals(clientId)) {
-            throw new BusinessException("Vous n'êtes pas le propriétaire de cette course.");
+            throw new ForbiddenException("Vous n'êtes pas le propriétaire de cette course.");
         }
 
         if (!"PROOFS_SUBMITTED".equals(course.getStatus())) {

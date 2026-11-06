@@ -1,5 +1,7 @@
 package com.confiancecoursier.backend.chat.api;
 
+
+import com.confiancecoursier.backend.shared.exception.NotFoundException;
 import com.confiancecoursier.backend.chat.domain.ChatMessage;
 import com.confiancecoursier.backend.chat.domain.ChatRoom;
 import com.confiancecoursier.backend.chat.repository.ChatMessageRepository;
@@ -85,7 +87,7 @@ public class ChatRestController {
         requireParticipant(roomId, principal);
 
         ChatRoom room = chatAccessService.findRoom(roomId)
-                .orElseThrow(() -> new BusinessException("Salle de chat introuvable."));
+                .orElseThrow(() -> new NotFoundException("Salle de chat introuvable."));
 
         String clientName  = resolveFullName(room.getClientId());
         String courierName = resolveFullName(room.getCourierId());

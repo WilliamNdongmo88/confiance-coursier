@@ -23,6 +23,23 @@ import java.util.stream.Collectors;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    // Ressource absente → 404 (TICK-067). Déclaré avant BusinessException : la classe la plus précise l'emporte.
+    @ExceptionHandler(NotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNotFound(NotFoundException ex) {
+        ErrorResponse error = new ErrorResponse(HttpStatus.NOT_FOUND.value(), ex.getMessage(), LocalDateTime.now());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    }
+
+    // Refus d'accès lié au rôle (méthode sécurisée, @PreAuthorize…) → 403 (TICK-067)
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleAccessDenied(Exception ex) {
+        ErrorResponse error = new ErrorResponse(HttpStatus.FORBIDDEN.value(),
+                "Accès refusé : action non autorisée pour votre rôle.", LocalDateTime.now());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+    }
+
     // Gère les violations de contraintes sur les @RequestParam / @PathVariable (@Validated)
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<ErrorResponse> handleConstraintViolation(ConstraintViolationException ex) {
@@ -169,12 +186,14 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(error);
     }
 
-    // Gère toutes les autres erreurs imprévues
+    // Gère toutes les autres erreurs imprévues — journalisées en error avec l'identifiant de corrélation (TICK-067)
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneralException(Exception ex) {
+        String ref = com.confiancecoursier.backend.shared.web.CorrelationIdFilter.current();
+        log.error("[{}] Erreur inattendue : {}", ref, ex.toString(), ex);
         ErrorResponse error = new ErrorResponse(
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                "Une erreur interne est survenue. Veuillez réessayer.",
+                "Une erreur interne est survenue. Veuillez réessayer. (réf. " + ref + ")",
                 LocalDateTime.now()
         );
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);

@@ -1,5 +1,7 @@
 package com.confiancecoursier.backend.dispute.service;
 
+
+import com.confiancecoursier.backend.shared.exception.NotFoundException;
 import com.confiancecoursier.backend.course.domain.Course;
 import com.confiancecoursier.backend.course.repository.CourseRepository;
 import com.confiancecoursier.backend.dispute.api.dto.DisputeResponse;
@@ -77,7 +79,7 @@ public class DisputeService {
     public DisputeResponse openDispute(Long courseId, Long openedBy, OpenDisputeRequest req) {
         // Verrou de ligne : deux ouvertures simultanées (client + coursier) sont sérialisées
         Course course = courseRepository.findByIdForUpdate(courseId)
-                .orElseThrow(() -> new BusinessException("Course introuvable."));
+                .orElseThrow(() -> new NotFoundException("Course introuvable."));
 
         boolean isClient  = course.getClientId().equals(openedBy);
         boolean isCourier = course.getCourierId() != null && course.getCourierId().equals(openedBy);
@@ -123,16 +125,16 @@ public class DisputeService {
 
     public DisputeResponse getDispute(Long disputeId, Long requesterId) {
         Dispute dispute = disputeRepository.findById(disputeId)
-                .orElseThrow(() -> new BusinessException("Litige introuvable."));
+                .orElseThrow(() -> new NotFoundException("Litige introuvable."));
 
         Course course = courseRepository.findById(dispute.getCourseId())
-                .orElseThrow(() -> new BusinessException("Course introuvable."));
+                .orElseThrow(() -> new NotFoundException("Course introuvable."));
 
         boolean isParticipant = course.getClientId().equals(requesterId)
                 || (course.getCourierId() != null && course.getCourierId().equals(requesterId));
 
         if (!isParticipant) {
-            throw new BusinessException("Accès refusé à ce litige.");
+            throw new ForbiddenException("Accès refusé à ce litige.");
         }
 
         return DisputeResponse.from(dispute);
@@ -148,7 +150,7 @@ public class DisputeService {
         }
 
         Dispute dispute = disputeRepository.findById(disputeId)
-                .orElseThrow(() -> new BusinessException("Litige introuvable."));
+                .orElseThrow(() -> new NotFoundException("Litige introuvable."));
 
         if (!"OPEN".equals(dispute.getStatus())) {
             throw new BusinessException("Ce litige est déjà résolu.");
@@ -156,7 +158,7 @@ public class DisputeService {
 
         // Verrou de ligne : la décision et une éventuelle autre action ne peuvent pas se croiser
         Course course = courseRepository.findByIdForUpdate(dispute.getCourseId())
-                .orElseThrow(() -> new BusinessException("Course introuvable."));
+                .orElseThrow(() -> new NotFoundException("Course introuvable."));
 
         // ── Appliquer la décision via EscrowService (TICK-061) ────────────────
         switch (decision.toUpperCase()) {

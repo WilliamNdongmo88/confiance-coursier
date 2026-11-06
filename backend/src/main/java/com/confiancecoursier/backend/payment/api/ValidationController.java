@@ -1,5 +1,7 @@
 package com.confiancecoursier.backend.payment.api;
 
+
+import com.confiancecoursier.backend.shared.exception.NotFoundException;
 import com.confiancecoursier.backend.payment.service.PaymentService;
 import com.confiancecoursier.backend.shared.exception.BusinessException;
 import com.confiancecoursier.backend.user.domain.User;
@@ -50,7 +52,7 @@ public class ValidationController {
     private Long getCurrentUserId() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new BusinessException("Utilisateur non trouvé."));
+                .orElseThrow(() -> new NotFoundException("Utilisateur non trouvé."));
         return user.getId();
     }
 }

@@ -1,5 +1,7 @@
 package com.confiancecoursier.backend.review.api;
 
+
+import com.confiancecoursier.backend.shared.exception.NotFoundException;
 import com.confiancecoursier.backend.review.api.dto.ReviewResponse;
 import com.confiancecoursier.backend.review.api.dto.SubmitReviewRequest;
 import com.confiancecoursier.backend.review.service.ReviewService;
@@ -51,7 +53,7 @@ public class ReviewController {
     private Long getCurrentUserId() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new BusinessException("Utilisateur non trouvé."));
+                .orElseThrow(() -> new NotFoundException("Utilisateur non trouvé."));
         return user.getId();
     }
 }

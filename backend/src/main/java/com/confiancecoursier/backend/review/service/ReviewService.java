@@ -1,5 +1,9 @@
 package com.confiancecoursier.backend.review.service;
 
+
+
+import com.confiancecoursier.backend.shared.exception.ForbiddenException;
+import com.confiancecoursier.backend.shared.exception.NotFoundException;
 import com.confiancecoursier.backend.course.domain.Course;
 import com.confiancecoursier.backend.course.repository.CourseRepository;
 import com.confiancecoursier.backend.notify.service.NotificationService;
@@ -72,7 +76,7 @@ public class ReviewService {
 
         // ── Chargement et vérifications ──────────────────────────────────────
         Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new BusinessException("Course introuvable."));
+                .orElseThrow(() -> new NotFoundException("Course introuvable."));
 
         if (!"COMPLETED".equals(course.getStatus())) {
             throw new BusinessException(
@@ -81,13 +85,13 @@ public class ReviewService {
         }
 
         User author = userRepository.findById(authorId)
-                .orElseThrow(() -> new BusinessException("Utilisateur introuvable."));
+                .orElseThrow(() -> new NotFoundException("Utilisateur introuvable."));
 
         // Vérifie que l'auteur est bien participant à la course
         boolean isClient  = course.getClientId().equals(authorId);
         boolean isCourier = course.getCourierId() != null && course.getCourierId().equals(authorId);
         if (!isClient && !isCourier) {
-            throw new BusinessException("Vous n'êtes pas participant à cette course.");
+            throw new ForbiddenException("Vous n'êtes pas participant à cette course.");
         }
 
         // Double notation interdite
@@ -113,7 +117,7 @@ public class ReviewService {
         }
 
         User target = userRepository.findById(targetId)
-                .orElseThrow(() -> new BusinessException("Utilisateur cible introuvable."));
+                .orElseThrow(() -> new NotFoundException("Utilisateur cible introuvable."));
 
         // ── Sauvegarde de l'avis ──────────────────────────────────────────────
         Review review = Review.builder()
@@ -153,12 +157,12 @@ public class ReviewService {
      */
     public List<ReviewResponse> getReviewsByCourse(Long courseId, Long requesterId) {
         Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new BusinessException("Course introuvable."));
+                .orElseThrow(() -> new NotFoundException("Course introuvable."));
 
         boolean isClient  = course.getClientId().equals(requesterId);
         boolean isCourier = course.getCourierId() != null && course.getCourierId().equals(requesterId);
         if (!isClient && !isCourier) {
-            throw new BusinessException("Vous n'avez pas accès aux avis de cette course.");
+            throw new ForbiddenException("Vous n'avez pas accès aux avis de cette course.");
         }
 
         return reviewRepository.findByCourseId(courseId)

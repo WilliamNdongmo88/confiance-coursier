@@ -1,5 +1,7 @@
 package com.confiancecoursier.backend.admin.api;
 
+
+import com.confiancecoursier.backend.shared.exception.NotFoundException;
 import com.confiancecoursier.backend.report.api.dto.ReportResponse;
 import com.confiancecoursier.backend.report.service.ReportService;
 import com.confiancecoursier.backend.shared.exception.BusinessException;
@@ -61,7 +63,7 @@ public class AdminReportController {
         String email = org.springframework.security.core.context.SecurityContextHolder
                 .getContext().getAuthentication().getName();
         return userRepository.findByEmail(email)
-                .orElseThrow(() -> new BusinessException("Administrateur non trouvé."))
+                .orElseThrow(() -> new NotFoundException("Administrateur non trouvé."))
                 .getId();
     }
 }

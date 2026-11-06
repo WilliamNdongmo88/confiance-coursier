@@ -1,5 +1,7 @@
 package com.confiancecoursier.backend.proof.service;
 
+
+import com.confiancecoursier.backend.shared.exception.NotFoundException;
 import com.confiancecoursier.backend.course.domain.Course;
 import com.confiancecoursier.backend.course.repository.CourseRepository;
 import com.confiancecoursier.backend.notify.service.NotificationService;
@@ -166,7 +168,7 @@ public class ProofService {
 
         Proof proof = proofRepository.findById(proofId)
                 .filter(p -> p.getCourseId().equals(courseId))
-                .orElseThrow(() -> new BusinessException("Preuve introuvable."));
+                .orElseThrow(() -> new NotFoundException("Preuve introuvable."));
         proofRepository.delete(proof);
         fileStorageService.deleteFile(proof.getFileKey(), proofsBucket);
         log.info("Preuve (brouillon) supprimée : courseId={} proofId={}", courseId, proofId);
@@ -221,7 +223,7 @@ public class ProofService {
      */
     public List<ProofResponse> getProofs(Long courseId, Long requesterId) {
         Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new BusinessException("Course introuvable."));
+                .orElseThrow(() -> new NotFoundException("Course introuvable."));
 
         boolean isClient  = course.getClientId().equals(requesterId);
         boolean isCourier = course.getCourierId() != null && course.getCourierId().equals(requesterId);
@@ -240,7 +242,7 @@ public class ProofService {
 
     private Course lockCourse(Long courseId) {
         return courseRepository.findByIdForUpdate(courseId)
-                .orElseThrow(() -> new BusinessException("Course introuvable."));
+                .orElseThrow(() -> new NotFoundException("Course introuvable."));
     }
 
     private static void requireAssignedCourier(Course course, Long courierId) {

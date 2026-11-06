@@ -713,6 +713,7 @@ Contrôles :
 **Validation :** 6 essais faux → blocage ; flux admin nominal OK.
 
 #### TICK-067 🟡 [BE] Rôles par route et codes HTTP justes — 3 h
+**Statut :** ✅ (2026-11-06, session 58)
 **Anomalie :** A-27 · **Fichiers :** `SecurityConfig`, `GlobalExceptionHandler`, nouvelles exceptions `ForbiddenException` / `NotFoundException`
 **Critères d'acceptation :**
 - Création et paiement de course réservés à CLIENT ; offres, preuves et KYC réservés à COURIER.

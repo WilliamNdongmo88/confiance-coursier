@@ -1,5 +1,7 @@
 package com.confiancecoursier.backend.admin.api;
 
+
+import com.confiancecoursier.backend.shared.exception.NotFoundException;
 import com.confiancecoursier.backend.admin.api.dto.AdminKycResponse;
 import com.confiancecoursier.backend.admin.api.dto.RejectKycRequest;
 import com.confiancecoursier.backend.kyc.domain.KycSubmission;
@@ -124,7 +126,7 @@ public class AdminKycController {
         String email = org.springframework.security.core.context.SecurityContextHolder
                 .getContext().getAuthentication().getName();
         return userRepository.findByEmail(email)
-                .orElseThrow(() -> new BusinessException("Administrateur non trouvé."))
+                .orElseThrow(() -> new NotFoundException("Administrateur non trouvé."))
                 .getId();
     }
 }

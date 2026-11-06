@@ -1,5 +1,7 @@
 package com.confiancecoursier.backend.admin.api;
 
+
+import com.confiancecoursier.backend.shared.exception.NotFoundException;
 import com.confiancecoursier.backend.admin.api.dto.PayoutSettingsResponse;
 import com.confiancecoursier.backend.admin.api.dto.UpdatePayoutSettingsRequest;
 import com.confiancecoursier.backend.admin.service.PayoutSettingsService;
@@ -53,7 +55,7 @@ public class AdminPayoutSettingsController {
     private Long getCurrentUserId() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new BusinessException("Utilisateur non trouvé."));
+                .orElseThrow(() -> new NotFoundException("Utilisateur non trouvé."));
         return user.getId();
     }
 }

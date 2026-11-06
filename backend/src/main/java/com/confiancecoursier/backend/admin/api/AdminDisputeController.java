@@ -1,5 +1,7 @@
 package com.confiancecoursier.backend.admin.api;
 
+
+import com.confiancecoursier.backend.shared.exception.NotFoundException;
 import com.confiancecoursier.backend.dispute.api.dto.DisputeResponse;
 import com.confiancecoursier.backend.dispute.service.DisputeService;
 import com.confiancecoursier.backend.shared.exception.BusinessException;
@@ -69,7 +71,7 @@ public class AdminDisputeController {
         String email = org.springframework.security.core.context.SecurityContextHolder
                 .getContext().getAuthentication().getName();
         return userRepository.findByEmail(email)
-                .orElseThrow(() -> new BusinessException("Administrateur non trouvé."))
+                .orElseThrow(() -> new NotFoundException("Administrateur non trouvé."))
                 .getId();
     }
 }

@@ -1,5 +1,7 @@
 package com.confiancecoursier.backend.auth.service;
 
+
+import com.confiancecoursier.backend.shared.exception.NotFoundException;
 import com.confiancecoursier.backend.auth.api.dto.AuthResponse;
 import com.confiancecoursier.backend.auth.api.dto.LoginRequest;
 import com.confiancecoursier.backend.auth.api.dto.RegisterRequest;
@@ -91,7 +93,7 @@ public class AuthService {
         );
 
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new BusinessException("Utilisateur non trouvé."));
+                .orElseThrow(() -> new NotFoundException("Utilisateur non trouvé."));
 
         // ── 2. 2FA obligatoire pour tout compte ADMIN (et plus seulement l'email configuré) ──
         if (isAdmin(user)) {
@@ -121,7 +123,7 @@ public class AuthService {
     public boolean requestAdminOtp(String email, String password, String ip) {
         authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(email, password));
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new BusinessException("Utilisateur non trouvé."));
+                .orElseThrow(() -> new NotFoundException("Utilisateur non trouvé."));
         if (!isAdmin(user)) {
             return false;
         }
@@ -145,7 +147,7 @@ public class AuthService {
         }
 
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new BusinessException("Utilisateur non trouvé."));
+                .orElseThrow(() -> new NotFoundException("Utilisateur non trouvé."));
 
         // TICK-053 : un compte suspendu ne peut plus renouveler sa session.
         if (!user.isActive()) {

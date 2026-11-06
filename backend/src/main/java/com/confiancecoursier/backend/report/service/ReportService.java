@@ -1,5 +1,7 @@
 package com.confiancecoursier.backend.report.service;
 
+
+import com.confiancecoursier.backend.shared.exception.NotFoundException;
 import com.confiancecoursier.backend.report.api.dto.ReportResponse;
 import com.confiancecoursier.backend.report.api.dto.SubmitReportRequest;
 import com.confiancecoursier.backend.report.domain.Report;
@@ -76,7 +78,7 @@ public class ReportService {
         }
 
         User target = userRepository.findById(targetId)
-                .orElseThrow(() -> new BusinessException("Utilisateur signalé introuvable."));
+                .orElseThrow(() -> new NotFoundException("Utilisateur signalé introuvable."));
 
         // TICK-063 : un seul signalement par paire (signaleur, cible) sur la fenêtre glissante
         if (reportRepository.existsByReporterIdAndTargetIdAndCreatedAtAfter(reporterId, targetId, windowStart())) {
@@ -114,7 +116,7 @@ public class ReportService {
         }
 
         Report report = reportRepository.findById(reportId)
-                .orElseThrow(() -> new BusinessException("Signalement introuvable."));
+                .orElseThrow(() -> new NotFoundException("Signalement introuvable."));
 
         if (!"OPEN".equals(report.getStatus())) {
             throw new BusinessException("Ce signalement a déjà été traité.");

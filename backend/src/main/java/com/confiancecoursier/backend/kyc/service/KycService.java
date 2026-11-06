@@ -1,5 +1,7 @@
 package com.confiancecoursier.backend.kyc.service;
 
+
+import com.confiancecoursier.backend.shared.exception.NotFoundException;
 import com.confiancecoursier.backend.kyc.api.dto.KycStatusResponse;
 import com.confiancecoursier.backend.kyc.domain.KycSubmission;
 import com.confiancecoursier.backend.kyc.repository.KycRepository;
@@ -64,7 +66,7 @@ public class KycService {
 
         // 1. Vérifier que l'utilisateur existe et est bien un COURIER
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException("Utilisateur non trouvé."));
+                .orElseThrow(() -> new NotFoundException("Utilisateur non trouvé."));
 
         if (!"COURIER".equals(user.getRole())) {
             throw new BusinessException("Seuls les coursiers peuvent soumettre un KYC.");
@@ -145,7 +147,7 @@ public class KycService {
     @Transactional
     public KycSubmission approveKyc(Long submissionId, Long adminId) {
         KycSubmission submission = kycRepository.findById(submissionId)
-                .orElseThrow(() -> new BusinessException("Soumission KYC introuvable."));
+                .orElseThrow(() -> new NotFoundException("Soumission KYC introuvable."));
 
         if (!"PENDING".equals(submission.getStatus())) {
             throw new BusinessException("Cette soumission KYC a déjà été traitée.");
@@ -158,7 +160,7 @@ public class KycService {
 
         // Met à jour le statut KYC de l'utilisateur
         User user = userRepository.findById(submission.getUserId())
-                .orElseThrow(() -> new BusinessException("Utilisateur de la soumission introuvable."));
+                .orElseThrow(() -> new NotFoundException("Utilisateur de la soumission introuvable."));
         user.setKycStatus("APPROVED");
         userRepository.save(user);
 
@@ -186,7 +188,7 @@ public class KycService {
     @Transactional
     public KycSubmission rejectKyc(Long submissionId, Long adminId, String reason) {
         KycSubmission submission = kycRepository.findById(submissionId)
-                .orElseThrow(() -> new BusinessException("Soumission KYC introuvable."));
+                .orElseThrow(() -> new NotFoundException("Soumission KYC introuvable."));
 
         if (!"PENDING".equals(submission.getStatus())) {
             throw new BusinessException("Cette soumission KYC a déjà été traitée.");
@@ -200,7 +202,7 @@ public class KycService {
 
         // Met à jour le statut KYC de l'utilisateur
         User user = userRepository.findById(submission.getUserId())
-                .orElseThrow(() -> new BusinessException("Utilisateur de la soumission introuvable."));
+                .orElseThrow(() -> new NotFoundException("Utilisateur de la soumission introuvable."));
         user.setKycStatus("REJECTED");
         userRepository.save(user);
 
@@ -226,7 +228,7 @@ public class KycService {
     @Transactional
     public void deleteRejectedKyc(Long submissionId) {
         KycSubmission submission = kycRepository.findById(submissionId)
-                .orElseThrow(() -> new BusinessException("Soumission KYC introuvable."));
+                .orElseThrow(() -> new NotFoundException("Soumission KYC introuvable."));
 
         if (!"REJECTED".equals(submission.getStatus())) {
             throw new BusinessException("Seules les soumissions KYC rejetées peuvent être supprimées.");

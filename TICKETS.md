@@ -1103,6 +1103,7 @@ Le flux d'offre doit passer par le chat (spec fonctionnelle §2.1). Le coursier 
 | TICK-065 | 🟡 [BE] Scheduler de validation automatique robuste | ✅ |
 | TICK-065b | 🔴 [FULL] Échéance de preuves et non-livraison | ✅ |
 | TICK-066 | 🟠 [BE] Durcir l'OTP et la 2FA admin | ✅ |
+| TICK-067 | 🟡 [BE] Rôles par route et codes HTTP justes | ✅ |
 
 > 2026-11-05 — TICK-055 → TICK-061 revus et corrigés (session 51, voir `AGENT_CONTEXT.md` §7 et `PLAN_AMELIORATION.md` §1.4).
 

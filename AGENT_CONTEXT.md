@@ -1335,6 +1335,20 @@ Revue du code des tickets 055 à 061 contre `PLAN_AMELIORATION.md`, puis correct
 
 ---
 
+### Session 58 — TICK-067 [BE] : rôles par route et codes HTTP justes (2026-11-06)
+
+- `SecurityConfig` — rôles par route :
+  - **CLIENT** : `POST /api/courses`, `PUT|DELETE /api/courses/*`, `GET /api/courses/my-courses`, `POST …/offers/*/accept`, `…/accept-offer/*`, `…/validate`, `…/extend`, `…/cancel-overdue`, `/api/payment/**`, `GET /api/users/couriers` ;
+  - **COURIER** : `POST|DELETE /api/courses/*/proofs/**`, `/api/kyc/**`, `GET /api/courses/published`, `GET /api/courses/my-missions` ;
+  - **CLIENT ou COURIER** : `POST …/conversations`, `…/review`, `/api/disputes`, `/api/reports` ;
+  - lectures : authentifié (appartenance vérifiée dans les services) ; `/api/admin/**` inchangé (ADMIN).
+- Refus de rôle → **403 JSON** (`accessDeniedHandler`) ; non authentifié → 401 JSON.
+- `NotFoundException` (sous-classe de `BusinessException`, handler 404) : 55 « … introuvable / non trouvé » convertis ; 7 refus d'appartenance passés en `ForbiddenException` (403) ; `PaymentController` n'utilise plus `RuntimeException`.
+- `CorrelationIdFilter` : identifiant par requête (en-tête `X-Correlation-Id` repris ou généré, MDC `correlationId`, renvoyé dans la réponse) ; le handler générique logge en `error` avec cet identifiant et renvoie « … (réf. xxxx) ».
+- Tests : `RoleRouteMatrixTest` (`@WebMvcTest` sur la vraie `SecurityConfig`, 29 routes × 3 rôles + 401/403 JSON + routes publiques), `HttpStatusMappingTest` → 224 tests unitaires verts ; `BackendApplicationTests` vert.
+
+---
+
 ## 9. DOMAINES À IMPLÉMENTER (par ordre de priorité métier)
 
 ### 1. Guards Angular (prérequis avant tout)

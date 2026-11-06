@@ -1,5 +1,7 @@
 package com.confiancecoursier.backend.course.service;
 
+
+import com.confiancecoursier.backend.shared.exception.NotFoundException;
 import com.confiancecoursier.backend.admin.service.CommissionService;
 import com.confiancecoursier.backend.course.domain.Course;
 import com.confiancecoursier.backend.course.domain.CourseOffer;
@@ -61,7 +63,7 @@ public class OfferService {
     @Transactional
     public CourseOffer submitOffer(Long courseId, Long courierId, BigDecimal amount, String details) {
         User courier = userRepository.findById(courierId)
-                .orElseThrow(() -> new BusinessException("Coursier non trouvé."));
+                .orElseThrow(() -> new NotFoundException("Coursier non trouvé."));
         if (!canMakeOffers(courier)) {
             throw new ForbiddenException("Votre identité doit être vérifiée (KYC) avant de pouvoir proposer un tarif.");
         }
@@ -77,7 +79,7 @@ public class OfferService {
 
         // Verrou de ligne : une acceptation concurrente ne peut pas se croiser avec une nouvelle offre
         Course course = courseRepository.findByIdForUpdate(courseId)
-                .orElseThrow(() -> new BusinessException("Course non trouvée."));
+                .orElseThrow(() -> new NotFoundException("Course non trouvée."));
         if (!"PUBLISHED".equals(course.getStatus())) {
             throw new ConflictException("Cette course n'accepte plus d'offres.");
         }
@@ -110,7 +112,7 @@ public class OfferService {
     @Transactional
     public void acceptOffer(Long courseId, Long offerId, Long clientId) {
         Course course = courseRepository.findByIdForUpdate(courseId)
-                .orElseThrow(() -> new BusinessException("Course non trouvée."));
+                .orElseThrow(() -> new NotFoundException("Course non trouvée."));
 
         if (!course.getClientId().equals(clientId)) {
             throw new ForbiddenException("Vous n'êtes pas le propriétaire de cette course.");
@@ -120,7 +122,7 @@ public class OfferService {
         }
 
         CourseOffer offerToAccept = offerRepository.findById(offerId)
-                .orElseThrow(() -> new BusinessException("Offre non trouvée."));
+                .orElseThrow(() -> new NotFoundException("Offre non trouvée."));
         if (!offerToAccept.getCourseId().equals(courseId)) {
             throw new BusinessException("Cette offre ne correspond pas à la course.");
         }

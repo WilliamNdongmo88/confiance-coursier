@@ -1,5 +1,7 @@
 package com.confiancecoursier.backend.dispute.api;
 
+
+import com.confiancecoursier.backend.shared.exception.NotFoundException;
 import com.confiancecoursier.backend.dispute.api.dto.DisputeResponse;
 import com.confiancecoursier.backend.dispute.api.dto.OpenDisputeRequest;
 import com.confiancecoursier.backend.dispute.service.DisputeService;
@@ -48,7 +50,7 @@ public class DisputeController {
     private Long getCurrentUserId() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         return userRepository.findByEmail(email)
-                .orElseThrow(() -> new BusinessException("Utilisateur non trouvé."))
+                .orElseThrow(() -> new NotFoundException("Utilisateur non trouvé."))
                 .getId();
     }
 }

@@ -1,5 +1,9 @@
 package com.confiancecoursier.backend.course.service;
 
+
+
+import com.confiancecoursier.backend.shared.exception.ForbiddenException;
+import com.confiancecoursier.backend.shared.exception.NotFoundException;
 import com.confiancecoursier.backend.chat.repository.ChatRoomRepository;
 import com.confiancecoursier.backend.course.api.dto.CreateCourseRequest;
 import com.confiancecoursier.backend.course.api.dto.CourseResponse;
@@ -64,10 +68,10 @@ public class CourseService {
     @Transactional
     public CourseResponse updateCourse(Long courseId, Long clientId, CreateCourseRequest request) {
         Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new BusinessException("Course non trouvée."));
+                .orElseThrow(() -> new NotFoundException("Course non trouvée."));
 
         if (!course.getClientId().equals(clientId)) {
-            throw new BusinessException("Vous n'êtes pas le propriétaire de cette course.");
+            throw new ForbiddenException("Vous n'êtes pas le propriétaire de cette course.");
         }
 
         if (!"PUBLISHED".equals(course.getStatus())) {
@@ -85,10 +89,10 @@ public class CourseService {
     @Transactional
     public void deleteCourse(Long courseId, Long clientId) {
         Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new BusinessException("Course non trouvée."));
+                .orElseThrow(() -> new NotFoundException("Course non trouvée."));
 
         if (!course.getClientId().equals(clientId)) {
-            throw new BusinessException("Vous n'êtes pas le propriétaire de cette course.");
+            throw new ForbiddenException("Vous n'êtes pas le propriétaire de cette course.");
         }
 
         if (!"PUBLISHED".equals(course.getStatus())) {
@@ -107,13 +111,13 @@ public class CourseService {
      */
     public CourseResponse getCourseById(Long courseId, Long requesterId) {
         Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new BusinessException("Course non trouvée."));
+                .orElseThrow(() -> new NotFoundException("Course non trouvée."));
 
         boolean isOwner   = course.getClientId().equals(requesterId);
         boolean isCourier = course.getCourierId() != null && course.getCourierId().equals(requesterId);
 
         if (!isOwner && !isCourier) {
-            throw new BusinessException("Vous n'avez pas accès à cette course.");
+            throw new ForbiddenException("Vous n'avez pas accès à cette course.");
         }
 
         return CourseResponse.fromEntity(course, resolveChatRoomId(course));

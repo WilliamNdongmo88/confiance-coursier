@@ -1,5 +1,7 @@
 package com.confiancecoursier.backend.course.api;
 
+
+import com.confiancecoursier.backend.shared.exception.NotFoundException;
 import com.confiancecoursier.backend.chat.domain.ChatRoom;
 import com.confiancecoursier.backend.chat.repository.ChatRoomRepository;
 import com.confiancecoursier.backend.course.api.dto.CreateCourseRequest;
@@ -94,7 +96,7 @@ public class CourseController {
 
         User caller = resolveUser();
         Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new BusinessException("Course introuvable."));
+                .orElseThrow(() -> new NotFoundException("Course introuvable."));
 
         Long courierId;
 
@@ -205,6 +207,6 @@ public class CourseController {
     private User resolveUser() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         return userRepository.findByEmail(email)
-                .orElseThrow(() -> new BusinessException("Utilisateur non trouvé."));
+                .orElseThrow(() -> new NotFoundException("Utilisateur non trouvé."));
     }
 }

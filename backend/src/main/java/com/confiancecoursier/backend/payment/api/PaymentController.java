@@ -1,5 +1,7 @@
 package com.confiancecoursier.backend.payment.api;
 
+
+import com.confiancecoursier.backend.shared.exception.NotFoundException;
 import com.confiancecoursier.backend.auth.service.JwtService;
 import com.confiancecoursier.backend.payment.api.dto.PaymentInitiateRequest;
 import com.confiancecoursier.backend.payment.api.dto.PaymentInitiateResponse;
@@ -41,7 +43,7 @@ public class PaymentController {
             Principal principal) {
 
         Long clientId = userRepository.findByEmail(principal.getName())
-                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"))
+                .orElseThrow(() -> new NotFoundException("Utilisateur introuvable."))
                 .getId();
 
         PaymentInitiateResponse response = paymentService.initiate(req, clientId);

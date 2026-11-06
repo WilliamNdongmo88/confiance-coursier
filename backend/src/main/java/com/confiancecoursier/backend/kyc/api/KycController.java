@@ -1,5 +1,7 @@
 package com.confiancecoursier.backend.kyc.api;
 
+
+import com.confiancecoursier.backend.shared.exception.NotFoundException;
 import com.confiancecoursier.backend.kyc.api.dto.KycStatusResponse;
 import com.confiancecoursier.backend.kyc.service.KycService;
 import com.confiancecoursier.backend.shared.exception.BusinessException;
@@ -137,7 +139,7 @@ public class KycController {
 
     private Long resolveUserId(Principal principal) {
         User user = userRepository.findByEmail(principal.getName())
-                .orElseThrow(() -> new BusinessException("Utilisateur non trouvé."));
+                .orElseThrow(() -> new NotFoundException("Utilisateur non trouvé."));
         return user.getId();
     }
 }

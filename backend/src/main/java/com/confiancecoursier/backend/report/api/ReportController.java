@@ -1,5 +1,7 @@
 package com.confiancecoursier.backend.report.api;
 
+
+import com.confiancecoursier.backend.shared.exception.NotFoundException;
 import com.confiancecoursier.backend.report.api.dto.ReportResponse;
 import com.confiancecoursier.backend.report.api.dto.SubmitReportRequest;
 import com.confiancecoursier.backend.report.service.ReportService;
@@ -40,7 +42,7 @@ public class ReportController {
     private Long getCurrentUserId() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         return userRepository.findByEmail(email)
-                .orElseThrow(() -> new BusinessException("Utilisateur non trouvé."))
+                .orElseThrow(() -> new NotFoundException("Utilisateur non trouvé."))
                 .getId();
     }
 }

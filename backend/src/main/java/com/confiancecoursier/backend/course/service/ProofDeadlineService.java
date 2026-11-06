@@ -1,5 +1,7 @@
 package com.confiancecoursier.backend.course.service;
 
+
+import com.confiancecoursier.backend.shared.exception.NotFoundException;
 import com.confiancecoursier.backend.auth.service.AuthService;
 import com.confiancecoursier.backend.course.domain.CourierIncident;
 import com.confiancecoursier.backend.course.domain.Course;
@@ -256,7 +258,7 @@ public class ProofDeadlineService {
 
     private Course lockOwnedOverdue(Long courseId, Long clientId) {
         Course course = courseRepository.findByIdForUpdate(courseId)
-                .orElseThrow(() -> new BusinessException("Course introuvable."));
+                .orElseThrow(() -> new NotFoundException("Course introuvable."));
         if (!course.getClientId().equals(clientId)) {
             throw new ForbiddenException("Vous n'êtes pas le propriétaire de cette course.");
         }

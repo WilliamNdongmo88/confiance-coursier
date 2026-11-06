@@ -1,5 +1,7 @@
 package com.confiancecoursier.backend.proof.api;
 
+
+import com.confiancecoursier.backend.shared.exception.NotFoundException;
 import com.confiancecoursier.backend.proof.api.dto.ProofResponse;
 import com.confiancecoursier.backend.proof.service.ProofService;
 import com.confiancecoursier.backend.shared.exception.BusinessException;
@@ -103,7 +105,7 @@ public class ProofController {
     private Long getCurrentUserId() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new BusinessException("Utilisateur non trouvé."));
+                .orElseThrow(() -> new NotFoundException("Utilisateur non trouvé."));
         return user.getId();
     }
 }

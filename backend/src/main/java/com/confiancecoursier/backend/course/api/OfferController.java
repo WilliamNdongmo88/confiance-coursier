@@ -1,5 +1,7 @@
 package com.confiancecoursier.backend.course.api;
 
+
+import com.confiancecoursier.backend.shared.exception.NotFoundException;
 import com.confiancecoursier.backend.course.domain.Course;
 import com.confiancecoursier.backend.course.domain.CourseOffer;
 import com.confiancecoursier.backend.course.repository.CourseRepository;
@@ -70,7 +72,7 @@ public class OfferController {
                                                        Principal principal) {
         User caller = resolveUser(principal);
         Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new BusinessException("Course non trouvée."));
+                .orElseThrow(() -> new NotFoundException("Course non trouvée."));
 
         List<CourseOffer> offers;
         if ("CLIENT".equalsIgnoreCase(caller.getRole())) {
@@ -99,6 +101,6 @@ public class OfferController {
                 ? principal.getName()
                 : SecurityContextHolder.getContext().getAuthentication().getName();
         return userRepository.findByEmail(email)
-                .orElseThrow(() -> new BusinessException("Utilisateur non trouvé."));
+                .orElseThrow(() -> new NotFoundException("Utilisateur non trouvé."));
     }
 }

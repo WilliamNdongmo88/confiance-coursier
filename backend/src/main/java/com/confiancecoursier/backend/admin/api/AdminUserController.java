@@ -1,5 +1,7 @@
 package com.confiancecoursier.backend.admin.api;
 
+
+import com.confiancecoursier.backend.shared.exception.NotFoundException;
 import com.confiancecoursier.backend.auth.service.AuthService;
 import com.confiancecoursier.backend.shared.exception.BusinessException;
 import com.confiancecoursier.backend.user.api.dto.UserProfileResponse;
@@ -71,7 +73,7 @@ public class AdminUserController {
     @PostMapping("/{id}/suspend")
     public ResponseEntity<UserProfileResponse> suspend(@PathVariable Long id) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new BusinessException("Utilisateur introuvable."));
+                .orElseThrow(() -> new NotFoundException("Utilisateur introuvable."));
 
         // TICK-053 : un admin ne peut pas se suspendre lui-même.
         String currentEmail = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -95,7 +97,7 @@ public class AdminUserController {
     @PostMapping("/{id}/activate")
     public ResponseEntity<UserProfileResponse> activate(@PathVariable Long id) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new BusinessException("Utilisateur introuvable."));
+                .orElseThrow(() -> new NotFoundException("Utilisateur introuvable."));
 
         user.setStatus("ACTIVE");
         userRepository.save(user);
