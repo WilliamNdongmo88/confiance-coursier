@@ -27,6 +27,10 @@ public class OtpService {
 
     private static final Logger log = LoggerFactory.getLogger(OtpService.class);
     private static final long OTP_VALIDITY_MINUTES = 5;
+    private static final String OTP_PREFIX         = "otp:";
+    private static final String ATTEMPTS_PREFIX    = "otp:attempts:";
+    private static final String RATE_MINUTE_PREFIX = "otp:rl:min:";
+    private static final String RATE_HOUR_PREFIX   = "otp:rl:hour:";
     private static final SecureRandom random = new SecureRandom();
 
     private final StringRedisTemplate redisTemplate;
@@ -47,6 +51,14 @@ public class OtpService {
     @Value("${app.otp.dev-log:false}")
     private boolean devLog;
 
+    /** TICK-066 : essais faux tolérés avant invalidation du code. */
+    @Value("${app.otp.max-attempts:5}")
+    private int maxAttempts = 5;
+
+    /** TICK-066 : envois maximum par heure, par email et par IP (plus 1 par minute). */
+    @Value("${app.otp.max-sends-per-hour:5}")
+    private int maxSendsPerHour = 5;
+
     public OtpService(StringRedisTemplate redisTemplate) {
         this.redisTemplate = redisTemplate;
         this.restClient = RestClient.create();
@@ -56,50 +68,109 @@ public class OtpService {
     // API publique
     // ─────────────────────────────────────────────────────────────────────────
 
-    /**
-     * Génère un OTP à 6 chiffres, le stocke dans Redis (TTL 5 min) et envoie
-     * l'email si {@code app.otp.email-enabled=true}.
-     *
-     * @param email adresse du destinataire
-     * @return le code OTP généré (utile pour les tests)
-     */
+    /** Génère et envoie un OTP (quota par email uniquement — ex. inscription). */
     public String generateOtp(String email) {
-        int otp = 100000 + random.nextInt(900000);
-        String otpString = String.valueOf(otp);
+        return generateOtp(email, null);
+    }
 
-        redisTemplate.opsForValue().set(
-                "otp:" + email,
-                otpString,
-                Duration.ofMinutes(OTP_VALIDITY_MINUTES)
-        );
+    /**
+     * Génère un OTP à 6 chiffres (TTL 5 min), remet le compteur d'essais à zéro et envoie l'email.
+     * Le quota d'envoi est consommé : 1 par minute et {@code maxSendsPerHour} par heure, par email et par IP.
+     *
+     * @throws com.confiancecoursier.backend.shared.exception.TooManyRequestsException si un quota est atteint
+     */
+    public String generateOtp(String email, String ip) {
+        consumeSendQuota(email, ip);
+        return issueOtp(email);
+    }
+
+    /** Génère et envoie un OTP sans consommer de quota (le quota a été consommé en amont). */
+    public String issueOtp(String email) {
+        String otpString = String.valueOf(100000 + random.nextInt(900000));
+        String key = normalize(email);
+        redisTemplate.opsForValue().set(OTP_PREFIX + key, otpString, Duration.ofMinutes(OTP_VALIDITY_MINUTES));
+        redisTemplate.delete(ATTEMPTS_PREFIX + key);
 
         if (emailEnabled) {
             sendOtpEmail(email, otpString);
         }
-
-        // DEV uniquement : journalise le code pour permettre la vérification manuelle.
-        // Passer app.otp.dev-log=false en production.
+        // DEV uniquement : journalise le code (app.otp.dev-log=false en production).
         if (devLog) {
             log.info("OTP généré pour {} : {}", email, otpString);
         }
-
         return otpString;
     }
 
     /**
-     * Valide le code OTP et le supprime de Redis dès qu'il est utilisé (usage unique).
+     * Consomme le quota d'envoi (TICK-066). À appeler AVANT de savoir si le compte existe
+     * (ex. renvoi d'OTP), pour qu'un 429 ne révèle pas l'existence d'un compte.
+     */
+    public void consumeSendQuota(String email, String ip) {
+        consume("email:" + normalize(email), "cette adresse");
+        if (ip != null && !ip.isBlank() && !isLoopback(ip)) {
+            consume("ip:" + ip, "cet appareil");
+        }
+    }
+
+    /**
+     * Valide le code (usage unique). Au-delà de {@code maxAttempts} essais faux, le code est invalidé
+     * et l'utilisateur doit en demander un nouveau.
      *
-     * @param email    adresse ayant déclenché la génération
-     * @param inputOtp code saisi par l'utilisateur
      * @return {@code true} si le code est correct et non expiré
+     * @throws com.confiancecoursier.backend.shared.exception.TooManyRequestsException si les essais sont épuisés
      */
     public boolean validateOtp(String email, String inputOtp) {
-        String storedOtp = redisTemplate.opsForValue().get("otp:" + email);
-        if (storedOtp != null && storedOtp.equals(inputOtp)) {
-            redisTemplate.delete("otp:" + email);
+        String key = normalize(email);
+        String stored = redisTemplate.opsForValue().get(OTP_PREFIX + key);
+        if (stored == null) {
+            return false; // expiré, déjà utilisé ou invalidé
+        }
+        if (stored.equals(inputOtp)) {
+            redisTemplate.delete(OTP_PREFIX + key);
+            redisTemplate.delete(ATTEMPTS_PREFIX + key);
             return true;
         }
+        Long attempts = redisTemplate.opsForValue().increment(ATTEMPTS_PREFIX + key);
+        if (attempts != null && attempts == 1) {
+            redisTemplate.expire(ATTEMPTS_PREFIX + key, Duration.ofMinutes(OTP_VALIDITY_MINUTES));
+        }
+        if (attempts != null && attempts >= maxAttempts) {
+            redisTemplate.delete(OTP_PREFIX + key);
+            redisTemplate.delete(ATTEMPTS_PREFIX + key);
+            log.warn("[OTP] {} essais faux pour {} : code invalidé", attempts, email);
+            throw new com.confiancecoursier.backend.shared.exception.TooManyRequestsException(
+                    "Trop d'essais : ce code est invalidé. Demandez un nouveau code.");
+        }
         return false;
+    }
+
+    private void consume(String subject, String label) {
+        if (Boolean.FALSE.equals(redisTemplate.opsForValue()
+                .setIfAbsent(RATE_MINUTE_PREFIX + subject, "1", Duration.ofMinutes(1)))) {
+            throw new com.confiancecoursier.backend.shared.exception.TooManyRequestsException(
+                    "Un code vient d'être envoyé à " + label + ". Patientez une minute avant d'en demander un autre.");
+        }
+        Long count = redisTemplate.opsForValue().increment(RATE_HOUR_PREFIX + subject);
+        if (count != null && count == 1) {
+            redisTemplate.expire(RATE_HOUR_PREFIX + subject, Duration.ofHours(1));
+        }
+        if (count != null && count > maxSendsPerHour) {
+            throw new com.confiancecoursier.backend.shared.exception.TooManyRequestsException(
+                    "Trop de codes demandés pour " + label + ". Réessayez dans une heure.");
+        }
+    }
+
+    private static String normalize(String email) {
+        return email == null ? "" : email.trim().toLowerCase(java.util.Locale.ROOT);
+    }
+
+    /**
+     * Le proxy de dev (ng serve) et un reverse proxy local présentent tous les clients en 127.0.0.1 :
+     * limiter cette adresse bloquerait tout le monde. En production derrière un proxy, activer
+     * {@code app.security.trust-forwarded-for} pour obtenir la vraie IP.
+     */
+    private static boolean isLoopback(String ip) {
+        return ip.equals("127.0.0.1") || ip.equals("::1") || ip.equals("0:0:0:0:0:0:0:1");
     }
 
     // ─────────────────────────────────────────────────────────────────────────

@@ -159,11 +159,11 @@ export class LoginComponent implements OnInit {
 
     // ── Étape 1 : si OTP pas encore demandé, on le demande d'abord ──────────
     if (!this.otpRequired()) {
-      this.authService.requestAdminOtp(this.email).subscribe({
+      this.authService.requestAdminOtp(this.email, this.password).subscribe({
         next: (res: any) => {
           this.isLoading = false;
           if (res?.otpRequired === true) {
-            // C'est un admin → afficher le champ OTP
+            // Compte ADMIN : mot de passe vérifié, code envoyé → afficher le champ OTP
             this.otpRequired.set(true);
             this.toast.info('Vérifiez votre boîte email — un code vous a été envoyé.');
           } else {
@@ -171,9 +171,14 @@ export class LoginComponent implements OnInit {
             this.doLogin();
           }
         },
-        error: () => {
+        error: (err) => {
           this.isLoading = false;
-          // En cas d'erreur réseau, on tente quand même la connexion normale
+          // TICK-066 : identifiants refusés (401), compte suspendu (403) ou trop de demandes (429)
+          if (err?.status === 401 || err?.status === 403 || err?.status === 429) {
+            this.toast.error(err.error?.message || 'Email ou mot de passe incorrect.');
+            return;
+          }
+          // Erreur réseau : tentative de connexion standard
           this.doLogin();
         }
       });
@@ -190,9 +195,9 @@ export class LoginComponent implements OnInit {
   }
 
   resendAdminOtp(): void {
-    this.authService.requestAdminOtp(this.email).subscribe({
+    this.authService.requestAdminOtp(this.email, this.password).subscribe({
       next: () => this.toast.info('Un nouveau code a été envoyé à votre adresse email.'),
-      error: () => this.toast.error('Impossible d\'envoyer le code. Réessayez.')
+      error: (err) => this.toast.error(err?.error?.message || 'Impossible d\'envoyer le code. Réessayez.')
     });
   }
 

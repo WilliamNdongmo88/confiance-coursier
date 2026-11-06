@@ -1324,6 +1324,17 @@ Revue du code des tickets 055 à 061 contre `PLAN_AMELIORATION.md`, puis correct
 
 ---
 
+### Session 57 — TICK-066 [BE] : OTP et 2FA admin durcis (2026-11-06)
+
+- `OtpService` : 5 essais faux maximum puis code invalidé (429 « demandez un nouveau code ») ; compteur remis à zéro à chaque nouveau code ; quotas d'envoi **1/min et 5/h par email et par IP** (Redis `otp:rl:min:*`, `otp:rl:hour:*`) → `TooManyRequestsException` (429) ; email normalisé en minuscules ; `issueOtp` (sans quota) + `consumeSendQuota`. Paramètres `app.otp.max-attempts`, `app.otp.max-sends-per-hour`.
+- IP : `ClientIpResolver` (`X-Forwarded-For` seulement si `app.security.trust-forwarded-for=true`). L'IP loopback n'est pas limitée (sinon tous les clients derrière le proxy de dev ou un reverse proxy local partageraient le quota) — en production derrière un proxy, activer `trust-forwarded-for`.
+- `AuthService` : connexion = mot de passe **d'abord**, puis OTP ; 2FA appliquée à **tout compte `role=ADMIN`** (le champ `admin.email` n'est plus utilisé pour la 2FA) ; `requestAdminOtp(email, password, ip)` vérifie le mot de passe avant tout envoi ; `resendOtp` consomme le quota avant de tester l'existence du compte (pas d'énumération via 429).
+- `POST /api/auth/admin-otp` attend désormais `{email, password}` (401 si identifiants faux) ; register et resend-otp transmettent l'IP.
+- Front : login envoie le mot de passe à `/admin-otp` et affiche les erreurs 401/403/429 ; écran OTP affiche le message serveur (minute d'attente, essais épuisés).
+- Tests : `OtpServiceTest` (9, Redis simulé), `AdminTwoFactorTest` (8) → 188 tests unitaires verts ; `BackendApplicationTests` vert.
+
+---
+
 ## 9. DOMAINES À IMPLÉMENTER (par ordre de priorité métier)
 
 ### 1. Guards Angular (prérequis avant tout)

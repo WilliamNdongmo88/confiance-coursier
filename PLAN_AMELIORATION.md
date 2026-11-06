@@ -703,6 +703,7 @@ Contrôles :
 **Validation :** E2E-5 (ci-dessous) avec horloge avancée : (a) pas de preuves puis remboursement automatique, (b) prolongation puis preuves soumises, (c) preuves partielles puis litige automatique.
 
 #### TICK-066 🟠 [BE] Durcir l'OTP et la 2FA admin — 3 h
+**Statut :** ✅ (2026-11-06, session 57)
 **Anomalie :** A-13 · **Fichiers :** `OtpService`, `AuthService`, `AuthController`
 **Critères d'acceptation :**
 - 5 essais maximum, puis l'OTP est invalidé.

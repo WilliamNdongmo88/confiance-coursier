@@ -37,9 +37,6 @@ public class AuthService {
     @Value("${jwt.refresh-expiration}")
     private long refreshExpirationMs;
 
-    @Value("${admin.email:}")
-    private String adminEmail;
-
     public AuthService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
                        JwtService jwtService,
@@ -57,6 +54,10 @@ public class AuthService {
     }
 
     public void register(RegisterRequest request) {
+        register(request, null);
+    }
+
+    public void register(RegisterRequest request, String ip) {
         // Défense en profondeur : la DTO valide déjà le rôle, mais le service
         // ne doit jamais créer un compte ADMIN quel que soit l'appelant.
         String role = request.getRole() == null ? "" : request.getRole().trim().toUpperCase(Locale.ROOT);
@@ -79,34 +80,28 @@ public class AuthService {
 
         userRepository.save(user);
 
-        // Envoie l'OTP
-        otpService.generateOtp(user.getEmail());
+        // Envoie l'OTP (quota par email et par IP — TICK-066)
+        otpService.generateOtp(user.getEmail(), ip);
     }
 
     public AuthResponse login(LoginRequest request) {
-        // ── Vérification OTP pour le compte admin ─────────────────────────────
-        boolean isAdmin = adminEmail != null
-                && !adminEmail.isBlank()
-                && adminEmail.equalsIgnoreCase(request.getEmail());
-
-        if (isAdmin) {
-            // L'OTP doit être présent et valide avant de vérifier le mot de passe
-            if (request.getOtp() == null || request.getOtp().isBlank()) {
-                throw new BusinessException("Un code OTP est requis pour la connexion administrateur.");
-            }
-            boolean otpValid = otpService.validateOtp(request.getEmail(), request.getOtp());
-            if (!otpValid) {
-                throw new BusinessException("Code OTP invalide ou expiré.");
-            }
-        }
-
-        // ── Vérification email + mot de passe ─────────────────────────────────
+        // ── 1. Mot de passe d'abord (TICK-066) : sans lui, aucun OTP n'est vérifié ni consommé ──
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
         );
 
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new BusinessException("Utilisateur non trouvé."));
+
+        // ── 2. 2FA obligatoire pour tout compte ADMIN (et plus seulement l'email configuré) ──
+        if (isAdmin(user)) {
+            if (request.getOtp() == null || request.getOtp().isBlank()) {
+                throw new BusinessException("Un code OTP est requis pour la connexion administrateur.");
+            }
+            if (!otpService.validateOtp(user.getEmail(), request.getOtp())) {
+                throw new BusinessException("Code OTP invalide ou expiré.");
+            }
+        }
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(user.getEmail());
         String accessToken = jwtService.generateToken(userDetails);
@@ -118,20 +113,24 @@ public class AuthService {
     }
 
     /**
-     * Déclenche l'envoi d'un OTP à l'adresse admin si et seulement si
-     * l'email fourni correspond au compte administrateur configuré.
+     * Étape 1 de la connexion admin (TICK-066) : le mot de passe est vérifié AVANT tout envoi d'OTP.
+     * Mauvais identifiants : 401 (même réponse qu'au login, pas d'énumération).
+     *
+     * @return {@code true} si le compte est ADMIN (un OTP vient d'être envoyé), {@code false} sinon
      */
-    public void requestAdminOtp(String email) {
-        if (isAdminEmail(email)) {
-            otpService.generateOtp(email);
+    public boolean requestAdminOtp(String email, String password, String ip) {
+        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(email, password));
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new BusinessException("Utilisateur non trouvé."));
+        if (!isAdmin(user)) {
+            return false;
         }
+        otpService.generateOtp(user.getEmail(), ip);
+        return true;
     }
 
-    /** Retourne true si l'email correspond au compte admin configuré. */
-    public boolean isAdminEmail(String email) {
-        return adminEmail != null
-                && !adminEmail.isBlank()
-                && adminEmail.equalsIgnoreCase(email);
+    private static boolean isAdmin(User user) {
+        return "ADMIN".equalsIgnoreCase(user.getRole());
     }
 
     /**
@@ -197,8 +196,14 @@ public class AuthService {
      * Silencieux si l'email est inconnu (évite l'énumération de comptes).
      */
     public void resendOtp(String email) {
+        resendOtp(email, null);
+    }
+
+    public void resendOtp(String email, String ip) {
+        // Quota consommé avant de savoir si le compte existe : un 429 ne révèle rien (TICK-066)
+        otpService.consumeSendQuota(email, ip);
         if (userRepository.existsByEmail(email)) {
-            otpService.generateOtp(email);
+            otpService.issueOtp(email);
         }
     }
 

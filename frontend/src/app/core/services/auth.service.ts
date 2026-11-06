@@ -38,9 +38,12 @@ export class AuthService {
 
   constructor(private http: HttpClient) {}
 
-  /** Demande l'envoi d'un OTP à l'email admin avant la connexion. */
-  requestAdminOtp(email: string): Observable<any> {
-    return this.http.post(`${this.apiUrl}/admin-otp`, { email });
+  /**
+   * Étape 1 de la connexion (TICK-066) : le serveur vérifie le mot de passe, puis envoie un OTP
+   * si le compte est ADMIN (otpRequired = true). 401 si identifiants incorrects, 429 si trop de demandes.
+   */
+  requestAdminOtp(email: string, password: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/admin-otp`, { email, password });
   }
 
   register(data: RegisterRequest): Observable<any> {

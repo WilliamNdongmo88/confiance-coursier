@@ -107,6 +107,13 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).body(error);
     }
 
+    // Limite de fréquence (OTP) → 429 — TICK-066
+    @ExceptionHandler(TooManyRequestsException.class)
+    public ResponseEntity<ErrorResponse> handleTooManyRequests(TooManyRequestsException ex) {
+        ErrorResponse error = new ErrorResponse(HttpStatus.TOO_MANY_REQUESTS.value(), ex.getMessage(), LocalDateTime.now());
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(error);
+    }
+
     // Modification concurrente d'une course (@Version) → 409 — TICK-060
     @ExceptionHandler(org.springframework.orm.ObjectOptimisticLockingFailureException.class)
     public ResponseEntity<ErrorResponse> handleOptimisticLock(Exception ex) {

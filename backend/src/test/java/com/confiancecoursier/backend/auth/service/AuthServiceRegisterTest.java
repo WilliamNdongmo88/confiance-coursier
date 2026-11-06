@@ -65,7 +65,7 @@ class AuthServiceRegisterTest {
         verify(userRepository).save(saved.capture());
         assertThat(saved.getValue().getRole()).isEqualTo(expected);
         assertThat(saved.getValue().getStatus()).isEqualTo("ACTIVE");
-        verify(otpService).generateOtp("user@test.com");
+        verify(otpService).generateOtp("user@test.com", null);
     }
 
     @ParameterizedTest

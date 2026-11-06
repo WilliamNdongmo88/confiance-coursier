@@ -331,7 +331,7 @@ export class OtpComponent implements OnInit, OnDestroy {
     if (!this.email) return;
     this.authService.resendOtp(this.email).subscribe({
       next:  () => this.onResendSuccess(),
-      error: () => this.toast.error('Impossible de renvoyer le code. Réessayez dans quelques instants.'),
+      error: (err) => this.toast.error(err?.error?.message || 'Impossible de renvoyer le code. Réessayez dans quelques instants.'),
     });
   }
 
@@ -345,9 +345,9 @@ export class OtpComponent implements OnInit, OnDestroy {
         this.toast.success('Téléphone vérifié ! Vous pouvez maintenant vous connecter.');
         this.router.navigate(['/login']);
       },
-      error: () => {
+      error: (err) => {
         this.loading = false;
-        this.toast.error('Code OTP invalide ou expiré. Vérifiez et réessayez.');
+        this.toast.error(err?.error?.message || 'Code OTP invalide ou expiré. Vérifiez et réessayez.');
         this.clearInputs();
         this.focusAt(0);
       },
