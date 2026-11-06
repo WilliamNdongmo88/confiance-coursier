@@ -1478,6 +1478,14 @@ Choix utilisateur : deux variantes sur deux branches, comparées visuellement av
 
 ---
 
+### Session 71 — TICK-079 [FE] : landing minimale (2026-11-06)
+
+- `features/public/landing` réécrite selon le wireframe §2.2 : en-tête + Connexion, accroche, CTA « Créer une course » (`/register?role=CLIENT`) et « Devenir coursier » (`?role=COURIER`), 4 étapes, encart séquestre (72 h), mini-FAQ (`<details>`) fidèle aux règles réelles (OVERDUE → prolonger / rembourser / litige, remboursement auto si ni preuve ni achat ; KYC ; MTN / Orange / carte). Pied : Support, « J'ai déjà un compte » — pas de lien « Mentions » (pas d'informations légales réelles).
+- Styles du composant uniquement en tokens, aucun `style=""`, cibles tactiles ≥ 44 px. Compte connecté : `guestGuard` → son espace (inchangé).
+- **Chargement à la demande** : toutes les routes en `loadComponent` sauf landing et 404 → bundle initial 1,15 Mo → **≈ 409 Ko** (111 Ko transférés).
+- Budget `anyComponentStyle` maximumError 8 → 12 kB (angular.json) : seul le chat (10,4 kB) dépassait ; à redescendre à 8 kB quand le chat sera refait (Sprints 9 à 11). Le build de production passe.
+- Lighthouse mobile ≥ 90 : à mesurer par l'utilisateur sur le build de production.
+
 ## 9. DOMAINES À IMPLÉMENTER (par ordre de priorité métier)
 
 ### 1. Guards Angular (prérequis avant tout)

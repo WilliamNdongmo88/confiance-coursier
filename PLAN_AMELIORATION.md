@@ -836,6 +836,7 @@ Contrôles :
 **Validation :** revue visuelle.
 
 #### TICK-079 🟢 [FE] Landing minimale — 3 h
+**Statut :** ✅ (2026-11-06, session 71)
 **Fichiers :** nouveau `features/public/landing`
 **Critères d'acceptation :**
 - Écran conforme au wireframe §2.2, une page.
