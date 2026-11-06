@@ -656,6 +656,7 @@ Contrôles :
 **Validation :** litige sur une course PUBLISHED → refus ; 2ᵉ litige → refus.
 
 #### TICK-063 🟠 [BE] Signalements anti-abus — 2 h
+**Statut :** ✅ (2026-11-06, session 53)
 **Anomalie :** A-16 · **Fichier :** `ReportService`
 **Critères d'acceptation :**
 - Au plus 1 signalement par paire (signaleur, cible) en 30 jours.

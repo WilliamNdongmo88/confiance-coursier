@@ -1259,6 +1259,18 @@ Revue du code des tickets 055 à 061 contre `PLAN_AMELIORATION.md`, puis correct
 
 ---
 
+### Session 53 — TICK-063 [BE] : signalements anti-abus (2026-11-06)
+
+- `ReportService.submitReport` : un seul signalement par paire (signaleur, cible) sur 30 jours glissants → 409 sinon (`existsByReporterIdAndTargetIdAndCreatedAtAfter`).
+- Suspension automatique : `countDistinctReportersWithSharedCourse` (JPQL) compte les **signaleurs distincts** de la fenêtre ayant une course commune avec la cible (client ↔ coursier) ; signalements rejetés (`decision = REJET`) exclus ; seuil 3.
+- ADMIN exclus de la suspension automatique et de la décision SUSPENSION d'un signalement ; compte déjà suspendu non re-notifié.
+- Toute suspension (auto ou décision admin sur signalement) appelle `AuthService.revokeSessions` (TICK-053).
+- Horloge injectable (`Clock`) pour tester la fenêtre de 30 jours.
+- Tests : `ReportAntiAbuseTest` (8 cas) → 128 tests unitaires verts ; `BackendApplicationTests` vert (requête JPQL validée au démarrage). La requête elle-même sera couverte sur une vraie base avec Testcontainers (TICK-096).
+- Limite connue : deux envois simultanés du même signaleur peuvent passer le contrôle de doublon (pas de contrainte SQL possible sur une fenêtre glissante) ; impact faible, le comptage reste par signaleur distinct.
+
+---
+
 ## 9. DOMAINES À IMPLÉMENTER (par ordre de priorité métier)
 
 ### 1. Guards Angular (prérequis avant tout)
