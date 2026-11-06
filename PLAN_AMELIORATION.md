@@ -732,6 +732,7 @@ Contrôles :
 **Validation :** démarrage en profil prod sans `.env` → échec explicite sur les variables manquantes.
 
 #### TICK-069 🟡 [BE] Migration V10 : index, contraintes et suppression de course — 3 h
+**Statut :** ✅ (2026-11-06, session 60) — migration livrée en V18 (V10→V17 déjà prises)
 **Anomalie :** A-29 · **Fichiers :** `V10__…sql` (ou V11 si V10 est pris par TICK-058), `CourseService.delete`, requêtes N+1 (`CourseService`, `AdminKycController`)
 **Critères d'acceptation :**
 - Index listés en A-29 créés.

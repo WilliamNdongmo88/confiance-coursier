@@ -1,0 +1,138 @@
+package com.confiancecoursier.backend.course;
+
+import com.confiancecoursier.backend.chat.domain.ChatRoom;
+import com.confiancecoursier.backend.chat.repository.ChatRoomRepository;
+import com.confiancecoursier.backend.course.api.dto.CourseResponse;
+import com.confiancecoursier.backend.course.domain.Course;
+import com.confiancecoursier.backend.course.domain.CourseOffer;
+import com.confiancecoursier.backend.course.repository.CourseOfferRepository;
+import com.confiancecoursier.backend.course.repository.CourseRepository;
+import com.confiancecoursier.backend.course.service.CourseService;
+import com.confiancecoursier.backend.shared.exception.ConflictException;
+import com.confiancecoursier.backend.shared.exception.ForbiddenException;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
+/** TICK-069 — annulation douce d'une course et listes sans N+1. */
+class CourseServiceTest {
+
+    private CourseRepository courses;
+    private ChatRoomRepository rooms;
+    private CourseOfferRepository offers;
+    private CourseService service;
+    private Course course;
+    private ChatRoom room1, room2;
+    private CourseOffer active, superseded;
+
+    @BeforeEach
+    void setUp() {
+        courses = mock(CourseRepository.class);
+        rooms = mock(ChatRoomRepository.class);
+        offers = mock(CourseOfferRepository.class);
+        service = new CourseService(courses, rooms, offers);
+
+        course = Course.builder().id(100L).clientId(1L).description("Pharmacie").status("PUBLISHED").build();
+        when(courses.findByIdForUpdate(100L)).thenReturn(Optional.of(course));
+
+        room1 = ChatRoom.builder().id(10L).courseId(100L).clientId(1L).courierId(2L).isArchived(false).build();
+        room2 = ChatRoom.builder().id(11L).courseId(100L).clientId(1L).courierId(3L).isArchived(false).build();
+        when(rooms.findByCourseId(100L)).thenReturn(List.of(room1, room2));
+
+        active = CourseOffer.builder().id(40L).courseId(100L).courierId(2L).amount(new BigDecimal("6000")).status("ACTIVE").build();
+        superseded = CourseOffer.builder().id(41L).courseId(100L).courierId(2L).amount(new BigDecimal("7000")).status("SUPERSEDED").build();
+        when(offers.findByCourseId(100L)).thenReturn(List.of(active, superseded));
+    }
+
+    // ── Annulation ───────────────────────────────────────────────────────────
+
+    @Test
+    void deletingPublishedCourseWithConversationsCancelsItInsteadOfFailing() {
+        service.deleteCourse(100L, 1L);
+
+        assertThat(course.getStatus()).isEqualTo("CANCELLED");
+        verify(courses, never()).delete(any());
+        assertThat(active.getStatus()).isEqualTo("REJECTED");
+        assertThat(superseded.getStatus()).isEqualTo("SUPERSEDED"); // historique conservé
+        assertThat(room1.getIsArchived()).isTrue();
+        assertThat(room2.getIsArchived()).isTrue();
+        verify(courses).findByIdForUpdate(100L);
+    }
+
+    @Test
+    void assignedButUnpaidCourseCanBeCancelled() {
+        course.setStatus("ASSIGNED");
+        service.deleteCourse(100L, 1L);
+        assertThat(course.getStatus()).isEqualTo("CANCELLED");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"IN_PROGRESS", "OVERDUE", "PROOFS_SUBMITTED", "DISPUTED", "COMPLETED", "REFUNDED"})
+    void paidCourseCannotBeCancelled(String status) {
+        course.setStatus(status);
+        assertThatThrownBy(() -> service.deleteCourse(100L, 1L)).isInstanceOf(ConflictException.class);
+        assertThat(course.getStatus()).isEqualTo(status);
+    }
+
+    @Test
+    void courseWithFundsHeldCannotBeCancelledEvenIfStatusLooksUnpaid() {
+        course.setStatus("ASSIGNED");
+        course.setEscrowStatus("HELD");
+        assertThatThrownBy(() -> service.deleteCourse(100L, 1L)).isInstanceOf(ConflictException.class);
+    }
+
+    @Test
+    void cancellationIsIdempotentAndOwnerOnly() {
+        assertThatThrownBy(() -> service.deleteCourse(100L, 9L)).isInstanceOf(ForbiddenException.class);
+        service.deleteCourse(100L, 1L);
+        service.deleteCourse(100L, 1L); // déjà annulée : sans erreur
+        assertThat(course.getStatus()).isEqualTo("CANCELLED");
+    }
+
+    // ── Listes sans N+1 ──────────────────────────────────────────────────────
+
+    @Test
+    void clientListLoadsAllRoomsInOneQuery() {
+        Course other = Course.builder().id(200L).clientId(1L).courierId(5L).description("x").status("IN_PROGRESS").build();
+        when(courses.findByClientIdOrderByCreatedAtDesc(1L)).thenReturn(List.of(course, other));
+        ChatRoom assignedRoom = ChatRoom.builder().id(20L).courseId(200L).clientId(1L).courierId(5L).build();
+        ChatRoom otherCourierRoom = ChatRoom.builder().id(21L).courseId(200L).clientId(1L).courierId(6L).build();
+        when(rooms.findByCourseIdIn(anyCollection())).thenReturn(List.of(room1, room2, otherCourierRoom, assignedRoom));
+
+        List<CourseResponse> list = service.getMyCourses(1L);
+
+        assertThat(list).extracting(CourseResponse::getChatRoomId).containsExactly(10L, 20L);
+        verify(rooms, times(1)).findByCourseIdIn(anyCollection());
+        verify(rooms, never()).findByCourseId(anyLong());
+        verify(rooms, never()).findByCourseIdAndCourierId(anyLong(), anyLong());
+    }
+
+    @Test
+    void courierMissionsLoadCoursesInBatch() {
+        Course assigned = Course.builder().id(300L).clientId(1L).courierId(2L).description("a").status("IN_PROGRESS").build();
+        Course negotiating = Course.builder().id(100L).clientId(1L).description("b").status("PUBLISHED")
+                .createdAt(LocalDateTime.now()).build();
+        when(courses.findByCourierIdOrderByCreatedAtDesc(2L)).thenReturn(List.of(assigned));
+        when(rooms.findByCourierId(2L)).thenReturn(List.of(
+                ChatRoom.builder().id(30L).courseId(300L).clientId(1L).courierId(2L).build(), room1));
+        when(courses.findAllById(List.of(100L))).thenReturn(List.of(negotiating));
+
+        List<CourseResponse> list = service.getMyMissions(2L);
+
+        assertThat(list).extracting(CourseResponse::getId).containsExactly(300L, 100L);
+        assertThat(list).extracting(CourseResponse::getChatRoomId).containsExactly(30L, 10L);
+        verify(courses, never()).findById(anyLong());
+        verify(rooms, never()).findByCourseIdAndCourierId(anyLong(), anyLong());
+    }
+}

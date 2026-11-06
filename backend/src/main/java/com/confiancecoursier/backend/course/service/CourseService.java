@@ -1,10 +1,12 @@
 package com.confiancecoursier.backend.course.service;
 
-
-
+import com.confiancecoursier.backend.chat.domain.ChatRoom;
+import com.confiancecoursier.backend.chat.repository.ChatRoomRepository;
+import com.confiancecoursier.backend.course.domain.CourseOffer;
+import com.confiancecoursier.backend.course.repository.CourseOfferRepository;
+import com.confiancecoursier.backend.shared.exception.ConflictException;
 import com.confiancecoursier.backend.shared.exception.ForbiddenException;
 import com.confiancecoursier.backend.shared.exception.NotFoundException;
-import com.confiancecoursier.backend.chat.repository.ChatRoomRepository;
 import com.confiancecoursier.backend.course.api.dto.CreateCourseRequest;
 import com.confiancecoursier.backend.course.api.dto.CourseResponse;
 import com.confiancecoursier.backend.course.domain.Course;
@@ -14,6 +16,7 @@ import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -21,10 +24,13 @@ public class CourseService {
 
     private final CourseRepository courseRepository;
     private final ChatRoomRepository chatRoomRepository;
+    private final CourseOfferRepository offerRepository;
 
-    public CourseService(CourseRepository courseRepository, ChatRoomRepository chatRoomRepository) {
+    public CourseService(CourseRepository courseRepository, ChatRoomRepository chatRoomRepository,
+                         CourseOfferRepository offerRepository) {
         this.courseRepository = courseRepository;
         this.chatRoomRepository = chatRoomRepository;
+        this.offerRepository = offerRepository;
     }
 
     public CourseResponse createCourse(Long clientId, CreateCourseRequest request) {
@@ -40,22 +46,28 @@ public class CourseService {
         return CourseResponse.fromEntity(savedCourse);
     }
 
+    /** TICK-069 : 2 requêtes au total (courses, puis tous leurs salons) au lieu d'une par course. */
     public List<CourseResponse> getMyCourses(Long clientId) {
-        return courseRepository.findByClientIdOrderByCreatedAtDesc(clientId)
+        List<Course> courses = courseRepository.findByClientIdOrderByCreatedAtDesc(clientId);
+        if (courses.isEmpty()) return List.of();
+
+        Map<Long, List<ChatRoom>> roomsByCourse = chatRoomRepository
+                .findByCourseIdIn(courses.stream().map(Course::getId).toList())
                 .stream()
-                .map(course -> {
-                    Long chatRoomId = resolveChatRoomId(course);
-                    return CourseResponse.fromEntity(course, chatRoomId);
-                })
+                .collect(Collectors.groupingBy(ChatRoom::getCourseId));
+
+        return courses.stream()
+                .map(course -> CourseResponse.fromEntity(course,
+                        pickRoom(course, roomsByCourse.getOrDefault(course.getId(), List.of()))))
                 .collect(Collectors.toList());
     }
 
     public List<CourseResponse> getPublishedCourses(Long courierId) {
         // Récupérer les IDs des courses où ce coursier a déjà une ChatRoom (offre déjà faite)
-        List<Long> alreadyEngagedCourseIds = chatRoomRepository.findByCourierId(courierId)
+        java.util.Set<Long> alreadyEngagedCourseIds = chatRoomRepository.findByCourierId(courierId)
                 .stream()
-                .map(room -> room.getCourseId())
-                .toList();
+                .map(ChatRoom::getCourseId)
+                .collect(Collectors.toSet());
 
         return courseRepository.findByStatusOrderByCreatedAtDesc("PUBLISHED")
                 .stream()
@@ -86,21 +98,43 @@ public class CourseService {
         return CourseResponse.fromEntity(updated, resolveChatRoomId(updated));
     }
 
+    /**
+     * « Supprimer » une course = l'annuler (TICK-069) : suppression douce en CANCELLED.
+     * La suppression physique échouait (500) dès qu'un salon de chat ou une offre référençait la course.
+     * Possible avant paiement uniquement (PUBLISHED ou ASSIGNED, aucun fonds en séquestre) ;
+     * les offres encore actives sont rejetées et les conversations archivées (lecture seule).
+     */
     @Transactional
     public void deleteCourse(Long courseId, Long clientId) {
-        Course course = courseRepository.findById(courseId)
+        Course course = courseRepository.findByIdForUpdate(courseId)
                 .orElseThrow(() -> new NotFoundException("Course non trouvée."));
 
         if (!course.getClientId().equals(clientId)) {
             throw new ForbiddenException("Vous n'êtes pas le propriétaire de cette course.");
         }
-
-        if (!"PUBLISHED".equals(course.getStatus())) {
-            throw new BusinessException("Impossible de supprimer une course qui n'est plus au statut PUBLISHED.");
+        if ("CANCELLED".equals(course.getStatus())) {
+            return; // idempotent
+        }
+        if (!CANCELLABLE_STATUSES.contains(course.getStatus()) || course.getEscrowStatus() != null) {
+            throw new ConflictException("Impossible d'annuler une course déjà payée (statut : " + course.getStatus()
+                    + "). En cas de problème, ouvrez un litige.");
         }
 
-        courseRepository.delete(course);
+        for (CourseOffer offer : offerRepository.findByCourseId(courseId)) {
+            if ("ACTIVE".equals(offer.getStatus()) || "ACCEPTED".equals(offer.getStatus())) {
+                offer.setStatus("REJECTED");
+                offerRepository.save(offer);
+            }
+        }
+        for (ChatRoom room : chatRoomRepository.findByCourseId(courseId)) {
+            room.setIsArchived(true);
+            chatRoomRepository.save(room);
+        }
+        course.setStatus("CANCELLED");
+        courseRepository.save(course);
     }
+
+    static final java.util.Set<String> CANCELLABLE_STATUSES = java.util.Set.of("PUBLISHED", "ASSIGNED");
 
     /**
      * Retourne le détail d'une course.
@@ -129,12 +163,18 @@ public class CourseService {
 
         // 2. Courses où le coursier a une ChatRoom (offre faite, client pas encore payé)
         //    On inclut ces courses pour que le bouton Chat apparaisse dès l'envoi de l'offre
-        List<Long> assignedIds = assigned.stream().map(Course::getId).toList();
-        List<Course> chatCourses = chatRoomRepository.findByCourierId(courierId)
-                .stream()
-                .map(room -> courseRepository.findById(room.getCourseId()).orElse(null))
-                .filter(c -> c != null && !assignedIds.contains(c.getId()))
-                .toList();
+        //    TICK-069 : salons et courses chargés en lot (3 requêtes au total, plus de N+1)
+        java.util.Set<Long> assignedIds = assigned.stream().map(Course::getId).collect(Collectors.toSet());
+        List<ChatRoom> rooms = chatRoomRepository.findByCourierId(courierId);
+        Map<Long, Long> roomIdByCourse = rooms.stream()
+                .collect(Collectors.toMap(ChatRoom::getCourseId, ChatRoom::getId, (a, b) -> a));
+        List<Long> chatOnlyIds = rooms.stream().map(ChatRoom::getCourseId)
+                .filter(id -> !assignedIds.contains(id)).distinct().toList();
+        List<Course> chatCourses = chatOnlyIds.isEmpty() ? List.of()
+                : courseRepository.findAllById(chatOnlyIds).stream()
+                        .sorted(java.util.Comparator.comparing(Course::getCreatedAt,
+                                java.util.Comparator.nullsLast(java.util.Comparator.reverseOrder())))
+                        .toList();
 
         // 3. Fusionner les deux listes (assigned en premier)
         List<Course> all = new java.util.ArrayList<>();
@@ -142,13 +182,7 @@ public class CourseService {
         all.addAll(chatCourses);
 
         return all.stream()
-                .map(course -> {
-                    Long chatRoomId = chatRoomRepository
-                            .findByCourseIdAndCourierId(course.getId(), courierId)
-                            .map(r -> r.getId())
-                            .orElse(null);
-                    return CourseResponse.fromEntity(course, chatRoomId);
-                })
+                .map(course -> CourseResponse.fromEntity(course, roomIdByCourse.get(course.getId())))
                 .collect(Collectors.toList());
     }
 
@@ -158,18 +192,15 @@ public class CourseService {
      * Sinon, on cherche la première room disponible (cas course avec une seule offre).
      */
     private Long resolveChatRoomId(Course course) {
+        return pickRoom(course, chatRoomRepository.findByCourseId(course.getId()));
+    }
+
+    /** Salon à afficher : celui du coursier assigné, sinon le premier ouvert (règle inchangée). */
+    private static Long pickRoom(Course course, List<ChatRoom> rooms) {
         if (course.getCourierId() != null) {
-            return chatRoomRepository
-                    .findByCourseIdAndCourierId(course.getId(), course.getCourierId())
-                    .map(r -> r.getId())
-                    .orElse(null);
+            return rooms.stream().filter(r -> course.getCourierId().equals(r.getCourierId()))
+                    .findFirst().map(ChatRoom::getId).orElse(null);
         }
-        // Pas encore de coursier assigné : on prend la première room disponible (s'il y en a une)
-        return chatRoomRepository
-                .findByCourseId(course.getId())
-                .stream()
-                .findFirst()
-                .map(r -> r.getId())
-                .orElse(null);
+        return rooms.stream().findFirst().map(ChatRoom::getId).orElse(null);
     }
 }

@@ -58,9 +58,15 @@ public class AdminKycController {
 
         List<KycSubmission> submissions = kycService.getAllKycByStatus(status);
 
+        // TICK-069 : un seul SELECT pour tous les utilisateurs (au lieu d'un par soumission)
+        java.util.Map<Long, User> usersById = userRepository
+                .findAllById(submissions.stream().map(KycSubmission::getUserId).distinct().toList())
+                .stream()
+                .collect(java.util.stream.Collectors.toMap(User::getId, u -> u));
+
         List<AdminKycResponse> response = submissions.stream()
                 .map(sub -> {
-                    User user = userRepository.findById(sub.getUserId()).orElse(null);
+                    User user = usersById.get(sub.getUserId());
                     String frontUrl  = presignedUrl(sub.getFrontFileKey());
                     String backUrl   = presignedUrl(sub.getBackFileKey());
                     String selfieUrl = presignedUrl(sub.getSelfieFileKey());

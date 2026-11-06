@@ -1363,6 +1363,16 @@ Revue du code des tickets 055 à 061 contre `PLAN_AMELIORATION.md`, puis correct
 
 ---
 
+### Session 60 — TICK-069 [BE] : index, contraintes et suppression de course (2026-11-06)
+
+- Migration `V18__indexes.sql` (14 index) : `courses(client_id, created_at)`, `courses(courier_id, created_at)`, `course_offers(course_id, status)`, `course_offers(courier_id)`, `chat_rooms(courier_id)`, `chat_rooms(client_id)`, `escrow_ledger(course_id)`, `escrow_ledger(entry_type, created_at)`, `disputes(course_id)`, `disputes(status)`, `reports(target_id, created_at)`, `reports(reporter_id, target_id, created_at)`, `reports(status)`, `users(role, status, kyc_status)`. Contraintes déjà en place : offre ACTIVE unique (V10), litige OPEN unique (V14), salon `(course_id, courier_id)` unique (V2).
+- `DELETE /api/courses/{id}` = **annulation douce** : course → CANCELLED sous verrou (plus de 500 FK), offres ACTIVE/ACCEPTED → REJECTED, salons archivés (lecture seule) ; possible en PUBLISHED ou ASSIGNED sans fonds en séquestre (409 sinon) ; idempotent ; propriétaire seulement (403).
+- N+1 supprimés : `CourseService.getMyCourses` (salons en lot via `ChatRoomRepository.findByCourseIdIn`), `getMyMissions` (courses en lot via `findAllById`, salons indexés par course), `getPublishedCourses` (Set), `AdminKycController.listKyc` (utilisateurs en lot).
+- Correctif lié à la revue TICK-057 : `GET /api/users/couriers` ne renvoie plus que les coursiers **KYC APPROVED** (les autres ne pouvaient de toute façon pas être contactés).
+- Tests : `CourseServiceTest` (12 : annulation, refus après paiement, idempotence, nombre de requêtes des listes) → 243 tests unitaires verts ; `BackendApplicationTests` vert (V18 appliquée, 14 index vérifiés en base).
+
+---
+
 ## 9. DOMAINES À IMPLÉMENTER (par ordre de priorité métier)
 
 ### 1. Guards Angular (prérequis avant tout)

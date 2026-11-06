@@ -99,7 +99,8 @@ public class UserController {
     @GetMapping("/couriers")
     public ResponseEntity<List<CourierSummaryResponse>> getAvailableCouriers() {
         List<CourierSummaryResponse> couriers = userRepository
-                .findByRoleAndStatusOrderByTrustScoreDesc("COURIER", "ACTIVE")
+                // Seuls les coursiers KYC APPROVED peuvent être contactés (POST /conversations le refuse sinon)
+                .findByRoleAndStatusAndKycStatusOrderByTrustScoreDesc("COURIER", "ACTIVE", "APPROVED")
                 .stream()
                 .map(CourierSummaryResponse::fromUser)
                 .toList();
