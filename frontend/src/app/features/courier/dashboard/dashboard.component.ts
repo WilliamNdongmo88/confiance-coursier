@@ -1,6 +1,6 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { DatePipe, SlicePipe } from '@angular/common';
+import { DatePipe, DecimalPipe, SlicePipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { CourseService } from '../../../core/services/course.service';
 import { AuthService } from '../../../core/services/auth.service';
@@ -31,6 +31,7 @@ import {
   imports: [
     RouterLink,
     DatePipe,
+    DecimalPipe,
     SlicePipe,
     StatusBadgeComponent,
     EmptyStateComponent,
@@ -49,6 +50,10 @@ import {
     LucideCheck,
   ],
   styles: [`
+    .metric-unit { font-size: 12px; color: var(--cc-muted); font-weight: 650; }
+    .trust-panel { padding: 17px; }
+    .trust-title { display: block; font-size: 13px; color: var(--cc-ink); margin-bottom: 6px; }
+    .trust-text { font-size: 12px; line-height: 1.55; color: var(--cc-muted); margin: 0 0 11px; }
     /* ── Bannière KYC ── */
     .kyc-banner {
       display: flex;
@@ -294,10 +299,11 @@ import {
           <span class="metric-icon"><svg lucideWallet size="17"></svg></span>
           <div>
             <span class="metric-label">Revenus ce mois</span>
+            <!-- TICK-078 : somme réelle des nets des courses terminées ce mois-ci (montants serveur) -->
             <strong class="metric-value">
-              — <span style="font-size:12px;color:#839087;font-weight:650">XAF</span>
+              {{ monthEarnings() | number:'1.0-0' }} <span class="metric-unit">XAF</span>
             </strong>
-            <div class="metric-note">Après frais de service</div>
+            <div class="metric-note">Net après commission, hors remboursement d'achats</div>
           </div>
         </article>
         <article class="metric-card">
@@ -312,10 +318,15 @@ import {
           <span class="metric-icon"><svg lucideStar size="17"></svg></span>
           <div>
             <span class="metric-label">Note moyenne</span>
+            <!-- TICK-078 : note réelle (moyenne de tous les avis reçus), affichée seulement s'il y a des avis -->
             <strong class="metric-value">
-              — <span style="font-size:12px;color:#839087;font-weight:650">/ 5</span>
+              @if (reviewCount() > 0) {
+                {{ trustScore() | number:'1.1-1' }} <span class="metric-unit">/ 5</span>
+              } @else {
+                <span class="metric-unit">Pas encore d'avis</span>
+              }
             </strong>
-            <div class="metric-note">Sur vos 30 dernières courses</div>
+            <div class="metric-note">{{ reviewCount() > 0 ? 'Sur ' + reviewCount() + ' avis' : 'Les clients vous noteront après chaque course' }}</div>
           </div>
         </article>
       </section>
@@ -392,8 +403,9 @@ import {
           <section class="panel">
             <div class="panel-head">
               <div>
-                <h2>Nouvelles demandes près de vous</h2>
-                <p>Des missions correspondent à votre zone d'intervention</p>
+                <!-- TICK-078 : pas encore de filtrage par zone (TICK-085/089) — libellé fidèle -->
+                <h2>Nouvelles demandes</h2>
+                <p>Demandes publiées par les clients, ouvertes aux propositions</p>
               </div>
               @if (publishedCourses.length > 0) {
                 <span class="status-badge status-badge--success">{{ publishedCourses.length }} nouvelle{{ publishedCourses.length > 1 ? 's' : '' }}</span>
@@ -438,7 +450,7 @@ import {
           <!-- Gains -->
           <article class="dark-card">
             <small>Vos gains · ce mois-ci</small>
-            <strong>— XAF</strong>
+            <strong>{{ monthEarnings() | number:'1.0-0' }} XAF</strong>
             <p>Les fonds sont versés après validation de la course.</p>
             <a routerLink="/courier/earnings">
               Consulter le détail
@@ -446,31 +458,15 @@ import {
             </a>
           </article>
 
-          <!-- Profil de confiance -->
-          <article class="panel" style="padding:17px">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-              <strong style="font-size:13px;color:#304237">Profil de confiance</strong>
-              <span style="color:#8a958d;font-size:12px">
-                {{ kycStatus() === 'APPROVED' ? '2 / 4 étapes' : '1 / 4 étapes' }}
-              </span>
-            </div>
-            <div class="progressbar">
-              <div class="progressbar-fill"
-                   [style.width]="kycStatus() === 'APPROVED' ? '50%' : '25%'"></div>
-            </div>
+          <!-- Vérification d'identité — TICK-078 : état KYC réel (plus de faux score « 2 / 4 étapes ») -->
+          <article class="panel trust-panel">
+            <strong class="trust-title">Vérification d'identité</strong>
             @if (kycStatus() === 'APPROVED') {
-              <p style="font-size:12px;line-height:1.55;color:#7c8980;margin:0 0 11px">
-                Identité vérifiée ✓ Continuez à compléter votre profil pour augmenter votre score.
-              </p>
-              <a class="text-link" routerLink="/courier/profile">Compléter mon profil →</a>
+              <p class="trust-text">Identité vérifiée ✓ Vous pouvez proposer vos tarifs.</p>
             } @else if (kycStatus() === 'PENDING') {
-              <p style="font-size:12px;line-height:1.55;color:#7c8980;margin:0">
-                Dossier en cours d'examen. Vous serez notifié dès la validation.
-              </p>
+              <p class="trust-text">Dossier en cours d'examen. Vous serez notifié dès la validation.</p>
             } @else {
-              <p style="font-size:12px;line-height:1.55;color:#7c8980;margin:0 0 11px">
-                Ajoutez les preuves KYC pour débloquer toutes les missions.
-              </p>
+              <p class="trust-text">Vérifiez votre identité pour pouvoir proposer vos tarifs.</p>
               <a class="text-link" routerLink="/courier/kyc">Terminer ma vérification →</a>
             }
           </article>
@@ -544,6 +540,11 @@ export class CourierDashboardComponent implements OnInit {
     return this.authService.getCurrentUserEmail().split('@')[0] || 'vous';
   }
 
+  /** TICK-078 : métriques réelles. */
+  readonly monthEarnings = signal(0);
+  readonly trustScore = signal(0);
+  readonly reviewCount = signal(0);
+
   /** États des chargements principaux (TICK-077). */
   readonly missionsLoading = signal(true);
   readonly missionsError = signal(false);
@@ -553,7 +554,11 @@ export class CourierDashboardComponent implements OnInit {
   ngOnInit(): void {
     // 1. Profil (secondaire) : statut KYC réel — en cas d'échec, la bannière KYC reste affichée par prudence
     this.http.get<any>('/api/users/me').subscribe({
-      next: (profile) => this.kycStatus.set(profile.kycStatus || 'NONE'),
+      next: (profile) => {
+        this.kycStatus.set(profile.kycStatus || 'NONE');
+        this.trustScore.set(Number(profile.trustScore ?? 0));
+        this.reviewCount.set(Number(profile.reviewCount ?? 0));
+      },
       error: warnLoadFailed('profil coursier (statut KYC)', 'bannière KYC affichée'),
     });
     this.loadMissions();
@@ -568,6 +573,12 @@ export class CourierDashboardComponent implements OnInit {
       next: (list: any[]) => {
         this.myMissions    = list.filter(c => c.status !== 'COMPLETED' || c.reviewDue);
         this.completedCount = list.filter(c => c.status === 'COMPLETED').length;
+        // Net réellement versé ce mois-ci (montants figés au paiement — TICK-070), hors remboursement d'achats
+        const now = new Date();
+        this.monthEarnings.set(list
+          .filter(c => c.status === 'COMPLETED' && c.courierAmount != null && c.completedAt)
+          .filter(c => { const d = new Date(c.completedAt); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(); })
+          .reduce((sum, c) => sum + Number(c.courierAmount) - Number(c.realCosts ?? 0), 0));
         this.missionsLoading.set(false);
       },
       error: () => { this.missionsLoading.set(false); this.missionsError.set(true); },

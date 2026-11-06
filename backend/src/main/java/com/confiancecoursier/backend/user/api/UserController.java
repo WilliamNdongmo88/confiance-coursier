@@ -28,9 +28,19 @@ import java.util.List;
 public class UserController {
 
     private final UserRepository userRepository;
+    private final com.confiancecoursier.backend.review.repository.ReviewRepository reviewRepository;
 
-    public UserController(UserRepository userRepository) {
+    public UserController(UserRepository userRepository,
+                          com.confiancecoursier.backend.review.repository.ReviewRepository reviewRepository) {
         this.userRepository = userRepository;
+        this.reviewRepository = reviewRepository;
+    }
+
+    /** Profil + nombre d'avis reçus (TICK-078 : la note n'est affichée que s'il existe des avis). */
+    private UserProfileResponse profileOf(User user) {
+        UserProfileResponse r = UserProfileResponse.fromUser(user);
+        r.setReviewCount(reviewRepository.countByTargetId(user.getId()));
+        return r;
     }
 
     // ─── Profil personnel ─────────────────────────────────────────────────────
@@ -44,7 +54,7 @@ public class UserController {
     @GetMapping("/me")
     public ResponseEntity<UserProfileResponse> getMyProfile(Principal principal) {
         User user = resolveUser(principal);
-        return ResponseEntity.ok(UserProfileResponse.fromUser(user));
+        return ResponseEntity.ok(profileOf(user));
     }
 
     /**
@@ -81,7 +91,7 @@ public class UserController {
         }
 
         userRepository.save(user);
-        return ResponseEntity.ok(UserProfileResponse.fromUser(user));
+        return ResponseEntity.ok(profileOf(user));
     }
 
     // ─── Coursiers disponibles ────────────────────────────────────────────────

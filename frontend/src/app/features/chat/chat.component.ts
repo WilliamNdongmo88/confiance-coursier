@@ -652,9 +652,9 @@ interface ChatMsg {
             <div class="chat-title-wrapper">
               <div class="chat-title">
                 {{ correspondentName }}
-                <span class="badge-verified">
-                  <svg lucideShieldCheck size="10"></svg> Vérifié
-                </span>
+                @if (isCLIENT && courierVerified) {
+                  <span class="badge-verified"><svg lucideShieldCheck size="10"></svg> Vérifié</span>
+                }
               </div>
               <div class="chat-subtitle">Salle #{{ roomId }}</div>
             </div>
@@ -872,6 +872,8 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   /** Autre participant du salon (cible d'un signalement) — TICK-071. */
   otherUserId: number | null = null;
+  /** KYC du coursier du salon validé (TICK-078). */
+  courierVerified = false;
   readonly moreOpen = signal(false);
   /** TICK-073 : course terminée que le coursier doit noter avant toute nouvelle offre. */
   pendingReviewCourseId: number | null = null;
@@ -920,6 +922,8 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         this.courseId = room.courseId ?? 0;
         // Stocker le statut de la course (pilote la visibilité des boutons TICK-059)
         this.courseStatus = room.courseStatus ?? '';
+        // TICK-078 : « Vérifié » uniquement si le KYC du coursier est réellement validé
+        this.courierVerified = room.courierVerified === true;
         // Le correspondant = l'autre participant (pas soi-même)
         this.otherUserId = (this.isCOURIER ? room.clientId : room.courierId) ?? null;
         if (this.isCOURIER) {

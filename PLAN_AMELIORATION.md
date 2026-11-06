@@ -828,6 +828,7 @@ Contrôles :
 **Validation :** couper le backend → états d'erreur visibles partout.
 
 #### TICK-078 🟡 [FE] Retirer les éléments factices — 1,5 h
+**Statut :** ✅ (2026-11-06, session 70)
 **Anomalie :** A-36 · **Fichiers :** login, otp, forgot-password (toggle FR/EN), chat (badge Vérifié), dashboard coursier (score 2/4), dashboard client et admin (métriques « — »)
 **Critères d'acceptation :**
 - Aucun élément affiché sans donnée réelle.

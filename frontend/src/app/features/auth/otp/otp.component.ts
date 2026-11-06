@@ -30,9 +30,6 @@ import { LucideArrowLeft, LucideBike, LucideMoon, LucideSun } from '@lucide/angu
 
         <!-- Contrôles thème / langue (absolu, haut-droite) -->
         <div class="top-controls">
-          <button class="lang-toggle" type="button" aria-label="Changer de langue" (click)="toggleLang()">
-            {{ lang().toUpperCase() }}
-          </button>
           <button class="theme-toggle" type="button"
             [attr.aria-label]="theme.isDarkMode() ? 'Activer le thème clair' : 'Activer le thème sombre'"
             (click)="theme.toggleTheme()">
@@ -213,7 +210,6 @@ export class OtpComponent implements OnInit, OnDestroy {
   private timerInterval: ReturnType<typeof setInterval> | null = null;
 
   readonly theme = inject(ThemeService);
-  readonly lang  = signal<string>(localStorage.getItem('lang') || 'fr');
 
   private route       = inject(ActivatedRoute);
   private router      = inject(Router);
@@ -363,12 +359,6 @@ export class OtpComponent implements OnInit, OnDestroy {
     });
   }
 
-  toggleLang(): void {
-    const next = this.lang() === 'fr' ? 'en' : 'fr';
-    this.lang.set(next);
-    localStorage.setItem('lang', next);
-    document.documentElement.lang = next;
-  }
 
   // ─── Privé ───────────────────────────────────────────────────────────────
 

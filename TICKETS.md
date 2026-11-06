@@ -1119,6 +1119,7 @@ Le flux d'offre doit passer par le chat (spec fonctionnelle §2.1). Le coursier 
 | TICK-075 | 🟠 [FE] Shell unique et barre de navigation basse par rôle | ✅ |
 | TICK-076 | 🟠 [FE] Assainir le CSS et les cibles tactiles | ✅ (variante 1 retenue — reste du nettoyage aux Sprints 9-11) |
 | TICK-077 | 🟡 [FE] Helper de statut et composants d'état partagés | ✅ |
+| TICK-078 | 🟡 [FE] Retirer les éléments factices | ✅ |
 
 > 2026-11-05 — TICK-055 → TICK-061 revus et corrigés (session 51, voir `AGENT_CONTEXT.md` §7 et `PLAN_AMELIORATION.md` §1.4).
 

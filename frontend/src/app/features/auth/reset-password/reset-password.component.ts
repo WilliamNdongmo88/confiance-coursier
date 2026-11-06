@@ -20,9 +20,6 @@ import { LucideArrowLeft, LucideBike, LucideMoon, LucideSun, LucideEye, LucideEy
             <svg lucideArrowLeft size="16"></svg> Retour
           </a>
           <div class="top-controls">
-            <button class="lang-toggle" type="button" aria-label="Changer de langue" (click)="toggleLang()">
-              {{ lang().toUpperCase() }}
-            </button>
             <button class="theme-toggle" type="button"
               [attr.aria-label]="theme.isDarkMode() ? 'Activer le thème clair' : 'Activer le thème sombre'"
               (click)="theme.toggleTheme()">
@@ -155,7 +152,6 @@ export class ResetPasswordComponent implements OnInit {
   success = false;
 
   readonly theme = inject(ThemeService);
-  readonly lang  = signal<string>(localStorage.getItem('lang') || 'fr');
   private route  = inject(ActivatedRoute);
   private router = inject(Router);
   private http   = inject(HttpClient);
@@ -188,10 +184,4 @@ export class ResetPasswordComponent implements OnInit {
     });
   }
 
-  toggleLang(): void {
-    const next = this.lang() === 'fr' ? 'en' : 'fr';
-    this.lang.set(next);
-    localStorage.setItem('lang', next);
-    document.documentElement.lang = next;
-  }
 }

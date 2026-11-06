@@ -24,9 +24,6 @@ import { LucideArrowLeft, LucideBike, LucideMoon, LucideSun, LucideShieldCheck }
             <svg lucideArrowLeft size="16"></svg> Retour
           </a>
           <div class="top-controls">
-            <button class="lang-toggle" type="button" aria-label="Changer de langue" (click)="toggleLang()">
-              {{ lang().toUpperCase() }}
-            </button>
             <button class="theme-toggle" type="button"
                     [attr.aria-label]="theme.isDarkMode() ? 'Activer le thème clair' : 'Activer le thème sombre'"
                     (click)="theme.toggleTheme()">
@@ -139,7 +136,6 @@ export class LoginComponent implements OnInit {
   /** true = l'email est admin → le champ OTP est affiché */
   readonly otpRequired = signal<boolean>(false);
 
-  readonly lang = signal<string>('fr');
 
   private authService = inject(AuthService);
   private router      = inject(Router);
@@ -148,7 +144,6 @@ export class LoginComponent implements OnInit {
   private route       = inject(ActivatedRoute);
 
   ngOnInit(): void {
-    this.initLang();
     // TICK-053 : déconnexion forcée suite à une suspension de compte.
     if (this.route.snapshot.queryParamMap.get('reason') === 'suspended') {
       this.toast.error('Votre compte est suspendu. Contactez le support pour plus d\'informations.');
@@ -210,14 +205,6 @@ export class LoginComponent implements OnInit {
     this.router.navigate(['/forgot-password']);
   }
 
-  toggleLang(): void {
-    const next = this.lang() === 'fr' ? 'en' : 'fr';
-    this.lang.set(next);
-    if (typeof document !== 'undefined') {
-      document.documentElement.setAttribute('lang', next);
-      try { localStorage.setItem('lang', next); } catch (e) { /* ignore */ }
-    }
-  }
 
   private doLogin(): void {
     this.isLoading = true;
@@ -244,14 +231,6 @@ export class LoginComponent implements OnInit {
     });
   }
 
-  private initLang(): void {
-    let saved = 'fr';
-    try { saved = localStorage.getItem('lang') || 'fr'; } catch (e) { /* ignore */ }
-    this.lang.set(saved);
-    if (typeof document !== 'undefined') {
-      document.documentElement.setAttribute('lang', saved);
-    }
-  }
 
   /**
    * Après connexion : page demandée avant la redirection vers /login (returnUrl) si elle est interne

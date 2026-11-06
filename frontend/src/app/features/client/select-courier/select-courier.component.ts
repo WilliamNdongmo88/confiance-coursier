@@ -248,9 +248,11 @@ import {
                     <h3>
                       {{ courier.fullName }}
                       @if (courier.kycVerified) {
-                        <span class="badge-verified">
+                        @if (courier.kycVerified) {
+                          <span class="badge-verified">
                           <svg lucideShieldCheck size="10"></svg> Vérifié
                         </span>
+                        }
                       }
                     </h3>
                     <div class="courier-stats">

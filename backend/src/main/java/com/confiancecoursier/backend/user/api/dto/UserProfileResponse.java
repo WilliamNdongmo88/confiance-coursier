@@ -29,6 +29,8 @@ public class UserProfileResponse {
     private String badge;
     private String kycStatus;
     private String initials;
+    /** TICK-078 : nombre d'avis reçus — 0 = « pas encore d'avis » (le trustScore vaut alors 0 sans être une note). */
+    private Long reviewCount;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 

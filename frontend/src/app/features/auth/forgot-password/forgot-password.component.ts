@@ -20,9 +20,6 @@ import { LucideArrowLeft, LucideBike, LucideMoon, LucideSun, LucideMailCheck } f
             <svg lucideArrowLeft size="16"></svg> Retour
           </a>
           <div class="top-controls">
-            <button class="lang-toggle" type="button" aria-label="Changer de langue" (click)="toggleLang()">
-              {{ lang().toUpperCase() }}
-            </button>
             <button class="theme-toggle" type="button"
               [attr.aria-label]="theme.isDarkMode() ? 'Activer le thème clair' : 'Activer le thème sombre'"
               (click)="theme.toggleTheme()">
@@ -114,7 +111,6 @@ export class ForgotPasswordComponent {
   private cooldownInterval: ReturnType<typeof setInterval> | null = null;
 
   readonly theme = inject(ThemeService);
-  readonly lang  = signal<string>(localStorage.getItem('lang') || 'fr');
   private http   = inject(HttpClient);
   private toast  = inject(ToastService);
 
@@ -146,12 +142,6 @@ export class ForgotPasswordComponent {
     });
   }
 
-  toggleLang(): void {
-    const next = this.lang() === 'fr' ? 'en' : 'fr';
-    this.lang.set(next);
-    localStorage.setItem('lang', next);
-    document.documentElement.lang = next;
-  }
 
   private startCooldown(): void {
     this.resendCooldown = 60;

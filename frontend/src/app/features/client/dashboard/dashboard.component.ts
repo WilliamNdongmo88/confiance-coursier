@@ -4,6 +4,8 @@ import { DatePipe, DecimalPipe } from '@angular/common';
 import { CourseService } from '../../../core/services/course.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { HttpClient } from '@angular/common/http';
+import { warnLoadFailed } from '../../../shared/state/load-error';
 import { StatusBadgeComponent } from '../../../shared/status/status-badge.component';
 import { courseStatus } from '../../../shared/status/course-status';
 import { EmptyStateComponent } from '../../../shared/state/empty-state.component';
@@ -43,6 +45,9 @@ import {
     LucideSparkles,
     LucideMessagesSquare,
   ],
+  styles: [`
+    .metric-unit { font-size: 13px; color: var(--cc-muted); font-weight: 600; }
+  `],
   template: `
 
       <!-- ── En-tête de page ── -->
@@ -94,16 +99,16 @@ import {
         <article class="metric-card">
           <span class="metric-icon"><svg lucideStar size="20"></svg></span>
           <div>
-            <span class="metric-label">Expérience moyenne</span>
+            <span class="metric-label">Votre note</span>
+            <!-- TICK-078 : note réelle donnée par les coursiers, affichée seulement s'il y a des avis -->
             <strong class="metric-value">
-              @if (averageRating !== null) {
-                {{ averageRating | number:'1.1-1' }}
-                <span style="font-size:13px;color:#839087;font-weight:600">/ 5</span>
+              @if (reviewCount > 0) {
+                {{ trustScore | number:'1.1-1' }} <span class="metric-unit">/ 5</span>
               } @else {
-                <span style="font-size:20px;color:#839087">—</span>
+                <span class="metric-unit">Pas encore d'avis</span>
               }
             </strong>
-            <div class="metric-note">Évaluation des coursiers</div>
+            <div class="metric-note">{{ reviewCount > 0 ? 'Sur ' + reviewCount + ' avis de coursiers' : 'Les coursiers vous notent après chaque course' }}</div>
           </div>
         </article>
 
@@ -242,6 +247,7 @@ export class ClientDashboardComponent implements OnInit {
   loading = true;
 
   private courseService = inject(CourseService);
+  private http = inject(HttpClient);
   private authService  = inject(AuthService);
   private router       = inject(Router);
   private toast        = inject(ToastService);
@@ -276,10 +282,9 @@ export class ClientDashboardComponent implements OnInit {
     return this.courses.find((c) => c.status === 'PROOFS_SUBMITTED') ?? null;
   }
 
-  /** Note moyenne — null jusqu'à l'implémentation du module reviews (TICK-033+) */
-  get averageRating(): number | null {
-    return null;
-  }
+  /** TICK-078 : note réelle du client (moyenne des avis des coursiers) et nombre d'avis. */
+  trustScore = 0;
+  reviewCount = 0;
 
   // ─── Helpers exposés au template ─────────────────────────────────────────
 
@@ -290,6 +295,10 @@ export class ClientDashboardComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadCourses();
+    this.http.get<any>('/api/users/me').subscribe({
+      next: (p) => { this.trustScore = Number(p.trustScore ?? 0); this.reviewCount = Number(p.reviewCount ?? 0); },
+      error: warnLoadFailed('profil client (note)', "« Pas encore d'avis » affiché"),
+    });
   }
 
   /** Échec du chargement principal : état d'erreur avec « Réessayer » (TICK-077). */

@@ -104,7 +104,10 @@ public class ChatRestController {
                 "clientName",   clientName,
                 "courierId",    room.getCourierId(),
                 "courierName",  courierName,
-                "courseStatus", courseStatus
+                "courseStatus", courseStatus,
+                // TICK-078 : badge « Vérifié » affiché seulement si le KYC du coursier est réellement validé
+                "courierVerified", userRepository.findById(room.getCourierId())
+                        .map(u -> "APPROVED".equals(u.getKycStatus())).orElse(false)
         ));
     }
 

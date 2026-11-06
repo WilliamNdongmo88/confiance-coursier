@@ -1466,6 +1466,18 @@ Choix utilisateur : deux variantes sur deux branches, comparées visuellement av
 
 ---
 
+### Session 70 — TICK-078 [FE] : éléments factices retirés (2026-11-06)
+
+- Bouton **FR/EN** (aucune i18n) retiré des 5 écrans d'authentification (bouton, `lang`, `toggleLang`, `initLang`).
+- Badge **« Vérifié »** : chat → affiché seulement si `courierVerified` (nouveau champ de `GET /api/chat/rooms/{id}`, KYC du coursier = APPROVED) et côté client ; choix du coursier → selon `courier.kycVerified`.
+- Dashboard coursier : « Revenus ce mois » et carte des gains = somme réelle des nets (`courierAmount − realCosts`) des courses terminées ce mois-ci ; « Note moyenne » = `trustScore` si `reviewCount > 0`, sinon « Pas encore d'avis » ; faux « 2 / 4 étapes » + barre de progression remplacés par l'état KYC réel ; « près de vous / votre zone » remplacé (pas de filtre de zone avant TICK-085/089).
+- Dashboard client : « Expérience moyenne » (toujours « — ») → « Votre note » réelle (avis des coursiers) ou « Pas encore d'avis ».
+- Dashboard admin : 4 compteurs « — » sans source retirés (vrais compteurs : TICK-090).
+- Backend : `UserProfileResponse.reviewCount` (nombre d'avis reçus) sur `GET/PUT /api/users/me`.
+- Tests : 259 backend verts ; `ng test` 8/8 ; build dev OK.
+
+---
+
 ## 9. DOMAINES À IMPLÉMENTER (par ordre de priorité métier)
 
 ### 1. Guards Angular (prérequis avant tout)

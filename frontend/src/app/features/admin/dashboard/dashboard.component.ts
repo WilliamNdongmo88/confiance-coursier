@@ -2,18 +2,14 @@ import { Component, inject, signal, OnInit } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { AdminService, AdminKycResponse, DisputeResponse, ReportResponse } from '../../../core/services/admin.service';
-import {
-  LucideShieldCheck, LucideFlag, LucideScale, LucidePackage,
-  LucideBanknote, LucideUsers, LucideUserCheck,
-} from '@lucide/angular';
+import { LucideShieldCheck, LucideFlag, LucideScale } from '@lucide/angular';
 
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
   imports: [
     RouterLink, DatePipe,
-    LucideShieldCheck, LucideFlag, LucideScale, LucidePackage,
-    LucideBanknote, LucideUsers, LucideUserCheck,
+    LucideShieldCheck, LucideFlag, LucideScale,
   ],
   template: `
       <section class="page-head">
@@ -37,41 +33,7 @@ import {
         </div>
       }
 
-      <!-- Stats grid -->
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-icon"><svg lucidePackage size="20"></svg></div>
-          <div class="stat-info">
-            <h3>—</h3>
-            <p>Courses ce mois</p>
-          </div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon" style="background:var(--success-light);color:var(--success)">
-            <svg lucideBanknote size="20"></svg>
-          </div>
-          <div class="stat-info">
-            <h3>—</h3>
-            <p>Commissions perçues</p>
-          </div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon" style="background:var(--warning-light);color:var(--warning)">
-            <svg lucideUsers size="20"></svg>
-          </div>
-          <div class="stat-info">
-            <h3>—</h3>
-            <p>Coursiers actifs</p>
-          </div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon"><svg lucideUserCheck size="20"></svg></div>
-          <div class="stat-info">
-            <h3>—</h3>
-            <p>Clients actifs</p>
-          </div>
-        </div>
-      </div>
+      <!-- TICK-078 : les 4 compteurs « — » sans source sont retirés ; les vrais compteurs arrivent avec TICK-090 -->
 
       <!-- Task columns -->
       <div class="tasks-grid">

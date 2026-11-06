@@ -21,9 +21,6 @@ import { LucideArrowLeft, LucideBike, LucideMoon, LucideSun, LucideUser } from '
             <svg lucideArrowLeft size="16"></svg> Retour
           </a>
           <div class="top-controls">
-            <button class="lang-toggle" type="button" aria-label="Changer de langue" (click)="toggleLang()">
-              {{ lang().toUpperCase() }}
-            </button>
             <button class="theme-toggle" type="button"
               [attr.aria-label]="theme.isDarkMode() ? 'Activer le thème clair' : 'Activer le thème sombre'"
               (click)="theme.toggleTheme()">
@@ -270,7 +267,6 @@ export class RegisterComponent {
   isLoading = false;
 
   readonly theme = inject(ThemeService);
-  readonly lang = signal<string>(localStorage.getItem('lang') || 'fr');
 
   private authService = inject(AuthService);
   private router      = inject(Router);
@@ -283,12 +279,6 @@ export class RegisterComponent {
     if (r === 'CLIENT' || r === 'COURIER') this.role = r;
   }
 
-  toggleLang(): void {
-    const next = this.lang() === 'fr' ? 'en' : 'fr';
-    this.lang.set(next);
-    localStorage.setItem('lang', next);
-    document.documentElement.lang = next;
-  }
 
   onSubmit(): void {
     if (this.password !== this.confirmPassword) {
