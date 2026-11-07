@@ -55,7 +55,7 @@ public class ProofService {
     private static final Logger log = LoggerFactory.getLogger(ProofService.class);
 
     static final int  MAX_PROOFS_PER_COURSE = 10;
-    static final int  AUTO_VALIDATE_HOURS   = 72;
+    public static final int AUTO_VALIDATE_HOURS = 72;
     static final long MAX_VIDEO_BYTES       = 30L * 1024 * 1024;
     static final long MAX_IMAGE_BYTES       = 10L * 1024 * 1024;
     /** 10 s, avec une tolérance d'arrondi des encodeurs mobiles. */

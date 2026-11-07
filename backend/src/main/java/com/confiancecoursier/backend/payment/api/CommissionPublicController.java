@@ -22,6 +22,10 @@ public class CommissionPublicController {
     private final CommissionService commissionService;
     private final ProofDeadlinePolicy deadlinePolicy;
 
+    /** SIMULATION tant qu'aucun prestataire de paiement réel n'est branché (aucun débit effectué). */
+    @org.springframework.beans.factory.annotation.Value("${app.payment.mode:SIMULATION}")
+    private String paymentMode;
+
     public CommissionPublicController(CommissionService commissionService, ProofDeadlinePolicy deadlinePolicy) {
         this.commissionService = commissionService;
         this.deadlinePolicy = deadlinePolicy;
@@ -44,7 +48,11 @@ public class CommissionPublicController {
                 "tarifMinimumCoursier",  settings.getTarifMinimumCoursier(),
                 // TICK-065b : délais affichés au client (aucune valeur codée en dur dans le front)
                 "maxExtensions",         deadlinePolicy.maxExtensions(),
-                "overdueGraceHours",     deadlinePolicy.graceHours()
+                "overdueGraceHours",     deadlinePolicy.graceHours(),
+                // Écran de paiement : délais réels (envoi des preuves, validation automatique)
+                "proofDeadlineHours",    deadlinePolicy.deadlineHours(),
+                "autoValidateHours",     com.confiancecoursier.backend.proof.service.ProofService.AUTO_VALIDATE_HOURS,
+                "paymentMode",           paymentMode
         ));
     }
 }
