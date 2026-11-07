@@ -287,7 +287,8 @@ public class ProofService {
     }
 
     private ProofResponse toResponse(Proof proof) {
-        return ProofResponse.from(proof, fileStorageService.getPresignedUrl(proof.getFileKey(), proofsBucket));
+        // Type détecté à l'envoi + affichage en ligne : le PDF ou la vidéo s'ouvrent dans le navigateur
+        return ProofResponse.from(proof, fileStorageService.getPresignedInlineUrl(proof.getFileKey(), proofsBucket, proof.getMimeType()));
     }
 
     private static byte[] readBytes(MultipartFile file) {

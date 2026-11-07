@@ -57,6 +57,7 @@ class ProofServiceTest {
                 .filter(p -> p.getProofType().equals(i.getArgument(1))).count());
         when(storage.uploadFile(any(), anyString(), anyString())).thenAnswer(i -> "proofs/100/2/" + stored.size());
         when(storage.getPresignedUrl(anyString(), anyString())).thenReturn("https://minio/presigned");
+        when(storage.getPresignedInlineUrl(anyString(), anyString(), org.mockito.ArgumentMatchers.any())).thenReturn("https://minio/presigned");
 
         course = Course.builder().id(100L).clientId(1L).courierId(2L).description("Pharmacie")
                 .status("IN_PROGRESS").realCosts(BigDecimal.ZERO).build();

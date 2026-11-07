@@ -131,6 +131,30 @@ public class FileStorageService {
         }
     }
 
+    /**
+     * URL présignée qui impose l'affichage dans le navigateur (et non le téléchargement) avec le type réel du
+     * fichier : le type enregistré à l'envoi est celui déclaré par l'appareil, parfois absent ou générique.
+     */
+    public String getPresignedInlineUrl(String fileKey, String bucket, String contentType) {
+        if (contentType == null || contentType.isBlank()) return getPresignedUrl(fileKey, bucket);
+        try {
+            return minioClient.getPresignedObjectUrl(
+                    GetPresignedObjectUrlArgs.builder()
+                            .method(Method.GET)
+                            .bucket(bucket)
+                            .object(fileKey)
+                            .expiry(PRESIGNED_URL_EXPIRY_SECONDS, TimeUnit.SECONDS)
+                            .extraQueryParams(java.util.Map.of(
+                                    "response-content-type", contentType,
+                                    "response-content-disposition", "inline"))
+                            .build()
+            );
+        } catch (MinioException | IOException | InvalidKeyException | NoSuchAlgorithmException e) {
+            log.error("Impossible de générer l'URL présignée : bucket={}, key={}, erreur={}", bucket, fileKey, e.getMessage());
+            throw new FileStorageException("Impossible de générer l'URL de téléchargement : " + e.getMessage(), e);
+        }
+    }
+
     // ─── Utilitaires internes ─────────────────────────────────────────────────
 
     /**

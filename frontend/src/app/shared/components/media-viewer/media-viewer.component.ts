@@ -1,8 +1,9 @@
 import {
   Component, Input, Output, EventEmitter,
-  HostListener, OnChanges, SimpleChanges,
+  HostListener, OnChanges, SimpleChanges, inject,
 } from '@angular/core';
-import { LucideX, LucideDownload, LucideChevronLeft, LucideChevronRight } from '@lucide/angular';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { LucideX, LucideDownload, LucideChevronLeft, LucideChevronRight, LucideFileText, LucideExternalLink } from '@lucide/angular';
 
 export interface MediaItem {
   url: string;
@@ -26,7 +27,7 @@ export interface MediaItem {
 @Component({
   selector: 'app-media-viewer',
   standalone: true,
-  imports: [LucideX, LucideDownload, LucideChevronLeft, LucideChevronRight],
+  imports: [LucideX, LucideDownload, LucideChevronLeft, LucideChevronRight, LucideFileText, LucideExternalLink],
   template: `
     @if (open && items.length > 0) {
       <!-- Backdrop -->
@@ -71,8 +72,17 @@ export interface MediaItem {
               </video>
             }
             @if (current.type === 'pdf') {
-              <iframe [src]="current.url" class="mv-pdf"
-                      title="Document PDF"></iframe>
+              <!-- Angular exige une URL approuvée dans un cadre (sinon rien ne s'affiche) -->
+              @if (pdfUrl(current.url); as safe) {
+                <iframe [src]="safe" class="mv-pdf" title="Document PDF"></iframe>
+              }
+              <!-- Mobile : les navigateurs n'affichent pas les PDF dans un cadre -->
+              <div class="mv-pdf-card">
+                <svg lucideFileText size="40"></svg>
+                <strong>{{ current.label || 'Document PDF' }}</strong>
+                <span>Ouvrez le document pour le lire en entier.</span>
+                <a [href]="current.url" target="_blank" rel="noopener" class="mv-pdf-open"><svg lucideExternalLink size="17"></svg> Ouvrir le PDF</a>
+              </div>
             }
           </div>
 
@@ -182,10 +192,22 @@ export interface MediaItem {
       box-shadow: 0 8px 40px rgba(0,0,0,.6);
     }
     .mv-pdf {
-      width: min(840px, 100%);
+      width: min(840px, 92vw);
       height: calc(100vh - 130px);
       border: none;
       border-radius: 6px;
+      background: #fff;
+    }
+    .mv-pdf-card { display: none; }
+    @media (max-width: 767.98px) {
+      .mv-pdf { display: none; }
+      .mv-pdf-card { display: grid; justify-items: center; gap: 8px; width: min(320px, 86vw); padding: 26px 20px; border-radius: 16px;
+        background: #fff; color: #15241f; text-align: center; }
+      .mv-pdf-card svg { color: #17634f; }
+      .mv-pdf-card strong { font-size: 16px; }
+      .mv-pdf-card span { font-size: 14px; color: #56635c; line-height: 1.45; }
+      .mv-pdf-open { margin-top: 6px; min-height: 48px; padding: 0 20px; border-radius: 10px; display: inline-flex; align-items: center; gap: 8px;
+        background: #123b32; color: #fff; font-weight: 750; text-decoration: none; }
     }
     @keyframes mv-zoom-in {
       from { transform: scale(.94); opacity: 0; }
@@ -238,6 +260,17 @@ export interface MediaItem {
   `],
 })
 export class MediaViewerComponent implements OnChanges {
+  private sanitizer = inject(DomSanitizer);
+  private safeCache = new Map<string, SafeResourceUrl>();
+
+  /** URL de PDF approuvée pour le cadre — uniquement http(s) (les URL présignées du stockage). */
+  pdfUrl(url: string): SafeResourceUrl | null {
+    if (!/^(https?:)?\/\//i.test(url) && !url.startsWith('/')) return null;
+    let safe = this.safeCache.get(url);
+    if (!safe) { safe = this.sanitizer.bypassSecurityTrustResourceUrl(url); this.safeCache.set(url, safe); }
+    return safe;
+  }
+
   /** Liste des médias à afficher */
   @Input() items: MediaItem[] = [];
   /** Index du média affiché à l'ouverture */
