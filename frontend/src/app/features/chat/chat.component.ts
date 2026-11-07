@@ -1214,7 +1214,9 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   goToReport(): void {
     this.moreOpen.set(false);
-    if (this.otherUserId) this.router.navigate(['/report-user', this.otherUserId]);
+    // Nom affiché sur l'écran de signalement (le serveur n'utilise que l'identifiant) + retour à cette discussion
+    if (this.otherUserId) this.router.navigate(['/report-user', this.otherUserId],
+      { queryParams: { name: this.correspondentName || null, room: this.roomId || null } });
   }
 
   goToDispute(): void {
