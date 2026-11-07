@@ -112,15 +112,20 @@ class ProofServiceTest {
     }
 
     @Test
-    void videoOfFifteenSecondsIsRefused() {
-        assertThatThrownBy(() -> upload(ProofTestFiles.mp4(15_000), "VIDEO"))
-                .isInstanceOf(BusinessException.class).hasMessageContaining("10 secondes");
+    void videoOfThirtyFiveSecondsIsRefused() {
+        assertThatThrownBy(() -> upload(ProofTestFiles.mp4(35_000), "VIDEO"))
+                .isInstanceOf(BusinessException.class).hasMessageContaining("30 secondes");
         assertThat(stored).isEmpty();
     }
 
     @Test
-    void videoOfTenSecondsIsAcceptedWithDuration() {
-        assertThat(upload(ProofTestFiles.mp4(10_000), "VIDEO").videoDurationMs()).isEqualTo(10_000L);
+    void videoOfThirtySecondsIsAcceptedWithDuration() {
+        assertThat(upload(ProofTestFiles.mp4(30_000), "VIDEO").videoDurationMs()).isEqualTo(30_000L);
+    }
+
+    @Test
+    void videoOfFifteenSecondsIsAccepted() {
+        assertThat(upload(ProofTestFiles.mp4(15_000), "VIDEO").videoDurationMs()).isEqualTo(15_000L);
     }
 
     @Test

@@ -25,7 +25,7 @@ Permettre de faire réaliser une course au Cameroun par un inconnu en toute conf
 
 La confiance n'est pas une promesse, c'est un mécanisme :
 - **séquestre** : fonds bloqués au paiement, libérés seulement sur validation du client, automatiquement 72 h après l'envoi des preuves, ou par décision de l'admin en litige ;
-- **preuves obligatoires** : vidéo ≤ 10 s horodatée et géolocalisée, photos, reçu si achat, prises depuis l'app ;
+- **preuves obligatoires** : vidéo ≤ 30 s horodatée et géolocalisée, photos, reçu si achat, prises depuis l'app ;
 - **double déclaration** : le coursier fixe son tarif, le client saisit lui-même le montant des achats (le coursier ne peut pas gonfler les frais) ;
 - **échéance de preuves** : sans preuves dans les délais, le client prolonge, annule et est remboursé, ou ouvre un litige — les fonds ne sont jamais versés sans preuves ;
 - **identité vérifiée** des coursiers avant toute offre, notation obligatoire des deux côtés, suspension automatique sur mauvaises notes ou signalements.

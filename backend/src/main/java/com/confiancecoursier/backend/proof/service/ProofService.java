@@ -45,8 +45,8 @@ import java.util.Set;
  * </ol>
  *
  * <h3>Contrôles serveur</h3>
- * Type réel du fichier (signature d'octets, pas le Content-Type déclaré), taille (vidéo 30 Mo,
- * photo/reçu 10 Mo), durée vidéo ≤ 10 s quand elle est lisible (MP4/MOV/3GP ; sinon « à vérifier »),
+ * Type réel du fichier (signature d'octets, pas le Content-Type déclaré), taille (vidéo 60 Mo,
+ * photo/reçu 10 Mo), durée vidéo ≤ 30 s quand elle est lisible (MP4/MOV/3GP ; sinon « à vérifier »),
  * 10 fichiers maximum, 1 seule vidéo.
  */
 @Service
@@ -56,10 +56,12 @@ public class ProofService {
 
     static final int  MAX_PROOFS_PER_COURSE = 10;
     public static final int AUTO_VALIDATE_HOURS = 72;
-    static final long MAX_VIDEO_BYTES       = 30L * 1024 * 1024;
+    static final long MAX_VIDEO_BYTES       = 60L * 1024 * 1024;
     static final long MAX_IMAGE_BYTES       = 10L * 1024 * 1024;
-    /** 10 s, avec une tolérance d'arrondi des encodeurs mobiles. */
-    static final long MAX_VIDEO_DURATION_MS = 10_500;
+    /** Durée maximale de la vidéo de preuve (secondes). */
+    public static final int MAX_VIDEO_SECONDS = 30;
+    /** 30 s, avec une tolérance d'arrondi des encodeurs mobiles. */
+    static final long MAX_VIDEO_DURATION_MS = MAX_VIDEO_SECONDS * 1000L + 500;
 
     private static final Set<String> VALID_PROOF_TYPES = Set.of("PHOTO", "VIDEO", "RECEIPT");
 
@@ -138,7 +140,7 @@ public class ProofService {
             durationMs = ProofFileInspector.videoDurationMillis(content).orElse(null);
             if (durationMs != null && durationMs > MAX_VIDEO_DURATION_MS) {
                 throw new BusinessException("La vidéo dure " + Math.round(durationMs / 1000.0)
-                        + " s : 10 secondes maximum.");
+                        + " s : " + MAX_VIDEO_SECONDS + " secondes maximum.");
             }
         }
 
@@ -196,7 +198,7 @@ public class ProofService {
         boolean receiptsRequired = course.getRealCosts() != null && course.getRealCosts().compareTo(BigDecimal.ZERO) > 0;
 
         StringBuilder missing = new StringBuilder();
-        if (videos < 1)   missing.append(" une vidéo (10 s maximum) ;");
+        if (videos < 1)   missing.append(" une vidéo (" + MAX_VIDEO_SECONDS + " s maximum) ;");
         if (photos < 1)   missing.append(" au moins une photo ;");
         if (receiptsRequired && receipts < 1) missing.append(" au moins un reçu d'achat (frais réels déclarés) ;");
         if (!missing.isEmpty()) {

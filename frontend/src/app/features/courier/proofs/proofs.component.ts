@@ -38,8 +38,9 @@ interface ProofItem {
 
 // Mêmes limites que le serveur (ProofService) — TICK-064
 const MAX_IMAGE_MB = 10;
-const MAX_VIDEO_MB = 30;
-const MAX_VIDEO_SECONDS = 10;
+const MAX_VIDEO_MB = 60;
+/** Doit rester égal à ProofService.MAX_VIDEO_SECONDS côté serveur. */
+const MAX_VIDEO_SECONDS = 30;
 const MAX_PROOFS = 10;
 
 @Component({
@@ -98,6 +99,17 @@ const MAX_PROOFS = 10;
     .progress-bar-inner { height: 100%; background: var(--primary); border-radius: 99px; transition: width .2s; }
     .upload-hint { font-size: .74rem; color: var(--text-muted); margin-top: 6px; }
     .file-error  { font-size: .78rem; color: var(--danger); margin-top: 6px; }
+    .video-refused { display: grid; gap: 4px; margin-top: 12px; padding: 12px 14px; border-radius: 12px; font-size: .86rem; line-height: 1.45;
+      background: var(--cc-danger-bg); border: 1px solid color-mix(in oklab, var(--cc-danger) 45%, transparent); color: var(--cc-ink);
+      animation: vr-in .3s cubic-bezier(.16,1,.3,1); }
+    .video-refused strong { color: var(--cc-danger); }
+    .video-tip { color: var(--cc-ink); opacity: .85; }
+    .checklist li.ko { color: var(--cc-danger); font-weight: 650; }
+    .missing { margin: 10px 0 0; text-align: center; font-size: .86rem; font-weight: 600; color: var(--cc-ink); }
+    :host-context([data-theme="dark"]) .video-refused strong, :host-context([data-theme="dark"]) .checklist li.ko { color: #F0A39C !important; }
+    :host-context([data-theme="dark"]) .video-refused, :host-context([data-theme="dark"]) .missing, :host-context([data-theme="dark"]) .video-tip { color: #F3F7F5 !important; }
+    @keyframes vr-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+    @media (prefers-reduced-motion: reduce) { .video-refused { animation: none; } }
     .checklist { list-style: none; padding: 0; margin: 8px 0 0; font-size: .85rem; }
     .checklist li { padding: 2px 0; }
     .hidden-input { display: none; }
@@ -136,7 +148,7 @@ const MAX_PROOFS = 10;
         <div>
           <strong>Preuves obligatoires</strong>
           <ul class="checklist">
-            <li>{{ hasVideo() ? '✓' : '○' }} 1 vidéo de {{ MAX_VIDEO_SECONDS }} s maximum</li>
+            <li [class.ko]="!hasVideo() && videoError()">{{ hasVideo() ? '✓' : (videoError() ? '✗' : '○') }} 1 vidéo de {{ MAX_VIDEO_SECONDS }} s maximum{{ !hasVideo() && videoError() ? ' — vidéo refusée' : '' }}</li>
             <li>{{ hasPhoto() ? '✓' : '○' }} Au moins 1 photo</li>
             @if (receiptsRequired()) {
               <li>{{ hasReceipt() ? '✓' : '○' }} Au moins 1 reçu d'achat ({{ realCosts() | number:'1.0-0' }} XAF d'achats payés)</li>
@@ -168,7 +180,13 @@ const MAX_PROOFS = 10;
             <ng-container *ngTemplateOutlet="row; context: { $implicit: videoItem() }"></ng-container>
           </div>
         }
-        @if (videoError()) { <p class="file-error">{{ videoError() }}</p> }
+        @if (videoError()) {
+          <div class="video-refused" role="alert">
+            <strong>Vidéo refusée</strong>
+            <span>{{ videoError() }}</span>
+            <span class="video-tip">Filmez un nouveau clip court avec « Filmer » (arrêtez avant {{ MAX_VIDEO_SECONDS }} s), ou raccourcissez la vidéo dans votre galerie avant de la choisir.</span>
+          </div>
+        }
       </div>
 
       <!-- ── 2. Photos ── -->
@@ -241,7 +259,7 @@ const MAX_PROOFS = 10;
         {{ hasFailures() ? "Réessayer l'envoi" : 'Envoyer les preuves au client' }}
       </button>
       @if (!isComplete()) {
-        <p class="upload-hint st-ta-center">Complétez les éléments obligatoires ci-dessus.</p>
+        <p class="missing" role="status">Il manque : {{ missing().join(', ') }}.</p>
       }
     }
 
@@ -304,6 +322,14 @@ export class ProofsComponent implements OnInit {
   readonly hasPhoto = computed(() => this.countUsable('PHOTO') > 0);
   readonly hasReceipt = computed(() => this.countUsable('RECEIPT') > 0);
   readonly hasFailures = computed(() => this.items().some(i => i.state === 'error'));
+  /** Ce qui empêche l'envoi, en clair (affiché sous le bouton grisé). */
+  readonly missing = computed(() => {
+    const m: string[] = [];
+    if (!this.hasVideo()) m.push(`une vidéo de ${MAX_VIDEO_SECONDS} s maximum`);
+    if (!this.hasPhoto()) m.push('au moins une photo');
+    if (this.receiptsRequired() && !this.hasReceipt()) m.push('au moins un reçu d’achat');
+    return m;
+  });
   readonly isComplete = computed(() =>
     this.hasVideo() && this.hasPhoto() && (!this.receiptsRequired() || this.hasReceipt()));
 
@@ -370,13 +396,19 @@ export class ProofsComponent implements OnInit {
   // ── Sélection ──────────────────────────────────────────────────────────────
 
   async onVideoSelected(event: Event): Promise<void> {
+    await this.pickVideo(event);
+    if (this.videoError()) this.toast.error(this.videoError()); // visible même si la section est hors écran
+  }
+
+  private async pickVideo(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     input.value = '';
     this.videoError.set('');
     if (!file) return;
 
-    if (!file.type.startsWith('video/')) { this.videoError.set('Ce fichier n\'est pas une vidéo.'); return; }
+    const isVideo = file.type.startsWith('video/') || (!file.type && /\.(mp4|mov|3gp|webm|m4v)$/i.test(file.name));
+    if (!isVideo) { this.videoError.set('Ce fichier n’est pas une vidéo (formats acceptés : MP4, MOV, 3GP, WebM).'); return; }
     if (file.size > MAX_VIDEO_MB * 1024 * 1024) {
       this.videoError.set(`Vidéo trop lourde (${this.mb(file.size)} Mo, maximum ${MAX_VIDEO_MB} Mo).`);
       return;
@@ -495,9 +527,11 @@ export class ProofsComponent implements OnInit {
       const url = URL.createObjectURL(file);
       const video = document.createElement('video');
       video.preload = 'metadata';
-      const done = (value: number | null) => { URL.revokeObjectURL(url); resolve(value); };
+      let settled = false;
+      const done = (value: number | null) => { if (settled) return; settled = true; URL.revokeObjectURL(url); resolve(value); };
       video.onloadedmetadata = () => done(Number.isFinite(video.duration) ? video.duration : null);
       video.onerror = () => done(null);
+      setTimeout(() => done(null), 5000); // métadonnées illisibles : le serveur vérifiera
       video.src = url;
     });
   }

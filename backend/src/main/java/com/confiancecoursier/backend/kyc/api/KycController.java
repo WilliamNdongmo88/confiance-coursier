@@ -97,7 +97,7 @@ public class KycController {
         Long userId = resolveUserId(principal);
         String keyPrefix = "kyc/" + userId;
 
-        // La limite multipart globale est passée à 30 Mo pour les vidéos de preuve (TICK-064) :
+        // La limite multipart globale est passée à 60 Mo pour les vidéos de preuve (TICK-064) :
         // les documents KYC gardent leur limite de 10 Mo.
         for (MultipartFile f : new MultipartFile[]{frontFile, backFile, selfieFile}) {
             if (f.getSize() > KYC_MAX_FILE_BYTES) {
