@@ -29,6 +29,9 @@ public class UserProfileResponse {
     private String badge;
     private String kycStatus;
     private String initials;
+    /** Compte de reversement du coursier (MTN | ORANGE) — numéro masqué sauf les 3 derniers chiffres. */
+    private String payoutMethod;
+    private String payoutNumberMasked;
     /** TICK-078 : nombre d'avis reçus — 0 = « pas encore d'avis » (le trustScore vaut alors 0 sans être une note). */
     private Long reviewCount;
     private LocalDateTime createdAt;
@@ -54,12 +57,21 @@ public class UserProfileResponse {
                 .badge(user.getBadge())
                 .kycStatus(user.getKycStatus())
                 .initials(computeInitials(user))
+                .payoutMethod(user.getPayoutMethod())
+                .payoutNumberMasked(mask(user.getPayoutNumber()))
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
                 .build();
     }
 
     // ─── Utilitaires ──────────────────────────────────────────────────────────
+
+    private static String mask(String number) {
+        if (number == null || number.isBlank()) return null;
+        String digits = number.replaceAll("[^0-9]", "");
+        if (digits.length() < 4) return "•••";
+        return "••• ••• " + digits.substring(digits.length() - 3);
+    }
 
     private static String computeInitials(User user) {
         String name = user.getFullName();

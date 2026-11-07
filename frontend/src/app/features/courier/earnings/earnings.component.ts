@@ -1,371 +1,246 @@
-import { warnLoadFailed } from '../../../shared/state/load-error';
-import { HttpClient } from '@angular/common/http';
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { DatePipe } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import { CourseService } from '../../../core/services/course.service';
-import { AuthService } from '../../../core/services/auth.service';
 import { ToastService } from '../../../core/services/toast.service';
-import {
-  LucideWallet,
-  LucidePercent,
-  LucidePackageCheck,
-  LucideArrowLeft,
-} from '@lucide/angular';
+import { warnLoadFailed } from '../../../shared/state/load-error';
+import { LucideArrowRight, LucideClock, LucideLockKeyhole, LucidePercent, LucideSmartphone, LucideTrendingUp, LucideWallet } from '@lucide/angular';
 
-
+/**
+ * Gains du coursier (Impeccable, mode Operate).
+ * Distingue l'argent déjà gagné (courses validées) de l'argent bloqué en séquestre (courses en cours ou en
+ * attente de validation). Montants figés au paiement, fournis par le serveur. « Versé » n'est affiché que si un
+ * prestataire de paiement réel est branché (paymentMode ≠ SIMULATION).
+ */
 @Component({
   selector: 'app-earnings',
   standalone: true,
-  imports: [
-    RouterLink,
-    DatePipe,
-    LucideWallet,
-    LucidePercent,
-    LucidePackageCheck,
-    LucideArrowLeft,
-  ],
-  template: `
-
-      <!-- ── En-tête ── -->
-      <section class="page-head">
-        <div>
-          <h1>Mes gains</h1>
-          <p>Suivez vos revenus et les frais de service appliqués.</p>
-        </div>
-        <a routerLink="/courier/dashboard" class="btn btn-secondary btn-sm">
-          <svg lucideArrowLeft size="15"></svg> Retour
-        </a>
-      </section>
-
-      <!-- ── Métriques ── -->
-      <section class="metrics-grid" style="margin-bottom:22px" aria-label="Résumé des gains">
-
-        <!-- Revenus ce mois -->
-        <article class="metric-card">
-          <span class="metric-icon"><svg lucideWallet size="20"></svg></span>
-          <div>
-            <span class="metric-label">Revenus ce mois</span>
-            <strong class="metric-value">
-              @if (loading) { — }
-              @else { {{ formatXaf(monthNet) }} }
-            </strong>
-            <div class="metric-note">Net après frais de service</div>
-          </div>
-        </article>
-
-        <!-- Frais de service -->
-        <article class="metric-card">
-          <span class="metric-icon" style="background:#fef3dc;color:#a66b16">
-            <svg lucidePercent size="20"></svg>
-          </span>
-          <div>
-            <span class="metric-label">Frais de service</span>
-            <strong class="metric-value">{{ currentCommissionRate === null ? '…' : currentCommissionRate + '%' }}</strong>
-            <div class="metric-note">Sur chaque course terminée</div>
-          </div>
-        </article>
-
-        <!-- Courses ce mois -->
-        <article class="metric-card">
-          <span class="metric-icon"><svg lucidePackageCheck size="20"></svg></span>
-          <div>
-            <span class="metric-label">Courses ce mois</span>
-            <strong class="metric-value">{{ loading ? '—' : monthCount.toString() }}</strong>
-            <div class="metric-note">Terminées avec succès</div>
-          </div>
-        </article>
-
-      </section>
-
-      <!-- ── Total depuis inscription ── -->
-      <section class="panel" style="margin-bottom:16px">
-        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
-          <div>
-            <h2 style="margin:0;font-size:16px">Total depuis votre inscription</h2>
-            <p style="margin:4px 0 0;font-size:13px;color:var(--text-muted)">
-              {{ completedTransactions.length }} course{{ completedTransactions.length > 1 ? 's' : '' }} terminée{{ completedTransactions.length > 1 ? 's' : '' }}
-            </p>
-          </div>
-          <div style="display:flex;gap:24px;flex-wrap:wrap">
-            <div>
-              <span style="font-size:12px;color:var(--text-muted)">Brut total</span>
-              <div style="font-weight:700;font-size:18px;color:var(--text)">
-                {{ loading ? '—' : formatXaf(totalBrut) }}
-              </div>
-            </div>
-            <div>
-              <span style="font-size:12px;color:var(--text-muted)">Commissions déduites</span>
-              <div style="font-weight:700;font-size:18px;color:var(--danger)">
-                {{ loading ? '—' : formatXaf(totalFees) }}
-              </div>
-            </div>
-            <div>
-              <span style="font-size:12px;color:var(--text-muted)">Net total</span>
-              <div style="font-weight:700;font-size:18px;color:var(--success)">
-                {{ loading ? '—' : formatXaf(totalNet) }}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- ── Transactions ── -->
-      <div class="panel">
-        <div class="panel-head">
-          <div><h2>Transactions</h2><p>Détail de chaque versement</p></div>
-        </div>
-
-        <!-- État chargement -->
-        @if (loading) {
-          <div style="padding:32px;text-align:center;color:var(--text-muted)">
-            Chargement…
-          </div>
-        }
-
-        <!-- État vide -->
-        @if (!loading && completedTransactions.length === 0) {
-          <div style="padding:32px;text-align:center;color:var(--text-muted)">
-            <svg lucidePackageCheck size="32" style="opacity:.35;margin:0 auto 8px"></svg>
-            <p style="margin:0;font-size:14px;">Aucune course terminée pour le moment.</p>
-            <a routerLink="/courier/dashboard" class="text-link" style="margin-top:8px;display:inline-block">
-              Voir les missions disponibles →
-            </a>
-          </div>
-        }
-
-        <!-- Tableau desktop -->
-        @if (!loading && completedTransactions.length > 0) {
-          <div class="table-responsive table-desktop" style="padding:0 18px">
-            <table class="earnings-table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Course</th>
-                  <th>Brut</th>
-                  <th>Commission</th>
-                  <th>Net</th>
-                  <th>Statut</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (tx of completedTransactions; track tx.id) {
-                  <tr>
-                    <td>{{ tx.date | date:'dd/MM/yyyy' }}</td>
-                    <td>{{ tx.description }} — {{ tx.zone }}</td>
-                    <td>{{ formatXaf(tx.brut) }}</td>
-                    <td style="color:var(--danger)">-{{ formatXaf(tx.frais) }}</td>
-                    <td style="font-weight:700;color:var(--success)">{{ formatXaf(tx.net) }}</td>
-                    <td>
-                      <span class="badge badge-success">Versé</span>
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-
-          <!-- Cartes mobiles -->
-          <div class="tx-cards">
-            @for (tx of completedTransactions; track tx.id) {
-              <div class="tx-card-item">
-                <div class="tx-card-top">
-                  <span class="tx-card-title">{{ tx.description }} — {{ tx.zone }}</span>
-                  <span class="badge badge-success" style="flex-shrink:0">Versé</span>
-                </div>
-                <div class="tx-card-meta">{{ tx.date | date:'dd/MM/yyyy' }}</div>
-                <div class="tx-card-stats">
-                  <div>
-                    <span class="tx-card-label">Brut</span>
-                    <strong>{{ formatXaf(tx.brut) }}</strong>
-                  </div>
-                  <div>
-                    <span class="tx-card-label">Frais</span>
-                    <strong style="color:var(--danger)">-{{ formatXaf(tx.frais) }}</strong>
-                  </div>
-                  <div>
-                    <span class="tx-card-label">Net</span>
-                    <strong style="color:var(--success)">{{ formatXaf(tx.net) }}</strong>
-                  </div>
-                </div>
-              </div>
-            }
-          </div>
-        }
-
-      </div>
-
-  `,
-  styles: `
-    /* ── Table desktop ── */
-    .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    .earnings-table { width: 100%; border-collapse: collapse; }
-    .earnings-table th {
-      font-size: .83rem;
-      color: var(--text-muted);
-      font-weight: 600;
-      padding: 10px 8px;
-      border-bottom: 1px solid var(--border);
-      white-space: nowrap;
-      text-align: left;
-    }
-    .earnings-table td {
-      padding: 14px 8px;
-      border-bottom: 1px solid var(--border);
-      font-size: .92rem;
-      color: var(--text);
-    }
-    .earnings-table tr:last-child td { border-bottom: none; }
-
-    /* ── Cartes mobile ── */
-    .tx-cards { display: none; }
-    .tx-card-item {
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 14px;
-      margin-bottom: 10px;
-    }
-    .tx-card-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 8px;
-    }
-    .tx-card-title {
-      font-size: .88rem;
-      font-weight: 700;
-      color: var(--text);
-      flex: 1;
-      padding-right: 8px;
-    }
-    .tx-card-meta {
-      font-size: .8rem;
-      color: var(--text-muted);
-      margin-bottom: 8px;
-    }
-    .tx-card-stats {
-      display: flex;
-      gap: 16px;
-      font-size: .85rem;
-    }
-    .tx-card-label {
-      display: block;
-      color: var(--text-muted);
-      font-size: .78rem;
-    }
-
-    /* ── Responsive ── */
+  imports: [RouterLink, DatePipe, LucideArrowRight, LucideClock, LucideLockKeyhole, LucidePercent, LucideSmartphone, LucideTrendingUp, LucideWallet],
+  styles: [`
+    :host { display: block; --em: #56635c; }
+    :host-context([data-theme="dark"]) { --em: #B0C0B7; }
+    .e { max-width: 1040px; margin: 0 auto; }
+    .e-head h1 { margin: 0 0 6px; font-size: clamp(26px, 4vw, 32px); line-height: 1.1; letter-spacing: -.04em; font-weight: 800; color: var(--cc-ink); }
+    .e-head p { margin: 0 0 18px; font-size: 15px; color: var(--em); }
+    .hero { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+    .k { padding: 18px; border-radius: 16px; background: var(--cc-white); border: 1px solid var(--cc-line); animation: e-in .45s cubic-bezier(.16,1,.3,1) both; }
+    .k:nth-child(2) { animation-delay: .05s; } .k:nth-child(3) { animation-delay: .1s; }
+    .k.main { background: var(--cc-forest); border-color: transparent; color: #fff; }
+    .k small { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--em); }
+    .k.main small { color: #cfdcd4; }
+    .k strong { display: block; margin-top: 6px; font-size: 26px; letter-spacing: -.03em; font-weight: 800; color: var(--cc-ink); font-variant-numeric: tabular-nums; }
+    .k.main strong { font-size: 30px; color: #fff; }
+    .k span { display: block; margin-top: 4px; font-size: 12.5px; line-height: 1.4; color: var(--em); }
+    .k.main span { color: #cfdcd4; }
+    .grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 16px; align-items: start; }
+    .box { background: var(--cc-white); border: 1px solid var(--cc-line); border-radius: 16px; padding: 20px; margin-bottom: 16px; animation: e-in .45s cubic-bezier(.16,1,.3,1) .12s both; }
+    .box h2 { margin: 0 0 4px; font-size: 16.5px; font-weight: 750; letter-spacing: -.02em; color: var(--cc-ink); }
+    .box > p { margin: 0 0 12px; font-size: 13.5px; color: var(--em); }
+    .tx { display: grid; grid-template-columns: 1fr auto; gap: 4px 14px; padding: 13px 0; border-top: 1px solid var(--cc-line); }
+    .tx:first-of-type { border-top: 0; }
+    .tx-t { font-size: 14px; font-weight: 650; line-height: 1.35; color: var(--cc-ink); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .tx-m { grid-column: 1; font-size: 12.5px; color: var(--em); }
+    .tx-n { grid-row: 1 / span 2; grid-column: 2; text-align: right; }
+    .tx-n b { display: block; font-size: 15.5px; color: var(--cc-ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .tx-n small { display: block; font-size: 12px; color: var(--em); white-space: nowrap; }
+    .badge-s { display: inline-block; margin-top: 4px; padding: 2px 8px; border-radius: 99px; font-size: 11.5px; font-weight: 750; background: var(--cc-success-bg); color: var(--cc-success); }
+    .badge-s.wait { background: var(--cc-warning-bg); color: #8a5a14; }
+    .empty { padding: 22px 8px; text-align: center; font-size: 14px; color: var(--em); }
+    .split { display: grid; gap: 8px; font-size: 13.5px; }
+    .split div { display: flex; justify-content: space-between; gap: 10px; color: var(--em); }
+    .split b { color: var(--cc-ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .split + .note { margin-top: 12px; }
+    .split .tot { padding-top: 8px; border-top: 1px solid var(--cc-line); font-size: 14.5px; }
+    .acc { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 12px; background: var(--cc-paper-2); margin-bottom: 10px; }
+    .acc-ic { flex: none; width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center; font-weight: 900; font-size: 12px; }
+    .acc-ic.mtn { background: #ffcc00; color: #1a1a1a; } .acc-ic.om { background: #ff7900; color: #fff; } .acc-ic.none { background: var(--cc-line); color: var(--em); }
+    .acc b { display: block; font-size: 14px; color: var(--cc-ink); }
+    .acc span { font-size: 13px; color: var(--em); }
+    .note { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--em); }
+    .link { display: inline-flex; align-items: center; gap: 5px; min-height: 40px; color: var(--primary); font-weight: 700; text-decoration: none; font-size: 14px; }
+    .sk { height: 96px; border-radius: 16px; background: linear-gradient(90deg, var(--cc-paper-2), var(--cc-white), var(--cc-paper-2)); background-size: 200% 100%; animation: e-sk 1.2s linear infinite; }
+    @keyframes e-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+    @keyframes e-sk { to { background-position: -200% 0; } }
+    :host-context([data-theme="dark"]) .e-head h1, :host-context([data-theme="dark"]) .k:not(.main) strong, :host-context([data-theme="dark"]) .box h2,
+    :host-context([data-theme="dark"]) .tx-t, :host-context([data-theme="dark"]) .tx-n b, :host-context([data-theme="dark"]) .split b,
+    :host-context([data-theme="dark"]) .acc b { color: #F3F7F5 !important; }
+    :host-context([data-theme="dark"]) .k.main { background: #12392f; }
+    :host-context([data-theme="dark"]) .acc { background: rgba(255,255,255,.05); }
+    :host-context([data-theme="dark"]) .badge-s.wait { color: #E3A857; }
+    :host-context([data-theme="dark"]) .link { color: var(--cc-lime); }
+    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
     @media (max-width: 640px) {
-      .table-desktop { display: none !important; }
-      .tx-cards { display: block; }
+      .hero { grid-template-columns: 1fr 1fr; }
+      .k.main { grid-column: 1 / -1; }
+      .k { padding: 14px; } .k strong { font-size: 20px; } .k.main strong { font-size: 26px; }
+      .box { padding: 18px 16px; }
     }
+    @media (prefers-reduced-motion: reduce) { .k, .box, .sk { animation: none; } }
+  `],
+  template: `
+    <div class="e">
+      <section class="e-head">
+        <h1>Mes gains</h1>
+        <p>Ce que vous avez gagné, et l’argent qui vous attend en séquestre.</p>
+      </section>
+
+      @if (loading()) {
+        <div class="hero"><div class="sk"></div><div class="sk"></div><div class="sk"></div></div>
+      } @else {
+        <section class="hero" aria-label="Résumé">
+          <article class="k main">
+            <small><svg lucideTrendingUp size="14"></svg> Gagné en {{ monthName }}</small>
+            <strong>{{ xaf(monthNet()) }}</strong>
+            <span>{{ monthCount() }} course{{ monthCount() > 1 ? 's' : '' }} validée{{ monthCount() > 1 ? 's' : '' }} · net après commission</span>
+          </article>
+          <article class="k">
+            <small><svg lucideLockKeyhole size="14"></svg> En attente</small>
+            <strong>{{ xaf(pendingNet()) }}</strong>
+            <span>{{ pending().length ? 'Bloqué en séquestre : à vous après validation' : 'Aucune course en attente' }}</span>
+          </article>
+          <article class="k">
+            <small><svg lucideWallet size="14"></svg> Depuis le début</small>
+            <strong>{{ xaf(totalNet()) }}</strong>
+            <span>{{ done().length }} course{{ done().length > 1 ? 's' : '' }} terminée{{ done().length > 1 ? 's' : '' }}</span>
+          </article>
+        </section>
+
+        <div class="grid">
+          <div>
+            @if (pending().length) {
+              <section class="box" aria-labelledby="e-wait">
+                <h2 id="e-wait">En attente de validation</h2>
+                <p>Payées par le client : l’argent est réservé pour vous jusqu’à la validation des preuves.</p>
+                @for (t of pending(); track t.id) {
+                  <article class="tx">
+                    <span class="tx-t">{{ t.description }}</span>
+                    <div class="tx-n"><b>{{ xaf(t.net) }}</b><span class="badge-s wait">{{ t.status === 'PROOFS_SUBMITTED' ? 'Preuves envoyées' : 'En cours' }}</span></div>
+                    <span class="tx-m">{{ zone(t.zone) }}</span>
+                  </article>
+                }
+              </section>
+            }
+
+            <section class="box" aria-labelledby="e-hist">
+              <h2 id="e-hist">Courses payées</h2>
+              <p>Le détail de chaque gain : tarif, commission et net.</p>
+              @for (t of done(); track t.id) {
+                <article class="tx">
+                  <span class="tx-t">{{ t.description }}</span>
+                  <div class="tx-n">
+                    <b>+ {{ xaf(t.net) }}</b>
+                    <small>{{ xaf(t.brut) }} − {{ xaf(t.frais) }}</small>
+                    <span class="badge-s">{{ paid() ? 'Versé' : 'Libéré' }}</span>
+                  </div>
+                  <span class="tx-m">{{ t.date | date:'d MMM yyyy' }} · {{ zone(t.zone) }}</span>
+                </article>
+              } @empty {
+                <div class="empty">Pas encore de course validée. Vos gains apparaîtront ici dès la première.</div>
+              }
+            </section>
+          </div>
+
+          <aside>
+            <section class="box" aria-labelledby="e-acc">
+              <h2 id="e-acc">Compte de reversement</h2>
+              <div class="acc">
+                @if (payoutMethod()) {
+                  <span class="acc-ic" [class.mtn]="payoutMethod() === 'MTN'" [class.om]="payoutMethod() === 'ORANGE'">{{ payoutMethod() === 'MTN' ? 'MTN' : 'OM' }}</span>
+                  <div><b>{{ payoutMethod() === 'MTN' ? 'MTN Mobile Money' : 'Orange Money' }}</b><span>{{ payoutMasked() }}</span></div>
+                } @else {
+                  <span class="acc-ic none"><svg lucideSmartphone size="18"></svg></span>
+                  <div><b>Aucun compte enregistré</b><span>Il est demandé avec la vérification d’identité.</span></div>
+                }
+              </div>
+              @if (!paid()) {
+                <p class="note">Les paiements sont en mode test : aucun virement réel n’est encore effectué vers ce compte.</p>
+              } @else {
+                <p class="note">Vos gains y sont versés après la validation de chaque course.</p>
+              }
+              @if (!payoutMethod()) { <a class="link" routerLink="/courier/kyc">Compléter ma vérification <svg lucideArrowRight size="14"></svg></a> }
+            </section>
+
+            <section class="box" aria-labelledby="e-calc">
+              <h2 id="e-calc">Comment est calculé votre gain</h2>
+              <div class="split">
+                <div><span>Tarifs facturés</span><b>{{ xaf(totalBrut()) }}</b></div>
+                <div><span>Commission@if (rate() !== null) { ({{ rate() }}&nbsp;%) }</span><b>− {{ xaf(totalFees()) }}</b></div>
+                <div class="tot"><span>Votre gain net</span><b>{{ xaf(totalNet()) }}</b></div>
+              </div>
+              <p class="note">Les achats que vous avancez pour le client vous sont remboursés en plus et ne sont pas comptés ici. Un nouveau taux ne s’applique qu’aux nouvelles courses.</p>
+            </section>
+          </aside>
+        </div>
+      }
+    </div>
   `,
 })
 export class EarningsComponent implements OnInit {
+  readonly loading = signal(true);
+  readonly rate = signal<number | null>(null);
+  readonly paid = signal(false);
+  readonly payoutMethod = signal<string | null>(null);
+  readonly payoutMasked = signal('');
+  private readonly rows = signal<Transaction[]>([]);
+  readonly monthName = new Date().toLocaleDateString('fr-FR', { month: 'long' });
 
-  /** Taux de commission coursier actuel (lu du serveur — TICK-070 : plus de valeur codée en dur). */
-  currentCommissionRate: number | null = null;
-
-  loading = true;
-
-  /** Transactions terminées (courses COMPLETED avec montant). */
-  completedTransactions: Transaction[] = [];
-
-  // ─── Métriques calculées ──────────────────────────────────────────────────
-
-  get monthNet(): number {
+  readonly done = computed(() => this.rows().filter((t) => t.status === 'COMPLETED'));
+  readonly pending = computed(() => this.rows().filter((t) => t.status !== 'COMPLETED'));
+  private readonly thisMonth = computed(() => {
     const now = new Date();
-    return this.completedTransactions
-      .filter(tx => {
-        const d = new Date(tx.date);
-        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-      })
-      .reduce((sum, tx) => sum + tx.net, 0);
-  }
-
-  get monthCount(): number {
-    const now = new Date();
-    return this.completedTransactions.filter(tx => {
-      const d = new Date(tx.date);
-      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-    }).length;
-  }
-
-  get totalBrut(): number {
-    return this.completedTransactions.reduce((sum, tx) => sum + tx.brut, 0);
-  }
-
-  get totalFees(): number {
-    return this.completedTransactions.reduce((sum, tx) => sum + tx.frais, 0);
-  }
-
-  get totalNet(): number {
-    return this.completedTransactions.reduce((sum, tx) => sum + tx.net, 0);
-  }
-
-  // ─── DI ───────────────────────────────────────────────────────────────────
+    return this.done().filter((t) => { const d = new Date(t.date); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(); });
+  });
+  readonly monthNet = computed(() => this.thisMonth().reduce((s, t) => s + t.net, 0));
+  readonly monthCount = computed(() => this.thisMonth().length);
+  readonly pendingNet = computed(() => this.pending().reduce((s, t) => s + t.net, 0));
+  readonly totalNet = computed(() => this.done().reduce((s, t) => s + t.net, 0));
+  readonly totalBrut = computed(() => this.done().reduce((s, t) => s + t.brut, 0));
+  readonly totalFees = computed(() => this.done().reduce((s, t) => s + t.frais, 0));
 
   private courseService = inject(CourseService);
-  private authService   = inject(AuthService);
-  private toast         = inject(ToastService);
-
-  // ─── Lifecycle ────────────────────────────────────────────────────────────
-
+  private toast = inject(ToastService);
   private http = inject(HttpClient);
 
   ngOnInit(): void {
     this.http.get<any>('/api/commissions/public').subscribe({
-      next: (p) => this.currentCommissionRate = p.commissionRateCourier ?? null,
-      error: warnLoadFailed('taux de commission actuel', 'taux affiché « … »'),
+      next: (p) => { this.rate.set(p?.commissionRateCourier ?? null); this.paid.set(!!p?.paymentMode && p.paymentMode !== 'SIMULATION'); },
+      error: warnLoadFailed('taux de commission actuel', 'taux masqué'),
     });
-    this.loadData();
-  }
-
-  private loadData(): void {
-    this.loading = true;
+    this.http.get<any>('/api/users/me').subscribe({
+      next: (u) => { this.payoutMethod.set(u?.payoutMethod ?? null); this.payoutMasked.set(u?.payoutNumberMasked ?? ''); },
+      error: warnLoadFailed('compte de reversement', 'compte non affiché'),
+    });
     this.courseService.getMyMissions().subscribe({
       next: (data) => {
-        this.completedTransactions = data
-          // TICK-070 : montants figés au paiement, fournis par le serveur
-          .filter(c => c.status === 'COMPLETED' && c.courierAmount != null)
-          .map(c => {
-            const brut = Number(c.courseAmount ?? 0);
-            const frais = Number(c.courierCommissionAmount ?? 0);
-            // Gain = net versé hors remboursement des achats avancés
-            const net = Number(c.courierAmount) - Number(c.realCosts ?? 0);
-            return {
-              id: c.id,
-              date: c.completedAt || c.paidAt || c.createdAt,
-              description: c.description,
-              zone: c.zone,
-              brut,
-              frais,
-              net,
-            };
-          })
-          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-        this.loading = false;
+        // Montants figés au paiement (TICK-070) ; gain = net versé hors remboursement des achats avancés
+        this.rows.set(data
+          .filter((c) => c.courierAmount != null && ['COMPLETED', 'IN_PROGRESS', 'OVERDUE', 'PROOFS_SUBMITTED'].includes(c.status))
+          .map((c) => ({
+            id: c.id,
+            status: c.status,
+            date: c.completedAt || c.paidAt || c.createdAt,
+            description: c.description,
+            zone: c.zone,
+            brut: Number(c.courseAmount ?? 0),
+            frais: Number(c.courierCommissionAmount ?? 0),
+            net: Number(c.courierAmount) - Number(c.realCosts ?? 0),
+          }))
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+        this.loading.set(false);
       },
-      error: (err) => {
-        this.loading = false;
-        this.toast.error('Impossible de charger vos gains.');
-        console.error(err);
-      },
+      error: () => { this.loading.set(false); this.toast.error('Impossible de charger vos gains.'); },
     });
   }
 
-  // ─── Helpers ──────────────────────────────────────────────────────────────
+  xaf(n: number): string { return `${new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(Math.max(0, Math.round(n || 0)))} XAF`; }
 
-  formatXaf(amount: number): string {
-    if (!amount || amount <= 0) return '0 XAF';
-    return `${Math.round(amount).toLocaleString('fr-FR')} XAF`;
-  }
+  zone(z?: string): string { return String(z ?? '').replace(' - ', ' · '); }
 }
 
-/** Transaction individuelle (course terminée). */
 interface Transaction {
   id: number;
+  status: string;
   date: string;
   description: string;
   zone: string;
