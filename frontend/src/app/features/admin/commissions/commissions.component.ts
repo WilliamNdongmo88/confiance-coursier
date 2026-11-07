@@ -1,308 +1,245 @@
-import { Component, inject, signal, computed, OnInit } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { AdminService, CommissionSettings } from '../../../core/services/admin.service';
+import { AdminService } from '../../../core/services/admin.service';
 import { ToastService } from '../../../core/services/toast.service';
-import {
-  LucidePercent, LucideUser, LucideBike,
-  LucideSettings2, LucideSave, LucideAlertTriangle,
-} from '@lucide/angular';
+import { LucideBike, LucideInfo, LucideUser } from '@lucide/angular';
 
+interface Rates { client: number; courier: number; min: number; }
+
+const LIMITS = { client: 10, courier: 40 };
+
+/**
+ * Commissions (admin, Impeccable, mode Operate).
+ * Deux prélèvements indépendants, comme dans PaymentService :
+ *  - frais de service client = (tarif + achats) × taux client, AJOUTÉS au prix payé par le client ;
+ *  - commission coursier = tarif × taux coursier, retenue sur le tarif seul (les achats lui sont remboursés).
+ * Le taux client ne réduit donc jamais ce que reçoit le coursier.
+ */
 @Component({
   selector: 'app-admin-commissions',
   standalone: true,
-  imports: [
-    FormsModule,
-    LucidePercent, LucideUser, LucideBike,
-    LucideSettings2, LucideSave, LucideAlertTriangle,
-  ],
+  imports: [FormsModule, LucideBike, LucideInfo, LucideUser],
+  styles: [`
+    :host { display: block; min-width: 0; --cm: #56635c; }
+    :host-context([data-theme="dark"]) { --cm: #B0C0B7; }
+    .c { max-width: 980px; margin: 0 auto; padding-bottom: 90px; }
+    .c-head h1 { margin: 0 0 6px; font-size: clamp(26px, 4vw, 32px); line-height: 1.1; letter-spacing: -.04em; font-weight: 800; color: var(--cc-ink); }
+    .c-head p { margin: 0 0 14px; font-size: 15px; color: var(--cm); }
+    .note { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; margin-bottom: 18px; border-radius: 12px; background: var(--cc-paper-2); border: 1px solid var(--cc-line); font-size: 13.5px; line-height: 1.45; color: var(--cc-ink); }
+    .note svg { flex: none; margin-top: 1px; color: var(--primary); }
+    .grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; margin-bottom: 14px; }
+    .card { background: var(--cc-white); border: 1px solid var(--cc-line); border-radius: 16px; padding: 18px; animation: c-in .45s cubic-bezier(.16,1,.3,1) both; }
+    .card:nth-child(2) { animation-delay: .05s; }
+    .card-h { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 14px; }
+    .ic { flex: none; width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; background: var(--cc-success-bg); color: var(--primary); }
+    .ic.cour { background: var(--cc-warning-bg); color: #8a5a14; }
+    .card-h h2 { margin: 0 0 3px; font-size: 16px; font-weight: 750; color: var(--cc-ink); }
+    .card-h p { margin: 0; font-size: 13px; line-height: 1.45; color: var(--cm); }
+    .rate { display: flex; align-items: center; gap: 12px; }
+    .rate input[type="range"] { flex: 1; min-width: 0; accent-color: var(--primary); height: 28px; }
+    .num { flex: none; display: flex; align-items: center; gap: 4px; }
+    .num input { width: 76px; min-height: 44px; padding: 0 10px; border: 1px solid var(--cc-line); border-radius: 10px; background: var(--cc-white); color: var(--cc-ink); font: inherit; font-size: 18px; font-weight: 800; text-align: right; font-variant-numeric: tabular-nums; }
+    .num span { font-size: 16px; font-weight: 700; color: var(--cm); }
+    .was { margin: 8px 0 0; font-size: 12.5px; color: var(--cm); }
+    .was b { color: var(--cc-ink); }
+    .err { margin: 6px 0 0; font-size: 12.5px; color: var(--cc-danger); }
+    .min label { display: block; margin-bottom: 6px; font-size: 14px; font-weight: 700; color: var(--cc-ink); }
+    .min .row { display: flex; align-items: center; gap: 8px; max-width: 280px; }
+    .min .row input { flex: 1; min-width: 0; }
+    .min .row span { font-weight: 700; color: var(--cm); }
+    .min p { margin: 6px 0 0; font-size: 13px; color: var(--cm); }
+    h2.sec { margin: 22px 0 4px; font-size: 17px; font-weight: 750; letter-spacing: -.02em; color: var(--cc-ink); }
+    p.sec { margin: 0 0 12px; font-size: 13.5px; color: var(--cm); }
+    .ex { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
+    .ex label { display: grid; gap: 4px; font-size: 12.5px; font-weight: 700; color: var(--cm); }
+    .ex input { width: 150px; }
+    .sim { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    .col { padding: 16px; border-radius: 14px; border: 1px solid var(--cc-line); background: var(--cc-white); }
+    .col h3 { margin: 0 0 10px; display: flex; align-items: center; gap: 7px; font-size: 14px; font-weight: 750; color: var(--cc-ink); }
+    .line { display: flex; justify-content: space-between; gap: 10px; padding: 4px 0; font-size: 13.5px; color: var(--cm); }
+    .line b { color: var(--cc-ink); font-variant-numeric: tabular-nums; white-space: nowrap; font-weight: 650; }
+    .tot { margin-top: 6px; padding-top: 8px; border-top: 1px solid var(--cc-line); font-size: 14.5px; }
+    .tot b { font-size: 18px; font-weight: 800; }
+    .col.cour .tot b { color: var(--cc-success); }
+    .bar { position: sticky; bottom: 12px; z-index: 5; margin-top: 18px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 12px 14px; border-radius: 14px;
+      background: var(--cc-forest); color: #fff; box-shadow: 0 12px 32px rgba(18,59,50,.25); animation: c-up .3s cubic-bezier(.16,1,.3,1); }
+    .bar span { flex: 1 1 200px; font-size: 14px; }
+    .bar button { min-height: 44px; padding: 0 16px; border-radius: 11px; font: inherit; font-size: 14px; font-weight: 750; cursor: pointer; }
+    .bar .ghost { border: 1px solid rgba(255,255,255,.35); background: transparent; color: #fff; }
+    .bar .save { border: 0; background: var(--cc-lime); color: #123b32; }
+    .bar button:disabled { opacity: .5; cursor: not-allowed; }
+    .sk { height: 150px; border-radius: 16px; background: linear-gradient(90deg, var(--cc-paper-2), var(--cc-white), var(--cc-paper-2)); background-size: 200% 100%; animation: c-sk 1.2s linear infinite; }
+    @keyframes c-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+    @keyframes c-up { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+    @keyframes c-sk { to { background-position: -200% 0; } }
+    :host-context([data-theme="dark"]) .c-head h1, :host-context([data-theme="dark"]) .card-h h2, :host-context([data-theme="dark"]) h2.sec,
+    :host-context([data-theme="dark"]) .col h3, :host-context([data-theme="dark"]) .line b, :host-context([data-theme="dark"]) .min label,
+    :host-context([data-theme="dark"]) .was b, :host-context([data-theme="dark"]) .note { color: #F3F7F5 !important; }
+    :host-context([data-theme="dark"]) .note, :host-context([data-theme="dark"]) .ic { background: rgba(255,255,255,.05); }
+    :host-context([data-theme="dark"]) .note svg, :host-context([data-theme="dark"]) .ic { color: var(--cc-lime); }
+    :host-context([data-theme="dark"]) .ic.cour { color: #E3A857; background: rgba(227,168,87,.12); }
+    :host-context([data-theme="dark"]) .col.cour .tot b { color: var(--cc-lime); }
+    :host-context([data-theme="dark"]) .rate input[type="range"] { accent-color: var(--cc-lime); }
+    :host-context([data-theme="dark"]) .bar { background: #0f2c25; border: 1px solid rgba(214,240,140,.25); }
+    @media (max-width: 860px) { .grid, .sim { grid-template-columns: minmax(0, 1fr); } }
+    @media (max-width: 640px) {
+      .card, .col { padding: 16px 14px; }
+      .ex label { flex: 1 1 140px; } .ex input { width: 100%; }
+      .bar { bottom: 76px; } .bar button { flex: 1 1 auto; }
+    }
+    @media (prefers-reduced-motion: reduce) { .card, .bar, .sk { animation: none; } }
+  `],
   template: `
-      <section class="page-head">
-        <div>
-          <h1>Taux de commission</h1>
-          <p>Configurez les frais prélevés sur chaque transaction.</p>
-        </div>
+    <div class="c">
+      <section class="c-head">
+        <h1>Commissions</h1>
+        <p>Ce que la plateforme gagne sur chaque course payée.</p>
       </section>
 
-      <div class="warning-banner">
-        <span class="warning-banner-icon"><svg lucideAlertTriangle size="18"></svg></span>
-        <div class="warning-banner-body">
-          <strong>Attention</strong>
-          <p>Toute modification prend effet immédiatement sur les nouvelles courses. Les courses en cours ne sont pas affectées.</p>
-        </div>
-      </div>
+      <div class="note" role="note"><svg lucideInfo size="16"></svg>
+        <span>Les nouveaux taux s’appliquent aux courses payées après l’enregistrement. Les courses déjà payées gardent leurs montants.</span></div>
 
       @if (loading()) {
-        <p style="text-align:center;padding:40px;color:var(--text-muted)">Chargement…</p>
+        <div class="grid"><div class="sk"></div><div class="sk"></div></div>
       } @else {
-        <!-- Frais client -->
-        <div class="rate-card">
-          <div class="rate-card-header">
-            <div class="rate-icon"><svg lucideUser size="20"></svg></div>
-            <div>
-              <h2>Frais de service — Client</h2>
-              <p>Prélevés sur le montant total payé par le client. Peut être mis à 0%.</p>
+        <div class="grid">
+          <section class="card" aria-labelledby="c-client">
+            <div class="card-h">
+              <span class="ic" aria-hidden="true"><svg lucideUser size="19"></svg></span>
+              <div><h2 id="c-client">Frais de service client</h2>
+                <p>Ajoutés au prix payé par le client. Ils ne réduisent jamais ce que reçoit le coursier.</p></div>
             </div>
-          </div>
-          <div class="rate-preview">
-            <svg lucidePercent size="18" style="color:var(--primary)"></svg>
-            Taux actuel : <strong>{{ clientRate() }}%</strong>
-          </div>
-          <div class="rate-input-group">
-            <input type="range" min="0" max="10" step="0.5"
-              [ngModel]="clientRate()" (ngModelChange)="clientRate.set($event)"
-              aria-label="Taux client">
-            <input type="number" min="0" max="10" step="0.5"
-              [ngModel]="clientRate()" (ngModelChange)="clientRate.set($event)"
-              aria-label="Valeur taux client">
-            <span style="color:var(--text-muted);font-size:.9rem">%</span>
-          </div>
+            <div class="rate">
+              <input type="range" min="0" [max]="limits.client" step="0.5" [ngModel]="rates().client" (ngModelChange)="set('client', $event)" aria-label="Frais de service client, en pourcentage">
+              <label class="num"><input type="number" min="0" [max]="limits.client" step="0.5" inputmode="decimal" [ngModel]="rates().client" (ngModelChange)="set('client', $event)" aria-label="Frais de service client (%)"><span>%</span></label>
+            </div>
+            @if (errors().client) { <p class="err">{{ errors().client }}</p> }
+            @else if (saved() && saved()!.client !== rates().client) { <p class="was">Enregistré : <b>{{ pct(saved()!.client) }}</b></p> }
+          </section>
+
+          <section class="card" aria-labelledby="c-courier">
+            <div class="card-h">
+              <span class="ic cour" aria-hidden="true"><svg lucideBike size="19"></svg></span>
+              <div><h2 id="c-courier">Commission sur le tarif du coursier</h2>
+                <p>Retenue sur son tarif seulement. Les achats qu’il avance lui sont remboursés en entier.</p></div>
+            </div>
+            <div class="rate">
+              <input type="range" min="0" [max]="limits.courier" step="1" [ngModel]="rates().courier" (ngModelChange)="set('courier', $event)" aria-label="Commission coursier, en pourcentage">
+              <label class="num"><input type="number" min="0" [max]="limits.courier" step="1" inputmode="decimal" [ngModel]="rates().courier" (ngModelChange)="set('courier', $event)" aria-label="Commission coursier (%)"><span>%</span></label>
+            </div>
+            @if (errors().courier) { <p class="err">{{ errors().courier }}</p> }
+            @else if (saved() && saved()!.courier !== rates().courier) { <p class="was">Enregistré : <b>{{ pct(saved()!.courier) }}</b></p> }
+          </section>
         </div>
 
-        <!-- Frais coursier -->
-        <div class="rate-card">
-          <div class="rate-card-header">
-            <div class="rate-icon" style="background:var(--warning-light);color:var(--warning)">
-              <svg lucideBike size="20"></svg>
-            </div>
-            <div>
-              <h2>Frais de service — Coursier</h2>
-              <p>Prélevés sur le tarif brut du coursier avant versement.</p>
-            </div>
-          </div>
-          <div class="rate-preview">
-            <svg lucidePercent size="18" style="color:var(--warning)"></svg>
-            Taux actuel : <strong style="color:var(--warning)">{{ courierRate() }}%</strong>
-          </div>
-          <div class="rate-input-group">
-            <input type="range" min="0" max="40" step="1"
-              [ngModel]="courierRate()" (ngModelChange)="courierRate.set($event)"
-              aria-label="Taux coursier">
-            <input type="number" min="0" max="40" step="1"
-              [ngModel]="courierRate()" (ngModelChange)="courierRate.set($event)"
-              aria-label="Valeur taux coursier">
-            <span style="color:var(--text-muted);font-size:.9rem">%</span>
-          </div>
+        <section class="card min" aria-labelledby="c-min">
+          <label id="c-min" for="c-min-input">Tarif minimum d’une offre</label>
+          <div class="row"><input id="c-min-input" class="form-input" type="number" min="0" step="500" inputmode="numeric" [ngModel]="rates().min" (ngModelChange)="set('min', $event)"><span>XAF</span></div>
+          @if (errors().min) { <p class="err">{{ errors().min }}</p> }
+          @else { <p>Un coursier ne peut pas proposer un tarif plus bas.@if (saved() && saved()!.min !== rates().min) { Enregistré : {{ xaf(saved()!.min) }}. }</p> }
+        </section>
+
+        <h2 class="sec">Exemple sur une course</h2>
+        <p class="sec">Modifiez les montants pour voir qui paie et qui reçoit quoi avec ces taux.</p>
+        <div class="ex">
+          <label>Tarif du coursier (XAF)<input class="form-input" type="number" min="0" step="500" [ngModel]="exTarif()" (ngModelChange)="exTarif.set(n($event))"></label>
+          <label>Achats avancés (XAF)<input class="form-input" type="number" min="0" step="500" [ngModel]="exAchats()" (ngModelChange)="exAchats.set(n($event))"></label>
+        </div>
+        <div class="sim" aria-live="polite">
+          <article class="col">
+            <h3><svg lucideUser size="15"></svg> Le client paie</h3>
+            <div class="line"><span>Tarif du coursier</span><b>{{ xaf(exTarif()) }}</b></div>
+            <div class="line"><span>Achats avancés</span><b>{{ xaf(exAchats()) }}</b></div>
+            <div class="line"><span>Frais de service ({{ pct(rates().client) }})</span><b>{{ xaf(sim().clientFee) }}</b></div>
+            <div class="line tot"><span>Total</span><b>{{ xaf(sim().total) }}</b></div>
+          </article>
+          <article class="col cour">
+            <h3><svg lucideBike size="15"></svg> Le coursier reçoit</h3>
+            <div class="line"><span>Son tarif</span><b>{{ xaf(exTarif()) }}</b></div>
+            <div class="line"><span>Commission ({{ pct(rates().courier) }})</span><b>− {{ xaf(sim().commission) }}</b></div>
+            <div class="line"><span>Achats remboursés</span><b>{{ xaf(exAchats()) }}</b></div>
+            <div class="line tot"><span>Total</span><b>{{ xaf(sim().courier) }}</b></div>
+          </article>
+          <article class="col">
+            <h3>La plateforme garde</h3>
+            <div class="line"><span>Frais de service client</span><b>{{ xaf(sim().clientFee) }}</b></div>
+            <div class="line"><span>Commission coursier</span><b>{{ xaf(sim().commission) }}</b></div>
+            <div class="line tot"><span>Total</span><b>{{ xaf(sim().platform) }}</b></div>
+          </article>
         </div>
 
-        <!-- Tarif minimum -->
-        <div class="rate-card">
-          <div class="rate-card-header">
-            <div class="rate-icon" style="background:#e5f1e8;color:#17634f">
-              <svg lucideSettings2 size="20"></svg>
-            </div>
-            <div>
-              <h2>Paramètres généraux</h2>
-              <p>Règles métier applicables à toute la plateforme.</p>
-            </div>
+        @if (dirty()) {
+          <div class="bar" role="region" aria-label="Modifications non enregistrées">
+            <span>Modifications non enregistrées</span>
+            <button type="button" class="ghost" (click)="reset()">Annuler</button>
+            <button type="button" class="save" [disabled]="saving() || hasErrors()" (click)="save()">{{ saving() ? 'Enregistrement…' : 'Enregistrer' }}</button>
           </div>
-          <div class="form-group">
-            <label class="form-label">Tarif minimum d'un coursier (XAF)</label>
-            <input type="number" class="form-input" min="0" step="500"
-              [ngModel]="minTarif()" (ngModelChange)="minTarif.set($event)">
-            <p class="form-hint">Le coursier ne pourra pas soumettre une offre en dessous de ce montant.</p>
-          </div>
-        </div>
-
-        <!-- Simulation -->
-        <h2 style="font-size:1rem;font-weight:700;color:var(--text);margin-bottom:14px">
-          Simulation sur une course exemple
-        </h2>
-        <div class="simulation">
-          <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:12px">
-            Frais réels : 15 000 XAF · Tarif coursier brut : 6 250 XAF
-          </p>
-          <div class="sim-row"><span>Frais réels :</span><span>15 000 XAF</span></div>
-          <div class="sim-row"><span>Tarif coursier :</span><span>6 250 XAF</span></div>
-          @if (clientRate() > 0) {
-            <div class="sim-row">
-              <span>Frais service client ({{ clientRate() }}%) :</span>
-              <span>{{ formatXaf(fraisClientSim()) }}</span>
-            </div>
-          }
-          <div class="sim-row total">
-            <span>Total payé par le client :</span>
-            <span>{{ formatXaf(totalClientSim()) }}</span>
-          </div>
-          <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
-            <div class="sim-row"><span>Tarif brut coursier :</span><span>6 250 XAF</span></div>
-            <div class="sim-row">
-              <span>Commission plateforme ({{ courierRate() }}%) :</span>
-              <span>{{ formatXaf(commissionSim()) }}</span>
-            </div>
-            <div class="sim-row total">
-              <span>Net versé au coursier :</span>
-              <span style="color:var(--success)">{{ formatXaf(netCoursierSim()) }}</span>
-            </div>
-          </div>
-        </div>
-
-        <button class="btn btn-primary btn-lg" style="width:100%" (click)="save()" [disabled]="saving()">
-          @if (saving()) {
-            <span class="spinner"></span>
-          } @else {
-            <svg lucideSave size="17"></svg>
-          }
-          Enregistrer les taux et paramètres
-        </button>
+        }
       }
+    </div>
   `,
-  styles: [`
-    /* ── Bannière avertissement ── */
-    .warning-banner {
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-      background: #fff3dc;
-      border: 1px solid rgba(166,107,22,.25);
-      border-radius: var(--radius-md, 10px);
-      padding: 14px 16px;
-      margin-bottom: 22px;
-    }
-    .warning-banner-icon {
-      color: #a66b16;
-      flex-shrink: 0;
-      margin-top: 1px;
-      display: flex;
-    }
-    .warning-banner-body strong {
-      display: block;
-      font-size: .9rem;
-      font-weight: 700;
-      color: #5a3e10;
-      margin-bottom: 3px;
-    }
-    .warning-banner-body p {
-      margin: 0;
-      font-size: .84rem;
-      color: #6b5530;
-      line-height: 1.5;
-    }
-
-    :host-context([data-theme="dark"]) .warning-banner {
-      background: #2d2008;
-      border-color: rgba(253,230,138,.2);
-    }
-    :host-context([data-theme="dark"]) .warning-banner-icon { color: #fcd34d; }
-    :host-context([data-theme="dark"]) .warning-banner-body strong { color: #fef3c7; }
-    :host-context([data-theme="dark"]) .warning-banner-body p { color: #fde68a; }
-    .rate-card {
-      background: var(--bg-card); border: 1px solid var(--border);
-      border-radius: var(--radius-lg); padding: 22px;
-      margin-bottom: 18px; box-sizing: border-box; width: 100%;
-    }
-    .rate-card-header { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 18px; }
-    .rate-icon {
-      width: 44px; height: 44px; border-radius: var(--radius-md);
-      background: var(--primary-light); color: var(--primary);
-      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-    }
-    .rate-card-header h2 { font-size: .98rem; font-weight: 700; color: var(--text); margin-bottom: 3px; }
-    .rate-card-header p { font-size: .82rem; color: var(--text-muted); line-height: 1.5; }
-    .rate-preview {
-      display: flex; align-items: center; gap: 8px; margin-bottom: 16px;
-      padding: 12px 16px; background: var(--bg);
-      border-radius: var(--radius-md); font-size: .95rem; flex-wrap: wrap;
-    }
-    .rate-preview strong { font-size: 1.4rem; font-weight: 800; color: var(--primary); }
-    .rate-input-group { display: flex; align-items: center; gap: 10px; }
-    .rate-input-group input[type="range"] { flex: 1; accent-color: var(--primary); min-width: 0; }
-    .rate-input-group input[type="number"] {
-      width: 64px; padding: 8px; border: 1px solid var(--border);
-      border-radius: var(--radius-md); font-size: .95rem; font-weight: 700;
-      text-align: center; color: var(--text); background: var(--bg-card); flex-shrink: 0;
-    }
-    .simulation {
-      background: var(--bg); border: 1px solid var(--border);
-      border-radius: var(--radius-lg); padding: 20px;
-      margin-bottom: 22px; box-sizing: border-box; width: 100%;
-    }
-    .sim-row {
-      display: flex; justify-content: space-between; margin-bottom: 8px;
-      font-size: .9rem; color: var(--text-muted); gap: 8px;
-    }
-    .sim-row span:last-child { text-align: right; flex-shrink: 0; }
-    .sim-row.total {
-      font-weight: 700; color: var(--text);
-      border-top: 1px dashed var(--border); padding-top: 10px;
-      margin-top: 10px; font-size: .98rem;
-    }
-    .spinner {
-      width: 16px; height: 16px; border: 2px solid rgba(255,255,255,.3);
-      border-top-color: #fff; border-radius: 50%;
-      display: inline-block; animation: spin .6s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    @media (max-width: 640px) {
-      .rate-input-group { width: 100%; }
-      .rate-input-group input[type="range"] { width: 0; flex: 1; min-width: 0; }
-    }
-  `],
 })
 export class AdminCommissionsComponent implements OnInit {
   private adminService = inject(AdminService);
   private toast = inject(ToastService);
 
-  readonly clientRate = signal(0);
-  readonly courierRate = signal(20);
-  readonly minTarif = signal(0); // valeur réelle chargée depuis /api/admin/commissions (TICK-070)
-  readonly loading = signal(false);
+  readonly limits = LIMITS;
+  readonly loading = signal(true);
   readonly saving = signal(false);
+  readonly saved = signal<Rates | null>(null);
+  readonly rates = signal<Rates>({ client: 0, courier: 20, min: 0 });
+  readonly exTarif = signal(6000);
+  readonly exAchats = signal(15000);
 
-  // Simulation constants
-  private readonly SIM_FRAIS_REELS = 15000;
-  private readonly SIM_TARIF_BRUT = 6250;
+  readonly errors = computed(() => {
+    const r = this.rates();
+    const e: Partial<Record<keyof Rates, string>> = {};
+    if (!(r.client >= 0 && r.client <= LIMITS.client)) e.client = `Entre 0 et ${LIMITS.client} %.`;
+    if (!(r.courier >= 0 && r.courier <= LIMITS.courier)) e.courier = `Entre 0 et ${LIMITS.courier} %.`;
+    if (!(r.min >= 0)) e.min = 'Le tarif minimum ne peut pas être négatif.';
+    return e;
+  });
+  readonly hasErrors = computed(() => Object.keys(this.errors()).length > 0);
+  readonly dirty = computed(() => {
+    const s = this.saved(), r = this.rates();
+    return !!s && (s.client !== r.client || s.courier !== r.courier || s.min !== r.min);
+  });
 
-  readonly fraisClientSim = computed(() =>
-    Math.round((this.SIM_FRAIS_REELS + this.SIM_TARIF_BRUT) * this.clientRate() / 100)
-  );
-  readonly totalClientSim = computed(() =>
-    this.SIM_FRAIS_REELS + this.SIM_TARIF_BRUT + this.fraisClientSim()
-  );
-  readonly commissionSim = computed(() =>
-    Math.round(this.SIM_TARIF_BRUT * this.courierRate() / 100)
-  );
-  readonly netCoursierSim = computed(() =>
-    this.SIM_TARIF_BRUT - this.commissionSim()
-  );
+  /** Mêmes formules et arrondis que PaymentService.initiate (arrondi à l'unité, demi vers le haut). */
+  readonly sim = computed(() => {
+    const t = this.exTarif(), a = this.exAchats(), r = this.rates();
+    const clientFee = Math.round(((t + a) * (r.client || 0)) / 100);
+    const commission = Math.round((t * (r.courier || 0)) / 100);
+    return { clientFee, commission, total: t + a + clientFee, courier: t - commission + a, platform: clientFee + commission };
+  });
 
   ngOnInit(): void {
-    this.loading.set(true);
     this.adminService.getCommissions().subscribe({
-      next: (settings) => {
-        this.clientRate.set(settings.commissionRateClient);
-        this.courierRate.set(settings.commissionRateCourier);
-        this.minTarif.set(settings.tarifMinimumCoursier);
-        this.loading.set(false);
-      },
-      error: () => {
-        this.toast.error('Erreur lors du chargement des commissions.');
-        this.loading.set(false);
-      },
+      next: (s) => { this.apply({ client: Number(s.commissionRateClient), courier: Number(s.commissionRateCourier), min: Number(s.tarifMinimumCoursier) }); this.loading.set(false); },
+      error: () => { this.toast.error('Erreur lors du chargement des commissions.'); this.loading.set(false); },
     });
   }
 
-  formatXaf(value: number): string {
-    return new Intl.NumberFormat('fr-FR').format(value) + ' XAF';
-  }
+  set(key: keyof Rates, v: unknown): void { this.rates.update((r) => ({ ...r, [key]: this.n(v) })); }
+  n(v: unknown): number { const x = typeof v === 'number' ? v : parseFloat(String(v ?? '').replace(',', '.')); return Number.isFinite(x) ? x : NaN; }
+  reset(): void { const s = this.saved(); if (s) this.rates.set({ ...s }); }
+
+  private apply(r: Rates): void { this.saved.set({ ...r }); this.rates.set({ ...r }); }
 
   save(): void {
+    if (this.hasErrors()) return;
+    const r = this.rates();
     this.saving.set(true);
-    this.adminService.updateCommissions({
-      commissionRateClient: this.clientRate(),
-      commissionRateCourier: this.courierRate(),
-      tarifMinimumCoursier: this.minTarif(),
-    }).subscribe({
-      next: (settings) => {
-        this.clientRate.set(settings.commissionRateClient);
-        this.courierRate.set(settings.commissionRateCourier);
-        this.minTarif.set(settings.tarifMinimumCoursier);
-        this.toast.success('Taux et paramètres mis à jour.');
+    this.adminService.updateCommissions({ commissionRateClient: r.client, commissionRateCourier: r.courier, tarifMinimumCoursier: r.min }).subscribe({
+      next: (s) => {
+        this.apply({ client: Number(s.commissionRateClient), courier: Number(s.commissionRateCourier), min: Number(s.tarifMinimumCoursier) });
         this.saving.set(false);
+        this.toast.success('Commissions enregistrées : elles s’appliquent aux prochaines courses payées.');
       },
-      error: () => {
-        this.toast.error('Erreur lors de la sauvegarde.');
-        this.saving.set(false);
-      },
+      error: (err) => { this.saving.set(false); this.toast.error(err?.error?.message ?? 'Erreur lors de l’enregistrement.'); },
     });
   }
+
+  pct(v: number): string { return `${new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 2 }).format(v || 0)} %`; }
+  xaf(v: number): string { return `${new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(Math.round(v || 0))} XAF`; }
 }

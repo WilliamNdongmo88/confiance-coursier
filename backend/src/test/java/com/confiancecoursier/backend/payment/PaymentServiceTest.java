@@ -168,4 +168,30 @@ class PaymentServiceTest {
         org.assertj.core.api.Assertions.assertThatCode(() -> com.confiancecoursier.backend.payment.service.PaymentService.requireMethodAllowed(null, "STRIPE"))
                 .doesNotThrowAnyException();
     }
+
+    /**
+     * Les frais de service client s'ajoutent à ce que paie le client et reviennent à la plateforme :
+     * ils ne sont jamais retirés du montant du coursier, quel que soit leur taux.
+     */
+    @ParameterizedTest
+    @ValueSource(strings = {"0", "5", "10"})
+    void clientRateNeverChangesWhatTheCourierReceives(String clientRate) {
+        CommissionService commissions = mock(CommissionService.class);
+        when(commissions.getCommissionSettings()).thenReturn(CommissionSettingsResponse.builder()
+                .commissionRateClient(new BigDecimal(clientRate))
+                .commissionRateCourier(new BigDecimal("20"))
+                .tarifMinimumCoursier(new BigDecimal("5000"))
+                .currency("XAF").build());
+        when(commissions.getIntSetting(anyString(), anyInt())).thenAnswer(i -> i.getArgument(1));
+        PaymentService svc = new PaymentService(courses, ledger, mock(NotificationService.class), commissions, escrow,
+                new ProofDeadlinePolicy(commissions), Clock.fixed(PAID_AT.atZone(ZONE).toInstant(), ZONE));
+
+        PaymentInitiateResponse res = svc.initiate(request("15000", "kc" + clientRate), 10L);
+
+        BigDecimal clientFee = new BigDecimal("20000").multiply(new BigDecimal(clientRate)).divide(new BigDecimal("100"));
+        assertThat(course.getCourierAmount()).isEqualByComparingTo("19000");        // 5000 − 20 % + 15000 d'achats
+        assertThat(course.getCommissionAmount()).isEqualByComparingTo(clientFee);  // frais client seuls
+        assertThat(res.getTotalAmount()).isEqualByComparingTo(new BigDecimal("20000").add(clientFee));
+        assertThat(course.getPlatformFeeAmount()).isEqualByComparingTo(new BigDecimal("1000").add(clientFee));
+    }
 }
