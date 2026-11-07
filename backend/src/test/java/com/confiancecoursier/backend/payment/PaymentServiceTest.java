@@ -144,4 +144,28 @@ class PaymentServiceTest {
         verify(courses).findByIdForUpdate(1L);
         verify(escrow).release(course);
     }
+
+    // ── Moyen de paiement selon le lieu indiqué à la création ──────────────────
+
+    @org.junit.jupiter.api.Test
+    void abroadClientMustPayByCard() {
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> com.confiancecoursier.backend.payment.service.PaymentService.requireMethodAllowed("ABROAD", "MTN"))
+                .hasMessageContaining("carte bancaire");
+        org.assertj.core.api.Assertions.assertThatCode(() -> com.confiancecoursier.backend.payment.service.PaymentService.requireMethodAllowed("ABROAD", "STRIPE"))
+                .doesNotThrowAnyException();
+    }
+
+    @org.junit.jupiter.api.Test
+    void cameroonClientMustPayByMobileMoney() {
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> com.confiancecoursier.backend.payment.service.PaymentService.requireMethodAllowed("CAMEROON", "STRIPE"))
+                .hasMessageContaining("Mobile Money");
+        org.assertj.core.api.Assertions.assertThatCode(() -> com.confiancecoursier.backend.payment.service.PaymentService.requireMethodAllowed("CAMEROON", "ORANGE"))
+                .doesNotThrowAnyException();
+    }
+
+    @org.junit.jupiter.api.Test
+    void unknownLocationAcceptsAnyMethod() {
+        org.assertj.core.api.Assertions.assertThatCode(() -> com.confiancecoursier.backend.payment.service.PaymentService.requireMethodAllowed(null, "STRIPE"))
+                .doesNotThrowAnyException();
+    }
 }

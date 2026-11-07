@@ -113,6 +113,7 @@ public class PaymentService {
         if (!course.getClientId().equals(clientId)) {
             throw new BusinessException("Cette course ne vous appartient pas");
         }
+        requireMethodAllowed(course.getClientLocation(), req.getPaymentMethod());
 
         // Préconditions strictes (TICK-060)
         if (!"ASSIGNED".equals(course.getStatus())) {
@@ -249,6 +250,21 @@ public class PaymentService {
             });
         } else {
             action.run();
+        }
+    }
+
+    /**
+     * Moyen de paiement imposé par le lieu indiqué à la création de la course :
+     * au Cameroun → Mobile Money (MTN, Orange) ; à l'étranger → carte bancaire.
+     * Les anciennes courses (lieu inconnu) acceptent tous les moyens.
+     */
+    public static void requireMethodAllowed(String clientLocation, String method) {
+        String m = method == null ? "" : method.trim().toUpperCase();
+        if ("ABROAD".equals(clientLocation) && !"STRIPE".equals(m)) {
+            throw new BusinessException("Depuis l'étranger, le paiement se fait par carte bancaire.");
+        }
+        if ("CAMEROON".equals(clientLocation) && "STRIPE".equals(m)) {
+            throw new BusinessException("Depuis le Cameroun, le paiement se fait par MTN Mobile Money ou Orange Money.");
         }
     }
 }

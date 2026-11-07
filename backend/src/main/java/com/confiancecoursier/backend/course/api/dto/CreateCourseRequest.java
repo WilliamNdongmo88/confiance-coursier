@@ -26,4 +26,8 @@ public class CreateCourseRequest {
 
     @Pattern(regexp = "^$|^\\+?[0-9 ]{6,20}$", message = "Numéro de téléphone du contact invalide")
     private String contactPhone;
+
+    /** D'où le client paie : CAMEROON ou ABROAD (détermine les moyens de paiement proposés). */
+    @Pattern(regexp = "CAMEROON|ABROAD", message = "Lieu de paiement invalide (CAMEROON ou ABROAD).")
+    private String clientLocation;
 }

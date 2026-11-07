@@ -86,6 +86,9 @@ const METHODS: Method[] = [
     .total strong { font-size: 26px; letter-spacing: -.03em; color: var(--cc-ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
     .total strong.bump { animation: pay-bump .3s cubic-bezier(.16,1,.3,1); }
     .cta { width: 100%; min-height: 52px; margin-top: 16px; justify-content: center; font-size: 15px; }
+    .inactive { opacity: .45; box-shadow: none; }
+    .methods.nudge { animation: pay-nudge .5s ease-in-out; border-radius: 14px; box-shadow: 0 0 0 3px color-mix(in oklab, var(--cc-danger) 45%, transparent); }
+    @keyframes pay-nudge { 0%,100% { transform: none; } 25% { transform: translateX(-5px); } 50% { transform: translateX(4px); } 75% { transform: translateX(-2px); } }
     .escrow { display: grid; gap: 8px; margin-top: 14px; font-size: 13px; line-height: 1.45; color: var(--pm); }
     .escrow div { display: flex; gap: 8px; align-items: flex-start; }
     .escrow svg { flex: none; margin-top: 1px; color: var(--primary); }
@@ -182,9 +185,9 @@ const METHODS: Method[] = [
 
             <section class="blk" aria-labelledby="pay-method">
               <h2 id="pay-method"><span class="num">2</span> Comment voulez-vous payer ?</h2>
-              <p>Choisissez votre moyen de paiement.</p>
-              <div class="methods" role="radiogroup" aria-labelledby="pay-method">
-                @for (m of methods; track m.value) {
+              <p>{{ location() === 'ABROAD' ? 'Vous payez depuis l’étranger : par carte bancaire.' : location() === 'CAMEROON' ? 'Vous payez depuis le Cameroun : par Mobile Money.' : 'Choisissez votre moyen de paiement.' }}</p>
+              <div class="methods" id="pay-methods" role="radiogroup" aria-labelledby="pay-method" [class.nudge]="nudge()">
+                @for (m of allowedMethods(); track m.value) {
                   <button type="button" class="m" role="radio" [attr.aria-checked]="method() === m.value" [class.on]="method() === m.value" (click)="method.set(m.value)">
                     @if (m.mark === 'card') { <span class="mark card"><svg lucideCreditCard size="21"></svg></span> }
                     @else { <span class="mark" [class.mtn]="m.value === 'MTN'" [class.om]="m.value === 'ORANGE'">{{ m.mark }}</span> }
@@ -210,10 +213,8 @@ const METHODS: Method[] = [
               @for (t of [total()]; track t) { <strong class="bump" aria-live="polite">{{ xaf(t) }}</strong> }
             </div>
 
-            <button type="button" class="primary-action cta" [disabled]="!canPay() || paying()" (click)="pay()">
-              @if (paying()) { Paiement en cours… }
-              @else if (!method()) { Choisissez un moyen de paiement }
-              @else { <svg lucideLockKeyhole size="16"></svg> Payer {{ xaf(total()) }} }
+            <button type="button" class="primary-action cta" [class.inactive]="!canPay()" [attr.aria-disabled]="!canPay()" [disabled]="paying()" (click)="pay()">
+              @if (paying()) { Paiement en cours… } @else { <svg lucideLockKeyhole size="16"></svg> Payer {{ xaf(total()) }} }
             </button>
 
             <div class="escrow">
@@ -226,8 +227,8 @@ const METHODS: Method[] = [
         <!-- Mobile : total et paiement toujours à portée de pouce -->
         <div class="paybar">
           <div><small>Total</small><strong>{{ xaf(total()) }}</strong></div>
-          <button type="button" class="primary-action" [disabled]="!canPay() || paying()" (click)="pay()">
-            @if (paying()) { Paiement… } @else if (!method()) { Choisir un moyen } @else { <svg lucideLockKeyhole size="16"></svg> Payer }
+          <button type="button" class="primary-action" [class.inactive]="!canPay()" [attr.aria-disabled]="!canPay()" [disabled]="paying()" (click)="pay()">
+            @if (paying()) { Paiement… } @else { <svg lucideLockKeyhole size="16"></svg> Payer }
           </button>
         </div>
       }
@@ -252,6 +253,15 @@ export class PayComponent implements OnInit {
   readonly purchases = signal<number | null>(null);
   readonly method = signal<PaymentMethod | null>(null);
   readonly paying = signal(false);
+  readonly nudge = signal(false);
+  /** D'où le client paie (indiqué à la création) : CAMEROON | ABROAD | null (ancienne course). */
+  readonly location = signal<'CAMEROON' | 'ABROAD' | null>(null);
+  readonly allowedMethods = computed(() => {
+    const loc = this.location();
+    if (loc === 'ABROAD') return METHODS.filter((m) => m.value === 'STRIPE');
+    if (loc === 'CAMEROON') return METHODS.filter((m) => m.value !== 'STRIPE');
+    return METHODS;
+  });
 
   /** Même calcul que le serveur (PaymentService) : base = achats + tarif ; frais = base × taux ; total = base + frais. */
   readonly fees = computed(() => Math.round((this.base() * this.feeRate()) / 100));
@@ -287,6 +297,9 @@ export class PayComponent implements OnInit {
         this.status.set(c?.status ?? '');
         this.description.set(c?.description ?? '');
         this.courierName.set(c?.courierName ?? '');
+        const loc = c?.clientLocation === 'CAMEROON' || c?.clientLocation === 'ABROAD' ? c.clientLocation : null;
+        this.location.set(loc);
+        if (loc === 'ABROAD') this.method.set('STRIPE'); // un seul moyen possible : déjà choisi
         this.loading.set(false);
       },
       error: () => { this.loading.set(false); this.loadError.set(true); },
@@ -315,7 +328,21 @@ export class PayComponent implements OnInit {
   }
 
   pay(): void {
-    if (!this.canPay() || this.paying()) return;
+    if (this.paying()) return;
+    if (!this.method()) {
+      this.toast.error('Choisissez d’abord un moyen de paiement.');
+      this.nudge.set(false);
+      setTimeout(() => this.nudge.set(true), 0);
+      setTimeout(() => this.nudge.set(false), 1600);
+      document.getElementById('pay-methods')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    if (this.hasPurchases() && this.purchases() === null) {
+      this.toast.error('Indiquez le montant des achats, ou choisissez « Non ».');
+      document.getElementById('pay-frais')?.focus();
+      return;
+    }
+    if (!this.canPay()) return;
     this.paying.set(true);
     this.paymentService.initiate({
       courseId: this.courseId,

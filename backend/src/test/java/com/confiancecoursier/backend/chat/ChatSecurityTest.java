@@ -226,6 +226,16 @@ class ChatSecurityTest {
                 mock(CourseRepository.class), notifications);
     }
 
+    @Test
+    void sentMessageIsStoredAsUnread() {
+        ChatController c = controller();
+        c.sendMessage(dto(null, "TEXT", "Bonjour", null), principal("courier@test.com"));
+        var captor = org.mockito.ArgumentCaptor.forClass(ChatMessage.class);
+        org.mockito.Mockito.verify(messages).save(captor.capture());
+        // NULL n'est jamais compté comme non lu : la pastille ne s'afficherait pas
+        org.assertj.core.api.Assertions.assertThat(captor.getValue().getIsRead()).isFalse();
+    }
+
     // ── Email au client au premier message d'un coursier sur sa course ──────
 
     @Test

@@ -32,9 +32,12 @@ public class ChatMessage {
     @Column(name = "attachment_type")
     private String attachmentType;
 
-    @Column(name = "is_read")
+    /** Lu par le destinataire. @Builder.Default : sans lui, le builder écrivait NULL (pastilles invisibles). */
+    @Builder.Default
+    @Column(name = "is_read", nullable = false)
     private Boolean isRead = false;
 
+    @Builder.Default
     @Column(name = "message_type", nullable = false)
     private String messageType = "TEXT"; // TEXT | OFFER | SYSTEM
 

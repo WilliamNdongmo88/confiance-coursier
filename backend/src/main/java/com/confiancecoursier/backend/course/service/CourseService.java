@@ -103,6 +103,7 @@ public class CourseService {
                 .scheduledAt(request.getScheduledAt())
                 .contactName(blankToNull(request.getContactName()))
                 .contactPhone(blankToNull(request.getContactPhone()))
+                .clientLocation(blankToNull(request.getClientLocation()))
                 .status("PUBLISHED")
                 .build();
 
@@ -163,6 +164,7 @@ public class CourseService {
         course.setScheduledAt(request.getScheduledAt());
         course.setContactName(blankToNull(request.getContactName()));
         course.setContactPhone(blankToNull(request.getContactPhone()));
+        if (request.getClientLocation() != null) course.setClientLocation(request.getClientLocation());
 
         Course updated = courseRepository.save(course);
         return toResponse(updated, resolveChatRoomId(updated), clientId, namesOf(List.of(updated)));

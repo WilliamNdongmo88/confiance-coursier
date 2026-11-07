@@ -9,6 +9,8 @@ export interface CreateCourseRequest {
   /** Personne à contacter sur place (facultatif). */
   contactName?: string | null;
   contactPhone?: string | null;
+  /** D'où le client paie : CAMEROON (Mobile Money) ou ABROAD (carte bancaire). */
+  clientLocation?: 'CAMEROON' | 'ABROAD' | null;
 }
 
 export interface CourierSummary {

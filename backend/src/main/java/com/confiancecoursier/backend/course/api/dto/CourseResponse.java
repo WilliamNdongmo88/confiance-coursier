@@ -57,6 +57,9 @@ public class CourseResponse {
     private String contactName;
     private String contactPhone;
 
+    /** D'où le client paie : CAMEROON | ABROAD (null = ancienne course, tous moyens possibles). */
+    private String clientLocation;
+
     /** TICK-073 : la personne qui consulte doit encore noter cette course terminée. */
     private Boolean reviewDue;
 
@@ -82,6 +85,7 @@ public class CourseResponse {
         dto.setCourseAmount(course.getCourseAmount());
         dto.setTotalAmount(course.getTotalAmount());
         dto.setRealCosts(course.getRealCosts());
+        dto.setClientLocation(course.getClientLocation());
         dto.setProofDeadline(course.getProofDeadline());
         dto.setExtensionCount(course.getExtensionCount());
         dto.setOverdueSince(course.getOverdueSince());

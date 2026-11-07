@@ -40,6 +40,10 @@ public class Course {
     @Column(name = "contact_phone", length = 30)
     private String contactPhone;
 
+    /** D'où le client paie : CAMEROON (Mobile Money) ou ABROAD (carte bancaire). Null = ancienne course. */
+    @Column(name = "client_location", length = 10)
+    private String clientLocation;
+
     @Column(nullable = false)
     private String status = "PUBLISHED";
 

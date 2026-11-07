@@ -7,11 +7,11 @@ import { ToastService } from '../../../core/services/toast.service';
 import {
   LucideArrowLeft, LucideArrowRight, LucideCalendarDays, LucideCamera, LucideCheck, LucideFileText,
   LucideLockKeyhole, LucideMapPin, LucideMoreHorizontal, LucidePackage, LucidePencil, LucideShoppingBag,
-  LucideStar, LucideTruck, LucideUserRound,
+  LucideGlobe, LucideSmartphone, LucideStar, LucideTruck, LucideUserRound,
 } from '@lucide/angular';
 
 type TypeKey = 'ACHAT' | 'LIVRAISON' | 'RETRAIT' | 'AUTRE';
-type StepKey = 'type' | 'need' | 'place' | 'contact' | 'when' | 'recap';
+type StepKey = 'type' | 'need' | 'place' | 'contact' | 'when' | 'payer' | 'recap';
 
 interface CourseType {
   value: TypeKey;
@@ -51,6 +51,7 @@ const STEPS: { key: StepKey; label: string }[] = [
   { key: 'place', label: 'Lieu' },
   { key: 'contact', label: 'Contact' },
   { key: 'when', label: 'Date' },
+  { key: 'payer', label: 'Paiement' },
   { key: 'recap', label: 'Vérification' },
 ];
 
@@ -67,7 +68,7 @@ const STEPS: { key: StepKey; label: string }[] = [
     FormsModule, RouterLink,
     LucideArrowLeft, LucideArrowRight, LucideCalendarDays, LucideCamera, LucideCheck, LucideFileText,
     LucideLockKeyhole, LucideMapPin, LucideMoreHorizontal, LucidePackage, LucidePencil, LucideShoppingBag,
-    LucideStar, LucideTruck, LucideUserRound,
+    LucideGlobe, LucideSmartphone, LucideStar, LucideTruck, LucideUserRound,
   ],
   styles: [`
     :host { display: block; --cc-muted-2: #56635c; }
@@ -75,7 +76,7 @@ const STEPS: { key: StepKey; label: string }[] = [
     .wz { max-width: 680px; margin: 0 auto; }
     .wz-head h1 { margin: 0 0 4px; font-size: clamp(26px, 4vw, 32px); line-height: 1.1; letter-spacing: -.04em; font-weight: 800; color: var(--cc-ink); }
     .wz-head p { margin: 0 0 20px; font-size: 15px; color: var(--cc-muted-2); }
-    .wz-progress { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-bottom: 8px; }
+    .wz-progress { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 8px; }
     .wz-progress span { height: 5px; border-radius: 5px; background: var(--cc-line); position: relative; overflow: hidden; }
     .wz-progress span::after { content: ''; position: absolute; inset: 0; background: var(--primary); transform: scaleX(0);
       transform-origin: left; transition: transform .45s cubic-bezier(.16,1,.3,1); }
@@ -123,7 +124,9 @@ const STEPS: { key: StepKey; label: string }[] = [
     .assure div { display: flex; gap: 10px; align-items: flex-start; }
     .assure svg { flex: none; margin-top: 1px; color: var(--primary); }
     .wz-actions { display: flex; gap: 10px; align-items: center; margin-top: 22px; }
-    .wz-actions .btn-next { flex: 1; min-height: 50px; justify-content: center; }
+    .wz-actions .btn-next { flex: 1 1 0; min-width: 0; min-height: 50px; justify-content: center; white-space: normal; text-align: center; line-height: 1.25; }
+    .btn-prev { flex: none; }
+    .wz-actions .btn-next:disabled { opacity: .45; box-shadow: none; cursor: not-allowed; }
     .btn-prev { min-height: 50px; padding: 0 16px; border-radius: 10px; border: 1px solid var(--cc-line); background: var(--cc-white);
       color: var(--cc-ink); font: inherit; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
     .pending { margin-bottom: 18px; padding: 16px 18px; border-radius: 13px; border: 1px solid var(--cc-warning); background: var(--cc-warning-bg); }
@@ -140,6 +143,8 @@ const STEPS: { key: StepKey; label: string }[] = [
       .types { grid-template-columns: 1fr; }
       .grid2 { grid-template-columns: 1fr; }
       .recap li { grid-template-columns: 1fr auto; }
+      .prev-txt { display: none; }
+      .btn-prev { width: 50px; padding: 0; justify-content: center; }
       .recap-ic { display: none; }
     }
     @media (prefers-reduced-motion: reduce) { .wz-step, .wz-step.back { animation: none; } .wz-progress span::after { transition: none; } }
@@ -255,6 +260,20 @@ const STEPS: { key: StepKey; label: string }[] = [
                 </div>
                 @if (dateVal && timeVal && !isFuture()) { <p class="err" role="alert">Choisissez un moment à venir.</p> }
               }
+              @case ('payer') {
+                <h2 class="wz-q">D’où allez-vous payer ?</h2>
+                <p class="wz-sub">Cela détermine le moyen de paiement proposé. Votre argent restera bloqué jusqu’à votre validation des preuves.</p>
+                <div class="types" role="radiogroup" aria-label="Lieu de paiement">
+                  <button type="button" class="type" role="radio" [attr.aria-checked]="clientLocation() === 'CAMEROON'" [class.on]="clientLocation() === 'CAMEROON'" (click)="chooseLocation('CAMEROON')">
+                    <span class="type-ic"><svg lucideSmartphone size="21"></svg></span>
+                    <span><b>Depuis le Cameroun</b><small>MTN Mobile Money ou Orange Money</small></span>
+                  </button>
+                  <button type="button" class="type" role="radio" [attr.aria-checked]="clientLocation() === 'ABROAD'" [class.on]="clientLocation() === 'ABROAD'" (click)="chooseLocation('ABROAD')">
+                    <span class="type-ic"><svg lucideGlobe size="21"></svg></span>
+                    <span><b>Depuis l’étranger</b><small>Carte bancaire (Visa, Mastercard)</small></span>
+                  </button>
+                </div>
+              }
               @case ('recap') {
                 <h2 class="wz-q">Vérifiez votre course</h2>
                 <p class="wz-sub">Corrigez si besoin avant de {{ isEditMode ? 'l’enregistrer' : 'la publier' }}.</p>
@@ -272,6 +291,9 @@ const STEPS: { key: StepKey; label: string }[] = [
                   <li><span class="recap-ic"><svg lucideCalendarDays size="17"></svg></span>
                     <div><small>Date souhaitée</small><p>{{ whenLabel() }}</p></div>
                     <button type="button" (click)="goTo('when')"><svg lucidePencil size="13"></svg> Modifier</button></li>
+                  <li><span class="recap-ic">@if (clientLocation() === 'ABROAD') { <svg lucideGlobe size="17"></svg> } @else { <svg lucideSmartphone size="17"></svg> }</span>
+                    <div><small>Paiement</small><p>{{ clientLocation() === 'ABROAD' ? 'Depuis l’étranger · carte bancaire' : 'Depuis le Cameroun · Mobile Money' }}</p></div>
+                    <button type="button" (click)="goTo('payer')"><svg lucidePencil size="13"></svg> Modifier</button></li>
                 </ul>
                 <div class="assure">
                   <div><svg lucideCamera size="16"></svg><span>Le coursier devra prouver la course : courte vidéo horodatée et géolocalisée, photos et, s’il y a un achat, le reçu.</span></div>
@@ -284,7 +306,7 @@ const STEPS: { key: StepKey; label: string }[] = [
 
         <div class="wz-actions">
           @if (index() > 0) {
-            <button type="button" class="btn-prev" (click)="prev()" aria-label="Étape précédente"><svg lucideArrowLeft size="16"></svg> Retour</button>
+            <button type="button" class="btn-prev" (click)="prev()" aria-label="Étape précédente"><svg lucideArrowLeft size="16"></svg><span class="prev-txt"> Retour</span></button>
           }
           @if (step() !== 'type') {
             <button type="submit" class="primary-action btn-next" [disabled]="!canNext() || isLoading">
@@ -309,6 +331,8 @@ export class CreateCourseComponent implements OnInit {
   readonly goingBack = signal(false);
   readonly index = computed(() => STEPS.findIndex((s) => s.key === this.step()));
   readonly type = signal<TypeKey>('ACHAT');
+  /** Mémorisé pour la prochaine course (la plupart des clients paient toujours du même endroit). */
+  readonly clientLocation = signal<'CAMEROON' | 'ABROAD' | null>(this.lastLocation());
   readonly current = computed(() => TYPES.find((t) => t.value === this.type())!);
 
   description = '';
@@ -360,6 +384,7 @@ export class CreateCourseComponent implements OnInit {
       case 'place': return !!this.city.trim() && !!this.neighborhood.trim();
       case 'contact': return !this.contactPhone.trim() || this.phoneValid();
       case 'when': return !!this.dateVal && !!this.timeVal && this.isFuture();
+      case 'payer': return !!this.clientLocation();
       case 'recap': return true;
     }
   }
@@ -379,6 +404,19 @@ export class CreateCourseComponent implements OnInit {
       (this.host.nativeElement.querySelector('[data-autofocus]') as HTMLElement | null)?.focus({ preventScroll: true });
       this.host.nativeElement.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
     }, 0);
+  }
+
+  chooseLocation(loc: 'CAMEROON' | 'ABROAD'): void {
+    this.clientLocation.set(loc);
+    try { localStorage.setItem('cc_client_location', loc); } catch { /* stockage indisponible */ }
+    setTimeout(() => this.goTo('recap'), 160);
+  }
+
+  private lastLocation(): 'CAMEROON' | 'ABROAD' | null {
+    try {
+      const v = localStorage.getItem('cc_client_location');
+      return v === 'CAMEROON' || v === 'ABROAD' ? v : null;
+    } catch { return null; }
   }
 
   // ── Valeurs ────────────────────────────────────────────────────────────────
@@ -431,6 +469,7 @@ export class CreateCourseComponent implements OnInit {
         }
         this.contactName = course.contactName ?? '';
         this.contactPhone = course.contactPhone ?? '';
+        if (course.clientLocation === 'CAMEROON' || course.clientLocation === 'ABROAD') this.clientLocation.set(course.clientLocation);
         if (course.scheduledAt) {
           const [d, t] = (course.scheduledAt as string).substring(0, 16).split('T');
           this.dateVal = d ?? '';
@@ -454,6 +493,7 @@ export class CreateCourseComponent implements OnInit {
       scheduledAt: `${this.dateVal}T${this.timeVal}:00`,
       contactName: this.contactName.trim() || null,
       contactPhone: this.contactPhone.trim() || null,
+      clientLocation: this.clientLocation(),
     };
     const request$ = this.isEditMode && this.courseId
       ? this.courseService.updateCourse(this.courseId, data)
