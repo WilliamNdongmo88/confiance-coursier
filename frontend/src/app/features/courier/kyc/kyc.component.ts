@@ -1,22 +1,13 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { NgClass, NgIf } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { DatePipe } from '@angular/common';
 import { HttpClient, HttpEventType } from '@angular/common/http';
 import { ToastService } from '../../../core/services/toast.service';
 import { AuthService } from '../../../core/services/auth.service';
 import {
-  LucideShieldCheck,
-  LucideUser,
-  LucideIdCard,
-  LucideScanFace,
-  LucideWallet,
-  LucideCamera,
-  LucideCheck,
-  LucideCheckCircle,
-  LucideXCircle,
-  LucideClock,
-  LucideSend,
-  LucideArrowLeft,
+  LucideArrowLeft, LucideArrowRight, LucideCamera, LucideCheck, LucideClock, LucideIdCard, LucideLockKeyhole,
+  LucidePencil, LucideRefreshCw, LucideScanFace, LucideSend, LucideShieldCheck, LucideSmartphone, LucideUser, LucideXCircle,
 } from '@lucide/angular';
 
 interface KycStatus {
@@ -27,712 +18,410 @@ interface KycStatus {
   reviewedAt?: string;
 }
 
+type StepKey = 'identity' | 'document' | 'selfie' | 'payout' | 'recap';
+type Slot = 'front' | 'back' | 'selfie';
+
+const STEPS: { key: StepKey; label: string }[] = [
+  { key: 'identity', label: 'Identité' },
+  { key: 'document', label: 'Pièce' },
+  { key: 'selfie', label: 'Selfie' },
+  { key: 'payout', label: 'Paiement' },
+  { key: 'recap', label: 'Envoi' },
+];
+
+const MAX_FILE = 10 * 1024 * 1024;
+const DOC_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
+/**
+ * Vérification d'identité du coursier (KYC), Impeccable.
+ * En étapes : identité → pièce (recto/verso avec aperçu) → selfie → reversement → vérification et envoi.
+ * Les coordonnées de reversement sont enregistrées sur le compte (payoutMethod / payoutNumber).
+ */
 @Component({
   selector: 'app-kyc',
   standalone: true,
   imports: [
-    RouterLink,
-    NgClass,
-    NgIf,
-    LucideShieldCheck,
-    LucideUser,
-    LucideIdCard,
-    LucideScanFace,
-    LucideWallet,
-    LucideCamera,
-    LucideCheck,
-    LucideCheckCircle,
-    LucideXCircle,
-    LucideClock,
-    LucideSend,
-    LucideArrowLeft,
+    RouterLink, FormsModule, DatePipe,
+    LucideArrowLeft, LucideArrowRight, LucideCamera, LucideCheck, LucideClock, LucideIdCard, LucideLockKeyhole,
+    LucidePencil, LucideRefreshCw, LucideScanFace, LucideSend, LucideShieldCheck, LucideSmartphone, LucideUser, LucideXCircle,
   ],
   styles: [`
-    /* ── Indicateur d'étapes ── */
-    .kyc-steps {
-      display: flex;
-      align-items: flex-start;
-      margin-bottom: 28px;
-      position: relative;
-    }
-    .kyc-step {
-      flex: 1;
-      text-align: center;
-      position: relative;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 6px;
-    }
-    .kyc-step::before {
-      content: "";
-      position: absolute;
-      top: 16px;
-      left: 50%;
-      right: -50%;
-      height: 2px;
-      background: var(--cc-line);
-      z-index: 0;
-    }
-    .kyc-step:last-child::before { display: none; }
-    .kyc-step-num {
-      width: 34px;
-      height: 34px;
-      border-radius: 50%;
-      background: var(--surface);
-      border: 2px solid var(--cc-line);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      font-size: .85rem;
-      color: var(--cc-muted);
-      position: relative;
-      z-index: 1;
-    }
-    .kyc-step.done .kyc-step-num {
-      background: var(--primary);
-      border-color: var(--primary);
-      color: white;
-    }
-    .kyc-step.active .kyc-step-num {
-      background: var(--cc-forest);
-      border-color: var(--cc-forest);
-      color: white;
-    }
-    .kyc-step-label {
-      font-size: .78rem;
-      color: var(--cc-muted);
-      font-weight: 600;
-    }
-    .kyc-step.active .kyc-step-label { color: var(--cc-forest); }
-    .kyc-step.done .kyc-step-label { color: var(--primary); }
-
-    /* ── Zone upload ── */
-    .upload-zone {
-      border: 2px dashed var(--cc-line);
-      border-radius: 10px;
-      padding: 22px 16px;
-      text-align: center;
-      cursor: pointer;
-      background: var(--cc-paper);
-      transition: border-color .15s, background .15s;
-    }
-    .upload-zone:hover {
-      border-color: var(--cc-forest);
-      background: var(--cc-success-bg);
-    }
-    .upload-zone.has-file {
-      border-color: var(--primary);
-      background: var(--cc-success-bg);
-    }
-
-    .upload-zone.has-error {
-      border-color: var(--cc-danger);
-      background: var(--cc-danger-bg);
-    }
-
-    /* ── Message d'erreur fichier ── */
-    .file-error {
-      font-size: .78rem;
-      color: var(--cc-danger);
-      margin: 5px 0 0;
-      line-height: 1.4;
-    }
-
-    /* ── Grille 2 colonnes ── */
-    .kyc-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-    }
+    :host { display: block; --km: #56635c; }
+    :host-context([data-theme="dark"]) { --km: #B0C0B7; }
+    .k { max-width: 680px; margin: 0 auto; }
+    .k-head h1 { margin: 0 0 6px; font-size: clamp(26px, 4vw, 32px); line-height: 1.1; letter-spacing: -.04em; font-weight: 800; color: var(--cc-ink); }
+    .k-head p { margin: 0 0 18px; font-size: 15px; line-height: 1.5; color: var(--km); }
+    .safe { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 18px; padding: 12px 14px; border-radius: 12px; background: var(--cc-paper-2); font-size: 13.5px; line-height: 1.45; color: var(--cc-ink); }
+    .safe svg { flex: none; margin-top: 1px; color: var(--primary); }
+    .prog { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 8px; }
+    .prog span { height: 5px; border-radius: 5px; background: var(--cc-line); position: relative; overflow: hidden; }
+    .prog span::after { content: ''; position: absolute; inset: 0; background: var(--primary); transform: scaleX(0); transform-origin: left; transition: transform .45s cubic-bezier(.16,1,.3,1); }
+    .prog span.done::after { transform: scaleX(1); }
+    .count { display: flex; justify-content: space-between; margin-bottom: 18px; font-size: 13px; color: var(--km); }
+    .count strong { color: var(--cc-ink); }
+    .card { background: var(--cc-white); border: 1px solid var(--cc-line); border-radius: 16px; padding: 26px; box-shadow: 0 10px 30px rgba(18,59,50,.06); overflow: hidden; }
+    .step { animation: k-in .42s cubic-bezier(.16,1,.3,1) both; }
+    .step.back { animation-name: k-back; }
+    @keyframes k-in { from { opacity: 0; transform: translateX(28px); } to { opacity: 1; transform: none; } }
+    @keyframes k-back { from { opacity: 0; transform: translateX(-28px); } to { opacity: 1; transform: none; } }
+    .q { margin: 0 0 6px; font-size: 21px; line-height: 1.2; letter-spacing: -.03em; font-weight: 750; color: var(--cc-ink); }
+    .sub { margin: 0 0 18px; font-size: 14px; line-height: 1.5; color: var(--km); }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .choices { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 18px; }
+    .ch { display: flex; align-items: center; gap: 12px; padding: 13px 14px; border: 1.5px solid var(--cc-line); border-radius: 13px; background: var(--cc-white);
+      color: var(--cc-ink); font: inherit; text-align: left; cursor: pointer; transition: border-color .18s, background .18s; }
+    .ch.on { border-color: var(--primary); background: color-mix(in oklab, var(--primary) 8%, var(--cc-white)); }
+    .ch-ic { flex: none; width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center; background: var(--cc-paper-2); color: var(--primary); font-weight: 900; font-size: 12px; }
+    .ch.on .ch-ic { background: var(--primary); color: #fff; }
+    .ch-ic.mtn { background: #ffcc00 !important; color: #1a1a1a !important; }
+    .ch-ic.om { background: #ff7900 !important; color: #fff !important; }
+    .ch b { display: block; font-size: 14.5px; }
+    .ch small { display: block; font-size: 12.5px; color: var(--km); }
+    .slots { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .slot { position: relative; display: grid; place-items: center; aspect-ratio: 16 / 10; padding: 0; border: 1.5px dashed var(--cc-line); border-radius: 14px;
+      background: var(--cc-paper-2); color: var(--cc-ink); font: inherit; cursor: pointer; overflow: hidden; transition: border-color .18s; }
+    .slot:hover { border-color: var(--primary); }
+    .slot.filled { border-style: solid; border-color: var(--cc-success); }
+    .slot.selfie { aspect-ratio: 1 / 1; max-width: 260px; margin: 0 auto; width: 100%; }
+    .slot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .slot-empty { display: grid; justify-items: center; gap: 6px; padding: 10px; text-align: center; font-size: 13.5px; font-weight: 650; }
+    .slot-empty svg { color: var(--primary); }
+    .slot-empty small { font-weight: 500; font-size: 12px; color: var(--km); }
+    .slot-tag { position: absolute; left: 8px; bottom: 8px; display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 8px;
+      background: rgba(0,0,0,.65); color: #fff; font-size: 12px; font-weight: 700; }
+    .slot-redo { position: absolute; right: 8px; top: 8px; width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; background: rgba(0,0,0,.6); color: #fff; }
+    .pdf { display: grid; justify-items: center; gap: 4px; font-weight: 700; color: var(--cc-ink); }
+    .err { margin: 8px 0 0; font-size: 13px; color: var(--cc-danger); }
+    .tips { margin: 14px 0 0; padding-left: 20px; list-style: disc; font-size: 13px; line-height: 1.6; color: var(--km); }
+    .recap { list-style: none; margin: 0 0 18px; padding: 0; border: 1px solid var(--cc-line); border-radius: 13px; overflow: hidden; }
+    .recap li { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; padding: 13px 14px; }
+    .recap li + li { border-top: 1px solid var(--cc-line); }
+    .recap small { display: block; font-size: 12px; color: var(--km); }
+    .recap p { margin: 2px 0 0; font-size: 14.5px; color: var(--cc-ink); }
+    .recap button { min-height: 36px; padding: 0 10px; border: 0; border-radius: 8px; background: none; color: var(--primary); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
+    .bar { height: 6px; border-radius: 6px; background: var(--cc-line); overflow: hidden; margin-top: 12px; }
+    .bar i { display: block; height: 100%; background: var(--primary); transition: width .2s; }
+    .actions { display: flex; gap: 10px; margin-top: 22px; }
+    .actions .next { flex: 1 1 0; min-width: 0; min-height: 50px; justify-content: center; white-space: normal; text-align: center; }
+    .actions .next.inactive { opacity: .45; box-shadow: none; }
+    .prev { flex: none; min-height: 50px; padding: 0 16px; border-radius: 10px; border: 1px solid var(--cc-line); background: var(--cc-white); color: var(--cc-ink);
+      font: inherit; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+    .state { text-align: center; padding: 32px 22px; border-radius: 16px; border: 1px solid var(--cc-line); background: var(--cc-white); animation: k-in .4s cubic-bezier(.16,1,.3,1) both; }
+    .state .ic { width: 64px; height: 64px; margin: 0 auto 14px; border-radius: 18px; display: grid; place-items: center; background: var(--cc-paper-2); color: var(--primary); }
+    .state .ic.ok { background: var(--cc-success); color: #fff; }
+    .state .ic.ko { background: var(--cc-danger-bg); color: var(--cc-danger); }
+    .state h2 { margin: 0 0 8px; font-size: 20px; font-weight: 800; letter-spacing: -.02em; color: var(--cc-ink); }
+    .state p { margin: 0 auto 16px; max-width: 46ch; color: var(--km); line-height: 1.55; }
+    .state .why { max-width: 46ch; margin: 0 auto 16px; padding: 12px 14px; border-radius: 12px; background: var(--cc-danger-bg); color: var(--cc-ink); font-size: 14px; text-align: left; }
+    :host-context([data-theme="dark"]) .k-head h1, :host-context([data-theme="dark"]) .q, :host-context([data-theme="dark"]) .state h2,
+    :host-context([data-theme="dark"]) .recap p, :host-context([data-theme="dark"]) .safe, :host-context([data-theme="dark"]) .state .why { color: #F3F7F5 !important; }
+    :host-context([data-theme="dark"]) .sub, :host-context([data-theme="dark"]) .k-head p { color: #B0C0B7 !important; }
+    :host-context([data-theme="dark"]) .safe, :host-context([data-theme="dark"]) .slot, :host-context([data-theme="dark"]) .ch-ic,
+    :host-context([data-theme="dark"]) .state .ic:not(.ok):not(.ko) { background: rgba(255,255,255,.05); }
+    :host-context([data-theme="dark"]) .safe svg, :host-context([data-theme="dark"]) .slot-empty svg, :host-context([data-theme="dark"]) .ch-ic,
+    :host-context([data-theme="dark"]) .state .ic:not(.ok):not(.ko) { color: var(--cc-lime); }
+    :host-context([data-theme="dark"]) .ch.on { border-color: var(--cc-lime); background: rgba(215,237,154,.08); }
+    :host-context([data-theme="dark"]) .ch.on .ch-ic { background: var(--cc-lime); color: #123b32; }
+    :host-context([data-theme="dark"]) .slot:hover { border-color: var(--cc-lime); }
+    :host-context([data-theme="dark"]) .pdf { color: #F3F7F5; }
     @media (max-width: 640px) {
-      .kyc-grid { grid-template-columns: 1fr; gap: 12px; }
-      .kyc-step-label { font-size: .68rem; }
+      .card { padding: 20px 16px; }
+      .grid2, .choices { grid-template-columns: 1fr; }
+      .prev .prev-txt { display: none; }
+      .prev { width: 50px; padding: 0; justify-content: center; }
     }
-
-    /* ── Encart statut ── */
-    .status-card {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 12px;
-      padding: 32px 24px;
-      text-align: center;
-    }
-    .status-icon-wrap {
-      width: 64px;
-      height: 64px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .status-icon-wrap.pending  { background: var(--cc-warning-bg); color: var(--cc-warning); }
-    .status-icon-wrap.approved { background: var(--cc-success-bg); color: var(--primary); }
-    .status-icon-wrap.rejected { background: var(--cc-danger-bg); color: var(--cc-danger); }
-
-    /* ── Barre de progression ── */
-    .upload-progress {
-      height: 4px;
-      background: var(--cc-line);
-      border-radius: 2px;
-      overflow: hidden;
-      margin-top: 8px;
-    }
-    .upload-progress-bar {
-      height: 100%;
-      background: var(--primary);
-      transition: width .2s;
-    }
-
-    [data-theme="dark"] .upload-zone {
-      background: var(--surface);
-      border-color: var(--cc-line);
-    }
-    [data-theme="dark"] .upload-zone:hover {
-      border-color: var(--cc-lime);
-      background: var(--surface);
-    }
-    [data-theme="dark"] .upload-zone.has-file {
-      border-color: var(--cc-lime);
-      background: var(--surface);
-    }
-    [data-theme="dark"] .kyc-step-num {
-      background: var(--surface);
-      border-color: var(--cc-line);
-    }
-    [data-theme="dark"] .kyc-step::before { background: var(--cc-line); }
-
-    /* TICK-076 : anciens attributs « style » du template, convertis en classes (mêmes déclarations) */
-    .st-mb-24px { margin-bottom: 24px; }
-    .st-m-0-fs-1-1rem { margin: 0; font-size: 1.1rem; }
-    .st-max-400px { max-width: 400px; }
-    .st-m-0-fs-1-1rem-c-primary { margin: 0; font-size: 1.1rem; color: var(--primary); }
-    .st-d-flex-g-10px-p-14px-16px { display: flex; gap: 10px; padding: 14px 16px; border-radius: 10px; background: var(--cc-danger-bg); border: 1px solid var(--cc-danger); margin-bottom: 20px; }
-    .st-c-danger-flex-0-mt-1px { color: var(--cc-danger); flex-shrink: 0; margin-top: 1px; }
-    .st-c-danger-d-block-mb-3px { color: var(--cc-danger); display: block; margin-bottom: 3px; }
-    .st-fs-88rem-c-danger { font-size: .88rem; color: var(--cc-danger); }
-    .st-mb-20px { margin-bottom: 20px; }
-    .st-mb-18px { margin-bottom: 18px; }
-    .st-d-flex-ai-center-g-8px { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: .95rem; margin-bottom: 16px; }
-    .st-c-primary { color: var(--primary); }
-    .st-marg-auto-fs-7rem { margin-left: auto; font-size: .7rem; }
-    .st-mb-16px { margin-bottom: 16px; }
-    .st-c-forest { color: var(--cc-forest); }
-    .st-d-none { display: none; }
-    .st-c-muted-mb-6px-d-block { color: var(--cc-muted); margin-bottom: 6px; display: block; margin-inline: auto; }
-    .st-m-0 { margin: 0; }
-    .st-m-3px-0-0-fs-72rem { margin: 3px 0 0; font-size: .72rem; }
-    .st-c-primary-mb-4px-d-block { color: var(--primary); margin-bottom: 4px; display: block; margin-inline: auto; }
-    .st-m-0-fw-600-c-primary { margin: 0; font-weight: 600; color: var(--primary); }
-    .st-m-2px-0-0 { margin: 2px 0 0; }
-    .st-d-flex-ai-center-g-8px-2 { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: .95rem; margin-bottom: 14px; }
-    .st-mb-14px { margin-bottom: 14px; }
-    .st-max-320px-m-auto { max-width: 320px; margin: auto; }
-    .st-c-muted-mb-8px-d-block { color: var(--cc-muted); margin-bottom: 8px; display: block; margin-inline: auto; }
-    .st-fw-600-c-forest-m-0 { font-weight: 600; color: var(--cc-forest); margin: 0; }
-    .st-mt-3px { margin-top: 3px; }
-    .st-mt-2px-fs-72rem { margin-top: 2px; font-size: .72rem; }
-    .st-c-primary-mb-8px-d-block { color: var(--primary); margin-bottom: 8px; display: block; margin-inline: auto; }
-    .st-fw-600-c-primary-m-0 { font-weight: 600; color: var(--primary); margin: 0; }
-    .st-ta-center-mt-8px { text-align: center; margin-top: 8px; }
-    .st-mb-22px { margin-bottom: 22px; }
-    .st-mb-6px { margin-bottom: 6px; }
-    .st-w-100 { width: 100%; }
-    .st-w-17px-heig-17px-bord-2px { width: 17px; height: 17px; border-width: 2px; }
-    .st-ta-center-mt-12px { text-align: center; margin-top: 12px; }
+    @media (prefers-reduced-motion: reduce) { .step, .step.back, .state { animation: none; } .prog span::after { transition: none; } }
   `],
   template: `
-  <div class="page-head st-mb-24px">
-    <div>
-      <h1>Vérification d'identité</h1>
-      <p>Complétez votre dossier KYC pour accepter des missions.</p>
-    </div>
-    <a routerLink="/courier/dashboard" class="btn btn-secondary btn-sm">
-      <svg lucideArrowLeft size="15"></svg> Retour
-    </a>
-  </div>
+    <div class="k">
+      <section class="k-head">
+        <h1>Vérification d’identité</h1>
+        <p>Obligatoire avant de proposer vos services : elle protège les clients et vous rend visible comme coursier vérifié.</p>
+      </section>
 
-  <!-- ── Statut déjà soumis (PENDING ou APPROVED) ── -->
-  <ng-container *ngIf="showStatusCard()">
-    <div class="card st-mb-24px">
-      <div class="status-card">
+      @if (!kycStatus()) {
+        <div class="state"><p>Chargement…</p></div>
+      } @else if (sent() || kycStatus()!.status === 'PENDING') {
+        <div class="state" role="status">
+          <span class="ic"><svg lucideClock size="28"></svg></span>
+          <h2>Dossier en cours d’examen</h2>
+          <p>Notre équipe vérifie vos documents, généralement en moins de 24 heures. Vous recevrez un email dès la décision.</p>
+          <a class="primary-action" routerLink="/courier/dashboard">Retour au tableau de bord</a>
+        </div>
+      } @else if (kycStatus()!.status === 'APPROVED') {
+        <div class="state" role="status">
+          <span class="ic ok"><svg lucideShieldCheck size="28"></svg></span>
+          <h2>Identité vérifiée</h2>
+          <p>Vous pouvez discuter avec les clients et proposer votre tarif. Le badge « Vérifié » apparaît sur votre profil.</p>
+          <a class="primary-action" routerLink="/courier/dashboard">Voir les demandes</a>
+        </div>
+      } @else if (kycStatus()!.status === 'REJECTED' && !retrying()) {
+        <div class="state" role="alert">
+          <span class="ic ko"><svg lucideXCircle size="28"></svg></span>
+          <h2>Dossier refusé</h2>
+          <div class="why"><strong>Motif :</strong> {{ kycStatus()!.rejectionReason || 'documents illisibles ou non conformes.' }}</div>
+          <p>Corrigez ce point et envoyez un nouveau dossier.</p>
+          <button type="button" class="primary-action" (click)="retrying.set(true)"><svg lucideRefreshCw size="15"></svg> Envoyer un nouveau dossier</button>
+        </div>
+      } @else {
+        <div class="safe"><svg lucideLockKeyhole size="16"></svg>
+          <span>Vos documents sont chiffrés, vus seulement par l’équipe de vérification et jamais partagés avec les clients.</span></div>
 
-        <!-- PENDING -->
-        <ng-container *ngIf="kycStatus()?.status === 'PENDING'">
-          <div class="status-icon-wrap pending">
-            <svg lucideClock size="32"></svg>
+        <div class="prog" aria-hidden="true">@for (s of steps; track s.key; let i = $index) { <span [class.done]="i <= index()"></span> }</div>
+        <div class="count"><span>Étape <strong>{{ index() + 1 }}</strong> sur {{ steps.length }}</span><span>{{ steps[index()].label }}</span></div>
+
+        <form class="card" (ngSubmit)="next()" novalidate>
+          @for (k of [step()]; track k) {
+            <div class="step" [class.back]="goingBack()">
+              @switch (k) {
+                @case ('identity') {
+                  <h2 class="q">Qui êtes-vous ?</h2>
+                  <p class="sub">Exactement comme sur votre pièce d’identité.</p>
+                  <div class="grid2">
+                    <div class="form-group"><label class="form-label" for="k-first">Prénom</label>
+                      <input id="k-first" class="form-input" name="first" [(ngModel)]="firstName" data-autofocus autocomplete="given-name"></div>
+                    <div class="form-group"><label class="form-label" for="k-last">Nom de famille</label>
+                      <input id="k-last" class="form-input" name="last" [(ngModel)]="lastName" autocomplete="family-name"></div>
+                    <div class="form-group"><label class="form-label" for="k-dob">Date de naissance</label>
+                      <input id="k-dob" type="date" class="form-input" name="dob" [(ngModel)]="dob" [max]="maxDob"></div>
+                    <div class="form-group"><label class="form-label" for="k-nat">Nationalité</label>
+                      <input id="k-nat" class="form-input" name="nat" [(ngModel)]="nationality" list="k-nats">
+                      <datalist id="k-nats"><option value="Camerounaise"></option><option value="Gabonaise"></option><option value="Tchadienne"></option><option value="Centrafricaine"></option><option value="Nigériane"></option></datalist></div>
+                  </div>
+                  @if (dob && !adult()) { <p class="err" role="alert">Vous devez avoir au moins 18 ans.</p> }
+                }
+                @case ('document') {
+                  <h2 class="q">Votre pièce d’identité</h2>
+                  <p class="sub">Photographiez les deux faces en entier, bien éclairées et sans reflet.</p>
+                  <div class="choices" role="radiogroup" aria-label="Type de pièce">
+                    <button type="button" class="ch" role="radio" [attr.aria-checked]="documentType === 'CNI'" [class.on]="documentType === 'CNI'" (click)="documentType = 'CNI'">
+                      <span class="ch-ic"><svg lucideIdCard size="20"></svg></span><span><b>Carte nationale d’identité</b><small>Recto et verso</small></span></button>
+                    <button type="button" class="ch" role="radio" [attr.aria-checked]="documentType === 'PASSPORT'" [class.on]="documentType === 'PASSPORT'" (click)="documentType = 'PASSPORT'">
+                      <span class="ch-ic"><svg lucideIdCard size="20"></svg></span><span><b>Passeport</b><small>Page photo et page suivante</small></span></button>
+                  </div>
+                  <div class="slots">
+                    @for (sl of ['front', 'back']; track sl) {
+                      <button type="button" class="slot" [class.filled]="!!file(sl)" (click)="pick(sl)" [attr.aria-label]="(sl === 'front' ? 'Recto' : 'Verso') + (file(sl) ? ' : remplacer' : ' : ajouter')">
+                        @if (preview(sl); as url) { <img [src]="url" alt=""> }
+                        @else if (file(sl)) { <span class="pdf"><svg lucideIdCard size="30"></svg> PDF</span> }
+                        @else { <span class="slot-empty"><svg lucideCamera size="26"></svg>{{ sl === 'front' ? 'Recto' : 'Verso' }}<small>Photo ou PDF · 10 Mo max</small></span> }
+                        @if (file(sl)) { <span class="slot-tag"><svg lucideCheck size="13"></svg> {{ sl === 'front' ? 'Recto' : 'Verso' }}</span><span class="slot-redo"><svg lucideRefreshCw size="15"></svg></span> }
+                      </button>
+                    }
+                  </div>
+                  @if (errors().front || errors().back) { <p class="err" role="alert">{{ errors().front || errors().back }}</p> }
+                }
+                @case ('selfie') {
+                  <h2 class="q">Un selfie avec votre pièce</h2>
+                  <p class="sub">Tenez votre pièce à côté de votre visage : les deux doivent être nets.</p>
+                  <button type="button" class="slot selfie" [class.filled]="!!file('selfie')" (click)="pick('selfie')" [attr.aria-label]="file('selfie') ? 'Selfie : reprendre' : 'Prendre le selfie'">
+                    @if (preview('selfie'); as url) { <img [src]="url" alt=""> }
+                    @else { <span class="slot-empty"><svg lucideScanFace size="34"></svg>Prendre le selfie<small>Photo · 10 Mo max</small></span> }
+                    @if (file('selfie')) { <span class="slot-tag"><svg lucideCheck size="13"></svg> Selfie</span><span class="slot-redo"><svg lucideRefreshCw size="15"></svg></span> }
+                  </button>
+                  @if (errors().selfie) { <p class="err" role="alert">{{ errors().selfie }}</p> }
+                  <ul class="tips"><li>Sans lunettes de soleil ni casquette.</li><li>Dans un endroit bien éclairé.</li></ul>
+                }
+                @case ('payout') {
+                  <h2 class="q">Où recevoir vos gains ?</h2>
+                  <p class="sub">Vos gains vous sont reversés sur ce compte Mobile Money après validation des courses.</p>
+                  <div class="choices" role="radiogroup" aria-label="Moyen de reversement">
+                    <button type="button" class="ch" role="radio" [attr.aria-checked]="payoutMethod === 'MTN'" [class.on]="payoutMethod === 'MTN'" (click)="payoutMethod = 'MTN'">
+                      <span class="ch-ic mtn">MTN</span><span><b>MTN Mobile Money</b><small>Numéro MTN</small></span></button>
+                    <button type="button" class="ch" role="radio" [attr.aria-checked]="payoutMethod === 'ORANGE'" [class.on]="payoutMethod === 'ORANGE'" (click)="payoutMethod = 'ORANGE'">
+                      <span class="ch-ic om">OM</span><span><b>Orange Money</b><small>Numéro Orange</small></span></button>
+                  </div>
+                  <label class="form-label" for="k-num">Numéro Mobile Money</label>
+                  <input id="k-num" type="tel" inputmode="tel" class="form-input" name="num" [(ngModel)]="payoutNumber" data-autofocus placeholder="+237 6XX XXX XXX" autocomplete="tel">
+                  @if (payoutNumber.trim() && !phoneOk()) { <p class="err" role="alert">Numéro invalide : chiffres, espaces et « + » uniquement.</p> }
+                }
+                @case ('recap') {
+                  <h2 class="q">Vérifiez avant d’envoyer</h2>
+                  <p class="sub">Vous pouvez encore corriger chaque élément.</p>
+                  <ul class="recap">
+                    <li><div><small>Identité</small><p>{{ firstName }} {{ lastName }} · {{ dob | date:'d MMMM yyyy' }}</p></div><button type="button" (click)="goTo('identity')"><svg lucidePencil size="13"></svg> Modifier</button></li>
+                    <li><div><small>Pièce</small><p>{{ documentType === 'CNI' ? 'Carte nationale d’identité' : 'Passeport' }} · recto et verso</p></div><button type="button" (click)="goTo('document')"><svg lucidePencil size="13"></svg> Modifier</button></li>
+                    <li><div><small>Selfie</small><p>Ajouté</p></div><button type="button" (click)="goTo('selfie')"><svg lucidePencil size="13"></svg> Modifier</button></li>
+                    <li><div><small>Reversement</small><p>{{ payoutMethod === 'MTN' ? 'MTN Mobile Money' : 'Orange Money' }} · {{ payoutNumber }}</p></div><button type="button" (click)="goTo('payout')"><svg lucidePencil size="13"></svg> Modifier</button></li>
+                  </ul>
+                  @if (isLoading()) {
+                    <p class="sub">Envoi des documents… {{ uploadProgress() }} %</p>
+                    <div class="bar" aria-hidden="true"><i [style.width.%]="uploadProgress()"></i></div>
+                  }
+                }
+              }
+            </div>
+          }
+
+          <div class="actions">
+            @if (index() > 0) { <button type="button" class="prev" (click)="prev()" [disabled]="isLoading()"><svg lucideArrowLeft size="16"></svg><span class="prev-txt"> Retour</span></button> }
+            <button type="submit" class="primary-action next" [class.inactive]="!canNext()" [attr.aria-disabled]="!canNext()" [disabled]="isLoading()">
+              @if (step() === 'recap') { @if (isLoading()) { Envoi… } @else { <svg lucideSend size="16"></svg> Envoyer mon dossier } }
+              @else { Continuer <svg lucideArrowRight size="16"></svg> }
+            </button>
           </div>
-          <h2 class="st-m-0-fs-1-1rem">Dossier en cours de vérification</h2>
-          <p class="text-muted text-sm st-max-400px">
-            Votre dossier KYC a été soumis et est en cours d'examen par notre équipe.
-            La vérification prend généralement moins de 24 heures.
-          </p>
-          <span class="badge badge-warning">En attente</span>
-        </ng-container>
+        </form>
+      }
 
-        <!-- APPROVED -->
-        <ng-container *ngIf="kycStatus()?.status === 'APPROVED'">
-          <div class="status-icon-wrap approved">
-            <svg lucideShieldCheck size="32"></svg>
-          </div>
-          <h2 class="st-m-0-fs-1-1rem-c-primary">Identité vérifiée ✓</h2>
-          <p class="text-muted text-sm">
-            Votre identité a été validée. Vous pouvez accepter des missions.
-          </p>
-          <a routerLink="/courier/dashboard" class="btn btn-primary btn-sm">
-            Retour au tableau de bord
-          </a>
-        </ng-container>
-
-      </div>
+      <input #fileInput type="file" hidden [accept]="accept()" (change)="onFile($event)" [attr.capture]="slot() === 'selfie' ? 'user' : 'environment'">
     </div>
-  </ng-container>
-
-  <!-- ── Formulaire KYC (NONE ou REJECTED) ── -->
-  <ng-container *ngIf="showForm()">
-
-    <!-- Alerte si rejeté -->
-    <div class="st-d-flex-g-10px-p-14px-16px" *ngIf="kycStatus()?.status === 'REJECTED'"
->
-      <svg class="st-c-danger-flex-0-mt-1px" lucideXCircle size="18"></svg>
-      <div>
-        <strong class="st-c-danger-d-block-mb-3px">Dossier rejeté</strong>
-        <span class="st-fs-88rem-c-danger">
-          {{ kycStatus()?.rejectionReason ?? 'Veuillez resoumettre votre dossier avec des documents valides.' }}
-        </span>
-      </div>
-    </div>
-
-    <!-- Indicateur d'étapes -->
-    <div class="kyc-steps" aria-label="Progression du dossier KYC">
-      <div class="kyc-step" [ngClass]="stepClass(1)">
-        <div class="kyc-step-num">
-          <ng-container *ngIf="currentStep() > 1; else n1">
-            <svg lucideCheck size="16"></svg>
-          </ng-container>
-          <ng-template #n1>1</ng-template>
-        </div>
-        <span class="kyc-step-label">Identité</span>
-      </div>
-      <div class="kyc-step" [ngClass]="stepClass(2)">
-        <div class="kyc-step-num">
-          <ng-container *ngIf="currentStep() > 2; else n2">
-            <svg lucideCheck size="16"></svg>
-          </ng-container>
-          <ng-template #n2>2</ng-template>
-        </div>
-        <span class="kyc-step-label">Documents</span>
-      </div>
-      <div class="kyc-step" [ngClass]="stepClass(3)">
-        <div class="kyc-step-num">
-          <ng-container *ngIf="currentStep() > 3; else n3">
-            <svg lucideCheck size="16"></svg>
-          </ng-container>
-          <ng-template #n3>3</ng-template>
-        </div>
-        <span class="kyc-step-label">Selfie</span>
-      </div>
-      <div class="kyc-step" [ngClass]="stepClass(4)">
-        <div class="kyc-step-num">4</div>
-        <span class="kyc-step-label">Paiement</span>
-      </div>
-    </div>
-
-    <!-- Notice sécurité -->
-    <div class="app-notice st-mb-20px">
-      <svg lucideShieldCheck size="18"></svg>
-      <div>
-        <strong>Vos données sont protégées</strong>
-        <span>Vos documents sont chiffrés et utilisés uniquement pour la vérification d'identité. Ils ne sont jamais partagés avec les clients.</span>
-      </div>
-    </div>
-
-    <!-- ── ÉTAPE 1 : Informations personnelles ── -->
-    <div class="card st-mb-18px">
-      <div class="st-d-flex-ai-center-g-8px">
-        <svg class="st-c-primary" lucideUser size="17"></svg>
-        Informations personnelles
-        <span *ngIf="currentStep() > 1" class="badge badge-success st-marg-auto-fs-7rem">Complété</span>
-      </div>
-      <div class="kyc-grid st-mb-16px">
-        <div class="form-group">
-          <label class="form-label" for="firstName">Prénom</label>
-          <input id="firstName" type="text" class="form-input"
-                 [value]="firstName" (input)="firstName = getVal($event)"
-                 placeholder="Jean" required>
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="lastName">Nom de famille</label>
-          <input id="lastName" type="text" class="form-input"
-                 [value]="lastName" (input)="lastName = getVal($event)"
-                 placeholder="Kamga" required>
-        </div>
-      </div>
-      <div class="kyc-grid">
-        <div class="form-group">
-          <label class="form-label" for="dob">Date de naissance</label>
-          <input id="dob" type="date" class="form-input"
-                 [value]="dob" (input)="dob = getVal($event)" required>
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="nationality">Nationalité</label>
-          <select id="nationality" class="form-select"
-                  [value]="nationality" (change)="nationality = getVal($event)">
-            <option value="Camerounaise">Camerounaise</option>
-            <option value="Autre">Autre</option>
-          </select>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── ÉTAPE 2 : Documents ── -->
-    <div class="card st-mb-18px">
-      <div class="st-d-flex-ai-center-g-8px">
-        <svg class="st-c-forest" lucideIdCard size="17"></svg>
-        Pièce d'identité *
-      </div>
-
-      <div class="form-group st-mb-16px">
-        <label class="form-label" for="docType">Type de document</label>
-        <select id="docType" class="form-select"
-                [value]="documentType" (change)="documentType = getVal($event)">
-          <option value="CNI">Carte Nationale d'Identité</option>
-          <option value="PASSPORT">Passeport</option>
-        </select>
-      </div>
-
-      <div class="kyc-grid">
-        <!-- Recto -->
-        <div>
-          <p class="form-label">Recto du document</p>
-          <div class="upload-zone" [ngClass]="{'has-file': !!frontFile(), 'has-error': !!frontFileError()}"
-               (click)="frontInput.click()" (keyup.enter)="frontInput.click()" tabindex="0">
-            <input class="st-d-none" #frontInput type="file" accept="image/jpeg,image/png,image/webp,application/pdf"
- (change)="onFrontChange($event)">
-            <ng-container *ngIf="!frontFile(); else frontDone">
-              <svg class="st-c-muted-mb-6px-d-block" lucideCamera size="28"></svg>
-              <p class="text-sm text-muted st-m-0">Photo du recto</p>
-              <p class="text-sm text-muted st-m-3px-0-0-fs-72rem">JPG, PNG, PDF · max 10 Mo</p>
-            </ng-container>
-            <ng-template #frontDone>
-              <svg class="st-c-primary-mb-4px-d-block" lucideCheck size="24"></svg>
-              <p class="text-sm st-m-0-fw-600-c-primary">{{ frontFile()!.name }}</p>
-              <p class="text-sm text-muted st-m-2px-0-0">{{ formatSize(frontFile()!.size) }}</p>
-            </ng-template>
-          </div>
-          <p *ngIf="frontFileError()" class="file-error">⚠ {{ frontFileError() }}</p>
-        </div>
-
-        <!-- Verso -->
-        <div>
-          <p class="form-label">Verso du document</p>
-          <div class="upload-zone" [ngClass]="{'has-file': !!backFile(), 'has-error': !!backFileError()}"
-               (click)="backInput.click()" (keyup.enter)="backInput.click()" tabindex="0">
-            <input class="st-d-none" #backInput type="file" accept="image/jpeg,image/png,image/webp,application/pdf"
- (change)="onBackChange($event)">
-            <ng-container *ngIf="!backFile(); else backDone">
-              <svg class="st-c-muted-mb-6px-d-block" lucideCamera size="28"></svg>
-              <p class="text-sm text-muted st-m-0">Photo du verso</p>
-              <p class="text-sm text-muted st-m-3px-0-0-fs-72rem">JPG, PNG, PDF · max 10 Mo</p>
-            </ng-container>
-            <ng-template #backDone>
-              <svg class="st-c-primary-mb-4px-d-block" lucideCheck size="24"></svg>
-              <p class="text-sm st-m-0-fw-600-c-primary">{{ backFile()!.name }}</p>
-              <p class="text-sm text-muted st-m-2px-0-0">{{ formatSize(backFile()!.size) }}</p>
-            </ng-template>
-          </div>
-          <p *ngIf="backFileError()" class="file-error">⚠ {{ backFileError() }}</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── ÉTAPE 3 : Selfie ── -->
-    <div class="card st-mb-18px">
-      <div class="st-d-flex-ai-center-g-8px-2">
-        <svg class="st-c-forest" lucideScanFace size="17"></svg>
-        Selfie de vérification *
-      </div>
-      <p class="text-sm text-muted st-mb-14px">
-        Prenez un selfie en tenant votre pièce d'identité bien visible à côté de votre visage.
-      </p>
-      <div class="upload-zone st-max-320px-m-auto" [ngClass]="{'has-file': !!selfieFile(), 'has-error': !!selfieFileError()}"
-           (click)="selfieInput.click()" (keyup.enter)="selfieInput.click()" tabindex="0"
->
-        <input class="st-d-none" #selfieInput type="file" accept="image/jpeg,image/png,image/webp"
- (change)="onSelfieChange($event)">
-        <ng-container *ngIf="!selfieFile(); else selfieDone">
-          <svg class="st-c-muted-mb-8px-d-block" lucideUser size="36"></svg>
-          <p class="text-sm st-fw-600-c-forest-m-0">Prendre le selfie</p>
-          <p class="text-sm text-muted st-mt-3px">Ou importer une photo existante</p>
-          <p class="text-sm text-muted st-mt-2px-fs-72rem">JPG, PNG, WebP · max 10 Mo</p>
-        </ng-container>
-        <ng-template #selfieDone>
-          <svg class="st-c-primary-mb-8px-d-block" lucideCheckCircle size="36"></svg>
-          <p class="text-sm st-fw-600-c-primary-m-0">{{ selfieFile()!.name }}</p>
-          <p class="text-sm text-muted st-mt-3px">{{ formatSize(selfieFile()!.size) }}</p>
-        </ng-template>
-      </div>
-      <p *ngIf="selfieFileError()" class="file-error st-ta-center-mt-8px">⚠ {{ selfieFileError() }}</p>
-    </div>
-
-    <!-- ── ÉTAPE 4 : Coordonnées de paiement ── -->
-    <div class="card st-mb-22px">
-      <div class="st-d-flex-ai-center-g-8px-2">
-        <svg class="st-c-forest" lucideWallet size="17"></svg>
-        Coordonnées de paiement *
-      </div>
-      <div class="form-group st-mb-14px">
-        <label class="form-label" for="payoutMethod">Méthode de reversement</label>
-        <select id="payoutMethod" class="form-select"
-                [value]="payoutMethod" (change)="payoutMethod = getVal($event)">
-          <option value="MTN">MTN Mobile Money</option>
-          <option value="ORANGE">Orange Money</option>
-          <option value="BANK">Virement bancaire</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="payoutNumber">Numéro / IBAN</label>
-        <input id="payoutNumber" type="text" class="form-input"
-               [value]="payoutNumber" (input)="payoutNumber = getVal($event)"
-               placeholder="+237 6XX XXX XXX" required>
-      </div>
-    </div>
-
-    <!-- Barre de progression upload -->
-    <div class="st-mb-16px" *ngIf="uploadProgress() > 0 && uploadProgress() < 100">
-      <p class="text-sm text-muted st-mb-6px">Upload en cours… {{ uploadProgress() }}%</p>
-      <div class="upload-progress">
-        <div class="upload-progress-bar" [style.width.%]="uploadProgress()"></div>
-      </div>
-    </div>
-
-    <!-- Bouton submit -->
-    <button type="button" class="btn btn-primary btn-lg st-w-100"
-
-            [disabled]="!isFormValid() || isLoading()"
-            (click)="onSubmit()">
-      <ng-container *ngIf="!isLoading(); else spinnerTpl">
-        <svg lucideSend size="17"></svg>
-        Soumettre mon dossier KYC
-      </ng-container>
-      <ng-template #spinnerTpl>
-        <span class="spinner st-w-17px-heig-17px-bord-2px"></span>
-        Envoi en cours…
-      </ng-template>
-    </button>
-
-    <p class="text-sm text-muted st-ta-center-mt-12px">
-      La vérification prend généralement moins de 24 heures.
-    </p>
-
-  </ng-container>
-  `
+  `,
 })
 export class KycComponent implements OnInit {
+  readonly steps = STEPS;
+  readonly step = signal<StepKey>('identity');
+  readonly goingBack = signal(false);
+  readonly index = computed(() => STEPS.findIndex((s) => s.key === this.step()));
+  readonly maxDob = new Date().toISOString().slice(0, 10);
 
-  // ── Champs du formulaire ──────────────────────────────────────────────────
-  firstName    = '';
-  lastName     = '';
-  dob          = '';
-  nationality  = 'Camerounaise';
+  firstName = '';
+  lastName = '';
+  dob = '';
+  nationality = 'Camerounaise';
   documentType = 'CNI';
-  payoutMethod = 'MTN';
+  payoutMethod: 'MTN' | 'ORANGE' = 'MTN';
   payoutNumber = '';
 
-  // ── Fichiers ──────────────────────────────────────────────────────────────
-  frontFile  = signal<File | null>(null);
-  backFile   = signal<File | null>(null);
-  selfieFile = signal<File | null>(null);
+  private readonly files = signal<Record<Slot, File | null>>({ front: null, back: null, selfie: null });
+  private readonly previews = signal<Record<Slot, string | null>>({ front: null, back: null, selfie: null });
+  readonly errors = signal<Record<Slot, string | null>>({ front: null, back: null, selfie: null });
+  readonly slot = signal<Slot>('front');
 
-  // Erreurs de validation par fichier
-  frontFileError  = signal<string | null>(null);
-  backFileError   = signal<string | null>(null);
-  selfieFileError = signal<string | null>(null);
+  readonly kycStatus = signal<KycStatus | null>(null);
+  readonly retrying = signal(false);
+  readonly sent = signal(false);
+  readonly isLoading = signal(false);
+  readonly uploadProgress = signal(0);
 
-  /** Taille max autorisée par fichier : 10 MB (aligné sur le backend) */
-  private readonly MAX_FILE_SIZE = 10 * 1024 * 1024;
+  private http = inject(HttpClient);
+  private router = inject(Router);
+  private toast = inject(ToastService);
+  private auth = inject(AuthService);
 
-  /** Types MIME acceptés */
-  private readonly ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
-
-  // ── État UI ───────────────────────────────────────────────────────────────
-  kycStatus      = signal<KycStatus | null>(null);
-  isLoading      = signal<boolean>(false);
-  uploadProgress = signal<number>(0);
-
-  /** Étape courante (1-4) basée sur les données déjà renseignées */
-  currentStep = computed<number>(() => {
-    if (!this.firstName || !this.lastName || !this.dob) return 1;
-    if (!this.frontFile() || !this.backFile()) return 2;
-    if (!this.selfieFile()) return 3;
-    return 4;
-  });
-
-  /** Afficher la carte de statut (PENDING ou APPROVED) */
-  showStatusCard = computed<boolean>(() => {
-    const s = this.kycStatus()?.status;
-    return s === 'PENDING' || s === 'APPROVED';
-  });
-
-  /** Afficher le formulaire (NONE ou REJECTED) */
-  showForm = computed<boolean>(() => {
-    const s = this.kycStatus()?.status;
-    return !s || s === 'NONE' || s === 'REJECTED';
-  });
-
-  constructor(
-    private http: HttpClient,
-    private router: Router,
-    private toast: ToastService,
-    private auth: AuthService
-  ) {}
-
-  ngOnInit(): void {
-    this.loadKycStatus();
-    // Pré-remplir prénom/nom depuis le localStorage
-    const fullName = this.auth.getCurrentUserFullName();
-    if (fullName) {
-      const parts = fullName.trim().split(' ');
-      this.firstName = parts[0] ?? '';
-      this.lastName  = parts.slice(1).join(' ') ?? '';
-    }
+  constructor() {
+    inject(DestroyRef).onDestroy(() => Object.values(this.previews()).forEach((u) => u && URL.revokeObjectURL(u)));
   }
 
-  // ── Chargement du statut ──────────────────────────────────────────────────
-
-  loadKycStatus(): void {
+  ngOnInit(): void {
     this.http.get<KycStatus>('/api/kyc/my-status').subscribe({
-      next:  (s) => this.kycStatus.set(s),
-      error: ()  => this.kycStatus.set({ status: 'NONE' })
+      next: (s) => this.kycStatus.set(s),
+      error: () => this.kycStatus.set({ status: 'NONE' }),
+    });
+    const parts = this.auth.getCurrentUserFullName().trim().split(/\s+/).filter(Boolean);
+    this.firstName = parts[0] ?? '';
+    this.lastName = parts.slice(1).join(' ');
+    this.http.get<any>('/api/users/me').subscribe({
+      next: (p) => { if (!this.payoutNumber && p?.phone) this.payoutNumber = p.phone; },
+      error: () => { /* pré-remplissage facultatif */ },
     });
   }
 
-  // ── Gestion des fichiers ──────────────────────────────────────────────────
+  // ── Fichiers ──────────────────────────────────────────────────────────────
+  file(s: string): File | null { return this.files()[s as Slot]; }
+  preview(s: string): string | null { return this.previews()[s as Slot]; }
+  accept(): string { return (this.slot() === 'selfie' ? PHOTO_TYPES : DOC_TYPES).join(','); }
 
-  onFrontChange(event: Event): void {
-    const f = this.pickFile(event);
-    if (f) {
-      const err = this.validateFile(f);
-      this.frontFileError.set(err);
-      this.frontFile.set(err ? null : f);
+  pick(s: string): void {
+    this.slot.set(s as Slot);
+    setTimeout(() => (document.querySelector('input[type=file][hidden]') as HTMLInputElement | null)?.click(), 0);
+  }
+
+  onFile(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const f = input.files?.[0] ?? null;
+    input.value = '';
+    if (!f) return;
+    const s = this.slot();
+    const allowed = s === 'selfie' ? PHOTO_TYPES : DOC_TYPES;
+    const err = f.size > MAX_FILE ? `Fichier trop lourd (${(f.size / 1048576).toFixed(1)} Mo) : 10 Mo maximum.`
+      : !allowed.includes(f.type) ? (s === 'selfie' ? 'Choisissez une photo (JPG, PNG ou WebP).' : 'Formats acceptés : JPG, PNG, WebP ou PDF.') : null;
+    this.errors.update((e) => ({ ...e, [s]: err }));
+    if (err) { this.toast.error(err); return; }
+    const old = this.previews()[s];
+    if (old) URL.revokeObjectURL(old);
+    this.files.update((m) => ({ ...m, [s]: f }));
+    this.previews.update((m) => ({ ...m, [s]: f.type.startsWith('image/') ? URL.createObjectURL(f) : null }));
+  }
+
+  // ── Étapes ────────────────────────────────────────────────────────────────
+  adult(): boolean {
+    if (!this.dob) return false;
+    const d = new Date(this.dob);
+    const limit = new Date(); limit.setFullYear(limit.getFullYear() - 18);
+    return d <= limit;
+  }
+
+  phoneOk(): boolean { return /^\+?[0-9 ]{8,20}$/.test(this.payoutNumber.trim()); }
+
+  canNext(): boolean {
+    switch (this.step()) {
+      case 'identity': return !!this.firstName.trim() && !!this.lastName.trim() && this.adult();
+      case 'document': return !!this.file('front') && !!this.file('back');
+      case 'selfie': return !!this.file('selfie');
+      case 'payout': return this.phoneOk();
+      case 'recap': return true;
     }
   }
 
-  onBackChange(event: Event): void {
-    const f = this.pickFile(event);
-    if (f) {
-      const err = this.validateFile(f);
-      this.backFileError.set(err);
-      this.backFile.set(err ? null : f);
+  /** Ce qui manque à l'étape courante (notification quand on appuie sur le bouton grisé). */
+  private missing(): string {
+    switch (this.step()) {
+      case 'identity': return !this.firstName.trim() || !this.lastName.trim() ? 'Indiquez votre prénom et votre nom.' : !this.dob ? 'Indiquez votre date de naissance.' : 'Vous devez avoir au moins 18 ans.';
+      case 'document': return !this.file('front') ? 'Ajoutez le recto de votre pièce.' : 'Ajoutez le verso de votre pièce.';
+      case 'selfie': return 'Ajoutez votre selfie avec la pièce.';
+      case 'payout': return 'Indiquez un numéro Mobile Money valide.';
+      default: return '';
     }
   }
 
-  onSelfieChange(event: Event): void {
-    const f = this.pickFile(event);
-    if (f) {
-      const err = this.validateFile(f);
-      this.selfieFileError.set(err);
-      this.selfieFile.set(err ? null : f);
-    }
+  next(): void {
+    if (this.isLoading()) return;
+    if (!this.canNext()) { this.toast.error(this.missing()); return; }
+    if (this.step() === 'recap') { this.submit(); return; }
+    this.goTo(STEPS[this.index() + 1].key);
   }
 
-  private pickFile(event: Event): File | null {
-    return (event.target as HTMLInputElement).files?.[0] ?? null;
+  prev(): void { if (this.index() > 0) this.goTo(STEPS[this.index() - 1].key); }
+
+  goTo(key: StepKey): void {
+    this.goingBack.set(STEPS.findIndex((s) => s.key === key) < this.index());
+    this.step.set(key);
+    setTimeout(() => (document.querySelector('.k [data-autofocus]') as HTMLElement | null)?.focus({ preventScroll: true }), 0);
   }
 
-  /**
-   * Valide un fichier : taille et type MIME.
-   * Retourne un message d'erreur ou null si valide.
-   */
-  private validateFile(file: File): string | null {
-    if (file.size > this.MAX_FILE_SIZE) {
-      return `Fichier trop lourd (${this.formatSize(file.size)}). Maximum autorisé : 10 Mo.`;
-    }
-    if (this.ACCEPTED_TYPES.length > 0 && !this.ACCEPTED_TYPES.includes(file.type)) {
-      return `Format non supporté (${file.type || 'inconnu'}). Utilisez JPG, PNG, WebP ou PDF.`;
-    }
-    return null;
-  }
-
-  // ── Validation ────────────────────────────────────────────────────────────
-
-  isFormValid(): boolean {
-    return !!(
-      this.firstName.trim() &&
-      this.lastName.trim() &&
-      this.dob &&
-      this.frontFile() &&
-      this.backFile() &&
-      this.selfieFile() &&
-      this.payoutNumber.trim() &&
-      !this.frontFileError() &&
-      !this.backFileError() &&
-      !this.selfieFileError()
-    );
-  }
-
-  // ── Soumission ────────────────────────────────────────────────────────────
-
-  onSubmit(): void {
-    if (!this.isFormValid() || this.isLoading()) return;
-
+  // ── Envoi ─────────────────────────────────────────────────────────────────
+  private submit(): void {
     this.isLoading.set(true);
     this.uploadProgress.set(0);
-
     const form = new FormData();
-    form.append('firstName',    this.firstName.trim());
-    form.append('lastName',     this.lastName.trim());
-    form.append('birthDate',    this.dob);          // format YYYY-MM-DD (input type=date)
-    form.append('nationality',  this.nationality);
+    form.append('firstName', this.firstName.trim());
+    form.append('lastName', this.lastName.trim());
+    form.append('birthDate', this.dob);
+    form.append('nationality', this.nationality.trim());
     form.append('documentType', this.documentType);
-    form.append('frontFile',    this.frontFile()!);
-    form.append('backFile',     this.backFile()!);
-    form.append('selfieFile',   this.selfieFile()!);
+    form.append('payoutMethod', this.payoutMethod);
+    form.append('payoutNumber', this.payoutNumber.trim());
+    form.append('frontFile', this.file('front')!);
+    form.append('backFile', this.file('back')!);
+    form.append('selfieFile', this.file('selfie')!);
 
-    this.http.post<{ message: string; submissionId: number; status: string }>(
-      '/api/kyc/submit',
-      form,
-      { reportProgress: true, observe: 'events' }
-    ).subscribe({
+    this.http.post('/api/kyc/submit', form, { reportProgress: true, observe: 'events' }).subscribe({
       next: (event) => {
         if (event.type === HttpEventType.UploadProgress && event.total) {
-          this.uploadProgress.set(Math.round(100 * event.loaded / event.total));
+          this.uploadProgress.set(Math.round((100 * event.loaded) / event.total));
         } else if (event.type === HttpEventType.Response) {
           this.isLoading.set(false);
           this.uploadProgress.set(100);
-          this.toast.success('Dossier KYC soumis ! Vérification sous 24 heures.');
-          setTimeout(() => this.router.navigate(['/courier/dashboard']), 1800);
+          this.sent.set(true);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
         }
       },
       error: (err) => {
         this.isLoading.set(false);
         this.uploadProgress.set(0);
-        const msg = err?.error?.message ?? 'Erreur lors de la soumission. Veuillez réessayer.';
-        this.toast.error(msg);
-      }
+        this.toast.error(err?.error?.message ?? 'L’envoi a échoué. Vérifiez votre connexion et réessayez.');
+      },
     });
-  }
-
-  // ── Helpers UI ────────────────────────────────────────────────────────────
-
-  /** Classe CSS de l'étape (done / active / '') */
-  stepClass(step: number): string {
-    const cur = this.currentStep();
-    if (step < cur) return 'done';
-    if (step === cur) return 'active';
-    return '';
-  }
-
-  /** Formate une taille de fichier en Ko / Mo */
-  formatSize(bytes: number): string {
-    if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} Ko`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
-  }
-
-  /** Extrait la valeur d'un événement input/change */
-  getVal(event: Event): string {
-    return (event.target as HTMLInputElement | HTMLSelectElement).value;
   }
 }

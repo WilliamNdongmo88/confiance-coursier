@@ -26,6 +26,13 @@ public class User {
 
     private String phone;
 
+    /** Reversement des gains du coursier : MTN | ORANGE, et le numéro Mobile Money associé. */
+    @Column(name = "payout_method", length = 10)
+    private String payoutMethod;
+
+    @Column(name = "payout_number", length = 30)
+    private String payoutNumber;
+
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
 

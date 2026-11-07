@@ -88,6 +88,14 @@ public class KycController {
             @Pattern(regexp = "CNI|PASSPORT", message = "Le type doit être CNI ou PASSPORT.")
             String documentType,
 
+            @RequestParam(required = false)
+            @Pattern(regexp = "^$|MTN|ORANGE", message = "Moyen de reversement invalide (MTN ou ORANGE).")
+            String payoutMethod,
+
+            @RequestParam(required = false)
+            @Pattern(regexp = "^$|^[+]?[0-9 ]{8,20}$", message = "Numéro de reversement invalide.")
+            String payoutNumber,
+
             @RequestParam MultipartFile frontFile,
             @RequestParam MultipartFile backFile,
             @RequestParam MultipartFile selfieFile,
@@ -117,6 +125,15 @@ public class KycController {
                 documentType,
                 frontKey, backKey, selfieKey
         );
+
+        // Coordonnées de reversement des gains (enregistrées sur le compte du coursier)
+        if (payoutMethod != null && !payoutMethod.isBlank() && payoutNumber != null && !payoutNumber.isBlank()) {
+            userRepository.findById(userId).ifPresent(u -> {
+                u.setPayoutMethod(payoutMethod.trim());
+                u.setPayoutNumber(payoutNumber.trim());
+                userRepository.save(u);
+            });
+        }
 
         return ResponseEntity.ok(Map.of(
                 "message", "Votre demande KYC a été soumise et est en cours d'examen.",
