@@ -1,3 +1,4 @@
+import { ChatUnreadService } from '../../../core/services/chat-unread.service';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { DatePipe, DecimalPipe } from '@angular/common';
@@ -176,8 +177,8 @@ import {
                         <a [routerLink]="action.link" class="text-link">{{ action.label }}</a>
                       }
                       @if (course.chatRoomId) {
-                        <a [routerLink]="['/chat', course.chatRoomId]" class="text-link">
-                          Chat
+                        <a [routerLink]="['/chat', course.chatRoomId]" class="text-link has-dot">
+                          Chat @if (unread.count(course.chatRoomId); as n) { <span class="chat-dot" aria-hidden="true">{{ n > 9 ? '9+' : n }}</span> }
                         </a>
                       }
                     </td>
@@ -315,6 +316,7 @@ import {
   `,
 })
 export class HistoryComponent implements OnInit {
+  readonly unread = inject(ChatUnreadService);
 
   courses: any[] = [];
   loading = true;
@@ -376,6 +378,7 @@ export class HistoryComponent implements OnInit {
   // ─── Lifecycle ───────────────────────────────────────────────────────────
 
   ngOnInit(): void {
+    this.unread.refresh(true);
     this.loadData();
   }
 

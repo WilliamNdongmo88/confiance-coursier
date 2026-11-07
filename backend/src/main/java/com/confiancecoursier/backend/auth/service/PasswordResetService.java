@@ -115,9 +115,9 @@ public class PasswordResetService {
         String displayName = (fullName != null && !fullName.isBlank()) ? fullName : to;
 
         Map<String, Object> body = Map.of(
-                "sender",      Map.of("email", senderEmail, "name", appName),
+                "sender",      Map.of("email", senderEmail, "name", com.confiancecoursier.backend.notify.service.EmailLayout.BRAND),
                 "to",          List.of(Map.of("email", to)),
-                "subject",     "Réinitialisation de votre mot de passe — " + appName,
+                "subject",     "Réinitialisation de votre mot de passe — " + com.confiancecoursier.backend.notify.service.EmailLayout.BRAND,
                 "htmlContent", buildEmailTemplate(displayName, resetLink)
         );
 
@@ -143,52 +143,12 @@ public class PasswordResetService {
     }
 
     private String buildEmailTemplate(String name, String resetLink) {
-        return """
-                <!DOCTYPE html>
-                <html lang="fr">
-                  <head><meta charset="UTF-8"/></head>
-                  <body style="margin:0;padding:0;background:#f7f8f5;font-family:Inter,Arial,Helvetica,sans-serif;">
-                    <table role="presentation" width="100%%" cellpadding="0" cellspacing="0"
-                           style="background:#f7f8f5;padding:32px 12px;">
-                      <tr><td align="center">
-                        <table role="presentation" width="440" cellpadding="0" cellspacing="0"
-                               style="background:#ffffff;border:1px solid #e2e8e2;border-radius:16px;overflow:hidden;">
-                          <tr><td style="background:#123b32;padding:24px 28px;">
-                            <span style="color:#ffffff;font-size:18px;font-weight:800;letter-spacing:-0.03em;">%s</span>
-                          </td></tr>
-                          <tr><td style="padding:28px;">
-                            <h2 style="margin:0 0 8px;color:#18271f;font-size:20px;">Réinitialisation du mot de passe</h2>
-                            <p style="margin:0 0 8px;color:#6d7a71;font-size:14px;line-height:1.5;">
-                              Bonjour <strong>%s</strong>,
-                            </p>
-                            <p style="margin:0 0 24px;color:#6d7a71;font-size:14px;line-height:1.5;">
-                              Vous avez demandé à réinitialiser votre mot de passe.
-                              Cliquez sur le bouton ci-dessous — ce lien est valable <strong>15 minutes</strong>.
-                            </p>
-                            <p style="text-align:center;margin:0 0 24px;">
-                              <a href="%s"
-                                 style="display:inline-block;padding:14px 28px;background:#123b32;color:#ffffff;
-                                        font-weight:700;font-size:15px;text-decoration:none;border-radius:10px;">
-                                Réinitialiser mon mot de passe
-                              </a>
-                            </p>
-                            <p style="margin:0 0 8px;color:#94a199;font-size:12px;line-height:1.5;">
-                              Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :
-                            </p>
-                            <p style="margin:0 0 16px;word-break:break-all;">
-                              <a href="%s" style="color:#123b32;font-size:12px;">%s</a>
-                            </p>
-                            <p style="margin:0;color:#94a199;font-size:12px;line-height:1.5;">
-                              Si vous n'avez pas demandé cette réinitialisation, ignorez cet email.
-                              Votre mot de passe ne sera pas modifié.
-                            </p>
-                          </td></tr>
-                        </table>
-                        <p style="margin:18px 0 0;color:#94a199;font-size:11px;">© %s — Plateforme de coursier de confiance.</p>
-                      </td></tr>
-                    </table>
-                  </body>
-                </html>
-                """.formatted(appName, name, resetLink, resetLink, resetLink, appName);
+        String safe = org.springframework.web.util.HtmlUtils.htmlEscape(name == null ? "" : name);
+        String body = com.confiancecoursier.backend.notify.service.EmailLayout.p("Bonjour <strong>" + safe + "</strong>,")
+                + com.confiancecoursier.backend.notify.service.EmailLayout.p(
+                "Vous avez demandé à réinitialiser votre mot de passe. Ce lien est valable <strong>15 minutes</strong>.");
+        return com.confiancecoursier.backend.notify.service.EmailLayout.render(frontendUrl, "Réinitialisation du mot de passe",
+                body, "Choisir un nouveau mot de passe", resetLink,
+                "Si vous n’avez pas demandé cette réinitialisation, ignorez cet email : votre mot de passe ne sera pas modifié.");
     }
 }

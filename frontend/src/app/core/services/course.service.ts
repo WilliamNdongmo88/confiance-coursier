@@ -6,6 +6,9 @@ export interface CreateCourseRequest {
   description: string;
   zone: string;
   scheduledAt: string;
+  /** Personne à contacter sur place (facultatif). */
+  contactName?: string | null;
+  contactPhone?: string | null;
 }
 
 export interface CourierSummary {
@@ -69,6 +72,11 @@ export class CourseService {
    * Appelé par le client avec courierId, ou par le coursier sans body.
    * Retourne { chatRoomId: number }.
    */
+  /** Conversations ouvertes sur une course (client propriétaire). */
+  listConversations(courseId: number): Observable<{ chatRoomId: number; courierId: number; courierName: string }[]> {
+    return this.http.get<{ chatRoomId: number; courierId: number; courierName: string }[]>(`${this.apiUrl}/${courseId}/conversations`);
+  }
+
   openConversation(courseId: number, courierId?: number): Observable<{ chatRoomId: number }> {
     const body = courierId != null ? { courierId } : {};
     return this.http.post<{ chatRoomId: number }>(`${this.apiUrl}/${courseId}/conversations`, body);

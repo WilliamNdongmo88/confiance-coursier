@@ -156,6 +156,28 @@ public class CourseController {
         return ResponseEntity.ok(Map.of("chatRoomId", room.getId()));
     }
 
+    /**
+     * GET /api/courses/{courseId}/conversations — conversations ouvertes sur la course (client propriétaire) :
+     * [{ chatRoomId, courierId, courierName }]. Permet d'afficher en premier les coursiers qui ont déjà écrit.
+     */
+    @GetMapping("/{courseId}/conversations")
+    public ResponseEntity<java.util.List<Map<String, Object>>> listConversations(@PathVariable Long courseId) {
+        User caller = resolveUser();
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new NotFoundException("Course introuvable."));
+        if (!course.getClientId().equals(caller.getId())) {
+            throw new ForbiddenException("Vous n'êtes pas le propriétaire de cette course.");
+        }
+        var rooms = chatRoomRepository.findByCourseId(courseId);
+        Map<Long, String> names = userRepository.findAllById(rooms.stream().map(ChatRoom::getCourierId).toList()).stream()
+                .collect(java.util.stream.Collectors.toMap(User::getId,
+                        u -> u.getFullName() == null || u.getFullName().isBlank() ? "Coursier" : u.getFullName()));
+        return ResponseEntity.ok(rooms.stream()
+                .map(r -> Map.<String, Object>of("chatRoomId", r.getId(), "courierId", r.getCourierId(),
+                        "courierName", names.getOrDefault(r.getCourierId(), "Coursier")))
+                .toList());
+    }
+
     @PostMapping
     public ResponseEntity<CourseResponse> createCourse(@Valid @RequestBody CreateCourseRequest request) {
         Long clientId = getCurrentUserId();

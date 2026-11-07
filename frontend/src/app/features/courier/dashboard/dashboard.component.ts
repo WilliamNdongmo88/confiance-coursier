@@ -1,4 +1,5 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { ChatUnreadService } from '../../../core/services/chat-unread.service';
+import { Component, OnInit, signal, inject, DestroyRef } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { DatePipe, DecimalPipe, SlicePipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
@@ -370,6 +371,12 @@ import {
                     <span class="row-meta-dot"></span>
                     <span>{{ mission.scheduledAt | date:'dd/MM HH:mm' }}</span>
                   </div>
+                  @if (mission.contactName || mission.contactPhone) {
+                    <div class="row-meta contact-line">
+                      Contact sur place : {{ mission.contactName }}
+                      @if (mission.contactPhone) { <a [href]="'tel:' + mission.contactPhone">{{ mission.contactPhone }}</a> }
+                    </div>
+                  }
                 </div>
                 <div class="row-right">
                   <app-status-badge [status]="mission.status" role="COURIER" />
@@ -389,8 +396,9 @@ import {
                     }
                     <!-- Bouton Chat : visible dès qu'une chatRoom existe (toutes missions actives) -->
                     @if (mission.chatRoomId) {
-                      <a [routerLink]="['/chat', mission.chatRoomId]" class="btn-row btn-row--green">
+                      <a [routerLink]="['/chat', mission.chatRoomId]" class="btn-row btn-row--green has-dot">
                         <svg lucideMessageCircle size="14"></svg> Chat
+                        @if (unread.count(mission.chatRoomId); as n) { <span class="chat-dot" aria-hidden="true">{{ n > 9 ? '9+' : n }}</span> }
                       </a>
                     }
                   </div>
@@ -515,6 +523,13 @@ import {
   `
 })
 export class CourierDashboardComponent implements OnInit {
+  readonly unread = inject(ChatUnreadService);
+  /** Pastilles de messages non lus : rafraîchies toutes les 30 s tant que l'écran est ouvert. */
+  private readonly unreadTimer = (() => {
+    const id = setInterval(() => this.unread.refresh(), 30_000);
+    inject(DestroyRef).onDestroy(() => clearInterval(id));
+    return id;
+  })();
 
   myMissions: any[]        = [];
   publishedCourses: any[]  = [];
@@ -552,6 +567,7 @@ export class CourierDashboardComponent implements OnInit {
   readonly publishedError = signal(false);
 
   ngOnInit(): void {
+    this.unread.refresh(true);
     // 1. Profil (secondaire) : statut KYC réel — en cas d'échec, la bannière KYC reste affichée par prudence
     this.http.get<any>('/api/users/me').subscribe({
       next: (profile) => {

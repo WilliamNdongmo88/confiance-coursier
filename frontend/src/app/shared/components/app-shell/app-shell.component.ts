@@ -37,7 +37,8 @@ import { LucideMenu, LucideMoon, LucideSun } from '@lucide/angular';
   styles: [`
     /* Mobile : place pour la barre basse (56 px + zone sûre) */
     @media (max-width: 767.98px) {
-      .app-main { padding-bottom: calc(56px + env(safe-area-inset-bottom)); }
+      /* hauteur de la barre basse + respiration avant le dernier bloc */
+      .app-main { padding-bottom: calc(56px + 28px + env(safe-area-inset-bottom)) !important; }
     }
   `],
   template: `

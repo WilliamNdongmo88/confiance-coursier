@@ -49,15 +49,24 @@ public class ChatController {
     private final SimpMessagingTemplate messagingTemplate;
     private final ChatAccessService chatAccessService;
     private final OfferService offerService;
+    private final com.confiancecoursier.backend.chat.repository.ChatRoomRepository chatRoomRepository;
+    private final com.confiancecoursier.backend.course.repository.CourseRepository courseRepository;
+    private final com.confiancecoursier.backend.notify.service.NotificationService notificationService;
 
     public ChatController(ChatMessageRepository chatMessageRepository,
                           SimpMessagingTemplate messagingTemplate,
                           ChatAccessService chatAccessService,
-                          OfferService offerService) {
+                          OfferService offerService,
+                          com.confiancecoursier.backend.chat.repository.ChatRoomRepository chatRoomRepository,
+                          com.confiancecoursier.backend.course.repository.CourseRepository courseRepository,
+                          com.confiancecoursier.backend.notify.service.NotificationService notificationService) {
         this.chatMessageRepository = chatMessageRepository;
         this.messagingTemplate     = messagingTemplate;
         this.chatAccessService     = chatAccessService;
         this.offerService          = offerService;
+        this.chatRoomRepository    = chatRoomRepository;
+        this.courseRepository      = courseRepository;
+        this.notificationService   = notificationService;
     }
 
     @Transactional
@@ -125,7 +134,39 @@ public class ChatController {
 
         // Enrichir le message diffusé avec l'offerId (utile au front pour "Accepter et payer")
         Map<String, Object> payload = buildPayload(message);
-        messagingTemplate.convertAndSend("/topic/chat/" + room.getId(), (Object) payload);
+        String clientRef = dto.getClientRef();
+        if (clientRef != null && !clientRef.isBlank() && clientRef.length() <= 64) payload.put("clientRef", clientRef);
+        // Diffusé une fois le message réellement enregistré : un rechargement de l'historique le contient toujours
+        String destination = "/topic/chat/" + room.getId();
+        afterCommit(() -> messagingTemplate.convertAndSend(destination, (Object) payload));
+
+        notifyClientOnFirstReply(room, sender);
+    }
+
+    /**
+     * Premier message d'un coursier sur l'ensemble des salons d'une course : le client est prévenu par email.
+     * Envoi après validation de la transaction et hors du fil du chat (l'email ne doit ni bloquer ni annuler le message).
+     */
+    private void notifyClientOnFirstReply(ChatRoom room, User sender) {
+        if (!sender.getId().equals(room.getCourierId())) return;
+        var roomIds = chatRoomRepository.findByCourseId(room.getCourseId()).stream().map(ChatRoom::getId).toList();
+        if (chatMessageRepository.countByRoomIdInAndSenderIdNot(roomIds, room.getClientId()) != 1) return;
+        String description = courseRepository.findById(room.getCourseId()).map(c -> c.getDescription()).orElse("");
+        String courierName = sender.getFullName() == null || sender.getFullName().isBlank() ? "Un coursier" : sender.getFullName();
+        afterCommit(() -> java.util.concurrent.CompletableFuture.runAsync(() ->
+                notificationService.notifyFirstReply(room.getClientId(), courierName, description, room.getCourseId())));
+    }
+
+    /** Exécute l'action après validation de la transaction courante (immédiatement s'il n'y en a pas). */
+    private static void afterCommit(Runnable action) {
+        if (org.springframework.transaction.support.TransactionSynchronizationManager.isSynchronizationActive()) {
+            org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+                    new org.springframework.transaction.support.TransactionSynchronization() {
+                        @Override public void afterCommit() { action.run(); }
+                    });
+        } else {
+            action.run();
+        }
     }
 
     /** Renvoie le motif du refus à l'émetteur uniquement. */

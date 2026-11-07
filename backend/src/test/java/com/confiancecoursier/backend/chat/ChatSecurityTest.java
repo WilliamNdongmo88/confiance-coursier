@@ -214,13 +214,39 @@ class ChatSecurityTest {
     private ChatMessageRepository messages;
     private SimpMessagingTemplate template;
     private OfferService offers;
+    private com.confiancecoursier.backend.notify.service.NotificationService notifications;
 
     private ChatController controller() {
         messages = mock(ChatMessageRepository.class);
         when(messages.save(any(ChatMessage.class))).thenAnswer(i -> i.getArgument(0));
         template = mock(SimpMessagingTemplate.class);
         offers = mock(OfferService.class);
-        return new ChatController(messages, template, access, offers);
+        notifications = mock(com.confiancecoursier.backend.notify.service.NotificationService.class);
+        return new ChatController(messages, template, access, offers, rooms,
+                mock(CourseRepository.class), notifications);
+    }
+
+    // ── Email au client au premier message d'un coursier sur sa course ──────
+
+    @Test
+    void firstCourierMessageOnCourseEmailsTheClientOnce() {
+        ChatController c = controller();
+        when(rooms.findByCourseId(100L)).thenReturn(List.of(room));
+        when(messages.countByRoomIdInAndSenderIdNot(List.of(10L), 1L)).thenReturn(1L);
+        c.sendMessage(dto(null, "TEXT", "Bonjour, je peux m'en charger", null), principal("courier@test.com"));
+        org.mockito.Mockito.verify(notifications, org.mockito.Mockito.timeout(2000))
+                .notifyFirstReply(org.mockito.ArgumentMatchers.eq(1L), any(), any(), org.mockito.ArgumentMatchers.eq(100L));
+    }
+
+    @Test
+    void laterMessagesAndClientMessagesSendNoEmail() throws Exception {
+        ChatController c = controller();
+        when(rooms.findByCourseId(100L)).thenReturn(List.of(room));
+        when(messages.countByRoomIdInAndSenderIdNot(List.of(10L), 1L)).thenReturn(2L);
+        c.sendMessage(dto(null, "TEXT", "Deuxième message", null), principal("courier@test.com"));
+        c.sendMessage(dto(null, "TEXT", "Réponse du client", null), principal("client@test.com"));
+        Thread.sleep(300);
+        org.mockito.Mockito.verifyNoInteractions(notifications);
     }
 
     private static ChatMessageDto dto(Long senderId, String type, String content, BigDecimal amount) {

@@ -64,6 +64,10 @@ public class CourseService {
                 .collect(Collectors.toMap(User::getId, CourseService::displayName));
     }
 
+    private static String blankToNull(String s) {
+        return s == null || s.isBlank() ? null : s.trim();
+    }
+
     private static String displayName(User u) {
         return u.getFullName() != null && !u.getFullName().isBlank() ? u.getFullName() : "Utilisateur";
     }
@@ -97,6 +101,8 @@ public class CourseService {
                 .description(request.getDescription())
                 .zone(request.getZone())
                 .scheduledAt(request.getScheduledAt())
+                .contactName(blankToNull(request.getContactName()))
+                .contactPhone(blankToNull(request.getContactPhone()))
                 .status("PUBLISHED")
                 .build();
 
@@ -155,6 +161,8 @@ public class CourseService {
         course.setDescription(request.getDescription());
         course.setZone(request.getZone());
         course.setScheduledAt(request.getScheduledAt());
+        course.setContactName(blankToNull(request.getContactName()));
+        course.setContactPhone(blankToNull(request.getContactPhone()));
 
         Course updated = courseRepository.save(course);
         return toResponse(updated, resolveChatRoomId(updated), clientId, namesOf(List.of(updated)));

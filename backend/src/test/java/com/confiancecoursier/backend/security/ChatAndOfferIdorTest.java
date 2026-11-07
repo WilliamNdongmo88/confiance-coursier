@@ -71,7 +71,7 @@ class ChatAndOfferIdorTest {
 
         ChatAccessService access = new ChatAccessService(rooms, users, courses);
         mvc = MockMvcBuilders
-                .standaloneSetup(new ChatRestController(messages, access, users, courses, offerRepo),
+                .standaloneSetup(new ChatRestController(messages, access, users, courses, offerRepo, rooms),
                                  new OfferController(offers, courses, users))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();

@@ -33,6 +33,13 @@ public class Course {
     @Column(name = "scheduled_at")
     private LocalDateTime scheduledAt;
 
+    /** Personne à contacter sur place (facultatif). */
+    @Column(name = "contact_name", length = 120)
+    private String contactName;
+
+    @Column(name = "contact_phone", length = 30)
+    private String contactPhone;
+
     @Column(nullable = false)
     private String status = "PUBLISHED";
 

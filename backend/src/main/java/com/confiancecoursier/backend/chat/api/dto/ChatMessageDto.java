@@ -18,4 +18,7 @@ public class ChatMessageDto {
     private String content;
     private String messageType = "TEXT";
     private BigDecimal offerAmount;
+    /** Identifiant temporaire choisi par l'émetteur, renvoyé dans la diffusion pour remplacer le message
+     *  affiché immédiatement (« envoi… ») par le message enregistré. Jamais stocké. */
+    private String clientRef;
 }

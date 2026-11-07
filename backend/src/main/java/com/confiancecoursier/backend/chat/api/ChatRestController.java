@@ -40,17 +40,20 @@ public class ChatRestController {
     private final UserRepository userRepository;
     private final CourseRepository courseRepository;
     private final CourseOfferRepository offerRepository;
+    private final com.confiancecoursier.backend.chat.repository.ChatRoomRepository chatRoomRepository;
 
     public ChatRestController(ChatMessageRepository chatMessageRepository,
                               ChatAccessService chatAccessService,
                               UserRepository userRepository,
                               CourseRepository courseRepository,
-                              CourseOfferRepository offerRepository) {
+                              CourseOfferRepository offerRepository,
+                              com.confiancecoursier.backend.chat.repository.ChatRoomRepository chatRoomRepository) {
         this.chatMessageRepository = chatMessageRepository;
         this.chatAccessService     = chatAccessService;
         this.userRepository        = userRepository;
         this.courseRepository      = courseRepository;
         this.offerRepository       = offerRepository;
+        this.chatRoomRepository    = chatRoomRepository;
     }
 
     /**
@@ -73,6 +76,41 @@ public class ChatRestController {
             });
         }
         return ResponseEntity.ok(messages);
+    }
+
+    /**
+     * GET /api/chat/unread — nombre de messages non lus par salon pour l'utilisateur connecté
+     * (pastille sur les boutons « Chat »). Réponse : { "<roomId>": nombre } (salons sans non-lus omis).
+     */
+    @GetMapping("/unread")
+    public ResponseEntity<Map<Long, Long>> getUnread(Principal principal) {
+        var user = chatAccessService.findUser(principal == null ? null : principal.getName())
+                .orElseThrow(() -> new ForbiddenException("Session invalide."));
+        java.util.Set<Long> roomIds = new java.util.HashSet<>();
+        chatRoomRepository.findByClientId(user.getId()).forEach(r -> roomIds.add(r.getId()));
+        chatRoomRepository.findByCourierId(user.getId()).forEach(r -> roomIds.add(r.getId()));
+        Map<Long, Long> counts = new java.util.HashMap<>();
+        if (!roomIds.isEmpty()) {
+            for (Object[] row : chatMessageRepository.countUnreadByRoom(roomIds, user.getId())) {
+                counts.put((Long) row[0], (Long) row[1]);
+            }
+        }
+        return ResponseEntity.ok(counts);
+    }
+
+    /**
+     * POST /api/chat/rooms/{roomId}/read — la conversation a été ouverte : les messages reçus sont lus.
+     * Sans effet pour un admin qui consulte un litige (il n'est pas destinataire).
+     */
+    @PostMapping("/rooms/{roomId}/read")
+    @org.springframework.transaction.annotation.Transactional
+    public ResponseEntity<Void> markRead(@PathVariable Long roomId, Principal principal) {
+        requireParticipant(roomId, principal);
+        var user = chatAccessService.findUser(principal.getName()).orElseThrow();
+        chatAccessService.findRoom(roomId)
+                .filter(room -> ChatAccessService.isParticipant(room, user))
+                .ifPresent(room -> chatMessageRepository.markRead(roomId, user.getId()));
+        return ResponseEntity.noContent().build();
     }
 
     /**

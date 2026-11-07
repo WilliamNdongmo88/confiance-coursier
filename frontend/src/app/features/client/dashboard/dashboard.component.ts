@@ -1,4 +1,5 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { ChatUnreadService } from '../../../core/services/chat-unread.service';
+import { Component, OnInit, inject, DestroyRef } from '@angular/core';
 import { RouterLink, Router } from '@angular/router';
 import { DatePipe } from '@angular/common';
 import { CourseService } from '../../../core/services/course.service';
@@ -217,8 +218,10 @@ import {
                   }
                   <a [routerLink]="['/client/course-detail', course.id]" class="btn-row btn-row--ghost">Détails</a>
                   @if (course.chatRoomId) {
-                    <a [routerLink]="['/chat', course.chatRoomId]" class="btn-row btn-row--green" aria-label="Ouvrir le chat de la course">
+                    <a [routerLink]="['/chat', course.chatRoomId]" class="btn-row btn-row--green has-dot"
+                       [attr.aria-label]="unread.count(course.chatRoomId) ? 'Chat : ' + unread.count(course.chatRoomId) + ' message(s) non lu(s)' : 'Ouvrir le chat de la course'">
                       <svg lucideMessageCircle size="14"></svg> Chat
+                      @if (unread.count(course.chatRoomId); as n) { <span class="chat-dot" aria-hidden="true">{{ n > 9 ? '9+' : n }}</span> }
                     </a>
                   }
                 </div>
@@ -247,6 +250,13 @@ import {
   `,
 })
 export class ClientDashboardComponent implements OnInit {
+  readonly unread = inject(ChatUnreadService);
+  /** Pastilles de messages non lus : rafraîchies toutes les 30 s tant que l'écran est ouvert. */
+  private readonly unreadTimer = (() => {
+    const id = setInterval(() => this.unread.refresh(), 30_000);
+    inject(DestroyRef).onDestroy(() => clearInterval(id));
+    return id;
+  })();
 
   courses: any[] = [];
   loading = true;
@@ -302,6 +312,7 @@ export class ClientDashboardComponent implements OnInit {
   // ─── Lifecycle ───────────────────────────────────────────────────────────
 
   ngOnInit(): void {
+    this.unread.refresh(true);
     this.loadCourses();
     this.http.get<any>('/api/users/me').subscribe({
       next: (p) => { this.trustScore = Number(p.trustScore ?? 0); this.reviewCount = Number(p.reviewCount ?? 0); },

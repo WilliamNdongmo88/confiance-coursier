@@ -1,3 +1,4 @@
+import { ChatUnreadService } from '../../core/services/chat-unread.service';
 import { warnLoadFailed } from '../../shared/state/load-error';
 import {
   Component, OnInit, OnDestroy, AfterViewChecked,
@@ -47,6 +48,10 @@ interface ChatMsg {
   offerId?: number | null;  // TICK-059 : ID de la CourseOffer associée (pour acceptation)
   offerStatus?: string | null; // ACTIVE | SUPERSEDED | ACCEPTED | REJECTED (lu du serveur)
   createdAt?: string;
+  /** Envoi en cours (affiché tout de suite, avant la confirmation du serveur). */
+  clientRef?: string;
+  pending?: boolean;
+  failed?: boolean;
 }
 
 @Component({
@@ -705,7 +710,7 @@ interface ChatMsg {
         <div class="chat-body" #chatBody>
           <div class="chat-date-divider">Aujourd'hui</div>
 
-          @for (msg of messages; track $index) {
+          @for (msg of messages; track msg.id ?? msg.clientRef ?? $index) {
             @if (msg.messageType === 'OFFER') {
               <!-- Bulle + carte offre -->
               <div class="message-row" [class.incoming]="msg.senderId !== currentUserId" [class.outgoing]="msg.senderId === currentUserId">
@@ -745,9 +750,16 @@ interface ChatMsg {
                 <span class="message-time">{{ msg.createdAt | date:'HH:mm' }}</span>
               </div>
             } @else {
-              <div class="message-row" [class.incoming]="msg.senderId !== currentUserId" [class.outgoing]="msg.senderId === currentUserId">
+              <div class="message-row" [class.incoming]="msg.senderId !== currentUserId" [class.outgoing]="msg.senderId === currentUserId"
+                   [class.is-pending]="msg.pending" [class.is-failed]="msg.failed">
                 <div class="message-bubble">{{ msg.content }}</div>
-                <span class="message-time">{{ msg.createdAt | date:'HH:mm' }}</span>
+                @if (msg.failed) {
+                  <span class="message-time msg-failed">Non envoyé · <button type="button" class="msg-retry" (click)="retry(msg)">Réessayer</button></span>
+                } @else if (msg.pending) {
+                  <span class="message-time">Envoi…</span>
+                } @else {
+                  <span class="message-time">{{ msg.createdAt | date:'HH:mm' }}</span>
+                }
               </div>
             }
           }
@@ -755,7 +767,7 @@ interface ChatMsg {
 
         @if (!connected()) {
           <!-- TICK-071 : connexion coupée — le texte saisi est conservé -->
-          <div class="chat-offline" role="status">Reconnexion au chat… vos messages non envoyés restent dans la zone de saisie.</div>
+          <div class="chat-offline" role="status">Reconnexion au chat… vos messages non envoyés partiront automatiquement.</div>
         }
 
         <!-- Barre de saisie -->
@@ -878,6 +890,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   /** TICK-073 : course terminée que le coursier doit noter avant toute nouvelle offre. */
   pendingReviewCourseId: number | null = null;
   readonly connected = signal(false);
+  private everConnected = false;
 
   private chatSubscription: Subscription | null = null;
   private chatErrorsSubscription: Subscription | null = null;
@@ -892,6 +905,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     private toast: ToastService,
     private http: HttpClient,
     private courseService: CourseService,
+    private unread: ChatUnreadService,
   ) {}
 
   get isCLIENT(): boolean  { return this.userRole === 'CLIENT'; }
@@ -949,8 +963,9 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     // ── 2. Charger l'historique des messages ──
     this.chatService.getMessages(this.roomId).subscribe({
       next: (history: any[]) => {
-        this.messages = history.map(m => ({ ...m, messageType: m.messageType ?? 'TEXT' }));
+        this.mergeHistory(history);
         this.shouldScrollToBottom = true;
+        this.unread.markRead(this.roomId); // conversation ouverte : messages reçus lus
       },
       error: () => this.toast.error('Impossible de charger l\'historique du chat.')
     });
@@ -958,7 +973,17 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     // ── 3. Connexion WebSocket et abonnement à la room ──
     // Refus du serveur (non participant, offre non autorisée…) — TICK-055
     this.chatErrorsSubscription = this.chatService.errors$.subscribe(msg => this.toast.error(msg));
-    this.connectionSubscription = this.chatService.connected$.subscribe(ok => this.connected.set(ok));
+    this.connectionSubscription = this.chatService.connected$.subscribe(ok => {
+      const wasOffline = this.everConnected && !this.connected();
+      this.connected.set(ok);
+      if (ok) {
+        if (wasOffline) {
+          // Rattrape ce qui est arrivé pendant la coupure, puis renvoie ce qui n'est vraiment pas parti
+          this.reloadHistory(() => this.messages.filter(m => m.failed && m.clientRef).forEach(m => this.retry(m)));
+        }
+        this.everConnected = true;
+      }
+    });
     this.chatService.connect();
 
     this.chatSubscription = this.chatService.subscribeToRoom(this.roomId).subscribe({
@@ -970,9 +995,14 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
             if (m.offerId && m.offerStatus === 'ACTIVE') m.offerStatus = 'SUPERSEDED';
           });
         }
-        if (!this.messages.find(m => m.id === chatMsg.id)) {
-          this.messages.push(chatMsg);
+        const mine = chatMsg.clientRef ? this.messages.findIndex(m => m.clientRef === chatMsg.clientRef && !m.id) : -1;
+        if (mine >= 0) {
+          this.messages[mine] = { ...chatMsg, pending: false, failed: false };
+          this.messages = [...this.messages];
+        } else if (!this.messages.find(m => m.id === chatMsg.id)) {
+          this.messages = [...this.messages, chatMsg];
           this.shouldScrollToBottom = true;
+          if (chatMsg.senderId !== this.currentUserId) this.unread.markRead(this.roomId);
         }
       }
     });
@@ -1019,10 +1049,75 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   sendMessage(): void {
     const content = this.newMessage.trim();
     if (!content) return;
-    // Le texte n'est effacé que si l'envoi a bien été transmis (sinon un toast s'affiche).
-    if (this.chatService.sendMessage(this.roomId, content)) {
-      this.newMessage = '';
+    const clientRef = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+    // Affiché tout de suite (« Envoi… »), remplacé par le message enregistré dès sa diffusion
+    this.messages = [...this.messages, {
+      roomId: this.roomId, senderId: this.currentUserId, content, messageType: 'TEXT',
+      createdAt: new Date().toISOString(), clientRef, pending: true,
+    }];
+    this.shouldScrollToBottom = true;
+    this.newMessage = '';
+    this.transmit(clientRef, content);
+  }
+
+  /** Renvoie un message resté « non envoyé ». */
+  retry(msg: ChatMsg): void {
+    if (!msg.clientRef) return;
+    this.patch(msg.clientRef, { pending: true, failed: false });
+    this.transmit(msg.clientRef, msg.content);
+  }
+
+  private transmit(clientRef: string, content: string): void {
+    if (!this.chatService.sendMessage(this.roomId, content, clientRef)) {
+      this.patch(clientRef, { pending: false, failed: true });
+      return;
     }
+    // Sans confirmation sous 5 s : on relit l'historique (message peut-être enregistré mais diffusion manquée)
+    setTimeout(() => {
+      if (!this.messages.some(m => m.clientRef === clientRef && m.pending)) return;
+      this.chatService.getMessages(this.roomId).subscribe({
+        next: (history) => {
+          this.mergeHistory(history);
+          // Toujours absent de l'historique : réellement non envoyé
+          this.patch(clientRef, { pending: false, failed: true });
+        },
+        error: () => this.patch(clientRef, { pending: false, failed: true }),
+      });
+    }, 5000);
+  }
+
+  private patch(clientRef: string, changes: Partial<ChatMsg>): void {
+    this.messages = this.messages.map(m => (m.clientRef === clientRef && !m.id ? { ...m, ...changes } : m));
+  }
+
+  private reloadHistory(then?: () => void): void {
+    this.chatService.getMessages(this.roomId).subscribe({
+      next: (history) => {
+        this.mergeHistory(history); // retire les provisoires déjà enregistrés (pas de doublon au renvoi)
+        this.shouldScrollToBottom = true;
+        this.unread.markRead(this.roomId);
+        then?.();
+      },
+      error: () => {},
+    });
+  }
+
+  /**
+   * Fusionne l'historique du serveur avec l'écran : messages enregistrés (par id) + messages provisoires.
+   * Un provisoire déjà enregistré (même expéditeur et même texte, envoyé après lui) est remplacé.
+   */
+  private mergeHistory(history: any[]): void {
+    const saved: ChatMsg[] = history.map(m => ({ ...m, messageType: m.messageType ?? 'TEXT' }));
+    const ids = new Set(saved.map(m => m.id));
+    const live = this.messages.filter(m => m.id && !ids.has(m.id));
+    const used = new Set<number>();
+    const temps = this.messages.filter(m => !m.id).filter(t => {
+      const match = saved.find(s => !used.has(s.id!) && s.senderId === t.senderId && s.content === t.content
+        && new Date(s.createdAt ?? 0).getTime() >= new Date(t.createdAt ?? 0).getTime() - 120_000);
+      if (match) { used.add(match.id!); return false; }
+      return true;
+    });
+    this.messages = [...saved, ...live, ...temps];
   }
 
   // ── Modale offre (coursier) ────────────────────────────────────────────────

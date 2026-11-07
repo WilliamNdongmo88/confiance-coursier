@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, NgZone, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Client, IMessage, StompSubscription } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
@@ -22,6 +22,7 @@ import { AuthService } from './auth.service';
 export class ChatService {
   private http = inject(HttpClient);
   private auth = inject(AuthService);
+  private zone = inject(NgZone);
 
   private stompClient: Client | null = null;
   private messageSubject = new Subject<any>();
@@ -56,10 +57,10 @@ export class ChatService {
     });
 
     this.stompClient.onConnect = () => {
-      this.connectionStatus.next(true);
+      this.zone.run(() => this.connectionStatus.next(true));
       this.stompClient?.subscribe('/user/queue/errors', (message: IMessage) => {
         const body = JSON.parse(message.body);
-        this.errorSubject.next(body?.message ?? 'Message refusé.');
+        this.zone.run(() => this.errorSubject.next(body?.message ?? 'Message refusé.'));
       });
       // Après une reconnexion, l'abonnement précédent n'existe plus côté serveur : on le recrée
       this.roomSubscription = null;
@@ -69,7 +70,7 @@ export class ChatService {
     };
 
     this.stompClient.onWebSocketClose = () => {
-      this.connectionStatus.next(false);
+      this.zone.run(() => this.connectionStatus.next(false));
       this.roomSubscription = null;
     };
 
@@ -97,7 +98,9 @@ export class ChatService {
   private subscribeToRoomInternal(roomId: number): void {
     if (this.stompClient && this.stompClient.connected) {
       this.roomSubscription = this.stompClient.subscribe(`/topic/chat/${roomId}`, (message: IMessage) => {
-        this.messageSubject.next(JSON.parse(message.body));
+        // Toujours dans la zone Angular : l'écran se met à jour dès la réception
+        const body = JSON.parse(message.body);
+        this.zone.run(() => this.messageSubject.next(body));
       });
     }
   }
@@ -112,8 +115,8 @@ export class ChatService {
   }
 
   /** L'expéditeur est déterminé par le serveur à partir du jeton (TICK-055). */
-  sendMessage(roomId: number, content: string): boolean {
-    return this.publish({ roomId, content, messageType: 'TEXT' });
+  sendMessage(roomId: number, content: string, clientRef?: string): boolean {
+    return this.publish({ roomId, content, messageType: 'TEXT', clientRef });
   }
 
   sendOffer(roomId: number, offerAmount: number, content: string): boolean {
@@ -126,7 +129,7 @@ export class ChatService {
       this.stompClient.publish({ destination: '/app/chat.send', body: JSON.stringify(body) });
       return true;
     }
-    this.errorSubject.next('Connexion au chat interrompue : votre message est conservé, réessayez dans un instant.');
+    this.errorSubject.next('Connexion au chat interrompue : votre message sera renvoyé dès le retour de la connexion.');
     return false;
   }
 

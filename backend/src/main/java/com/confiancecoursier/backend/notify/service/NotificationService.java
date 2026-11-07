@@ -60,6 +60,9 @@ public class NotificationService {
     @Value("${app.otp.email-enabled:true}")
     private boolean emailEnabled;
 
+    @org.springframework.beans.factory.annotation.Value("${app.frontend.url:http://localhost:4200}")
+    private String frontendUrl;
+
     public NotificationService(UserRepository userRepository) {
         this.userRepository = userRepository;
         this.restClient = RestClient.create();
@@ -86,7 +89,7 @@ public class NotificationService {
         }
 
         Map<String, Object> body = Map.of(
-                "sender", Map.of("email", senderEmail, "name", appName),
+                "sender", Map.of("email", senderEmail, "name", EmailLayout.BRAND),
                 "to", List.of(Map.of("email", to)),
                 "subject", subject,
                 "htmlContent", htmlBody
@@ -118,7 +121,7 @@ public class NotificationService {
     public void notifyKycSubmitted(Long userId) {
         String email = resolveEmail(userId);
         if (email != null) sendEmail(email,
-                "KYC soumis — " + appName,
+                "KYC soumis — " + EmailLayout.BRAND,
                 buildTemplate("Vérification d'identité en cours",
                         "Votre demande de vérification d'identité a été soumise et est en cours d'examen par notre équipe.",
                         "Vous serez notifié(e) dès qu'un administrateur aura traité votre dossier (généralement sous 24-48h)."));
@@ -127,7 +130,7 @@ public class NotificationService {
     public void notifyKycApproved(Long userId) {
         String email = resolveEmail(userId);
         if (email != null) sendEmail(email,
-                "KYC validé — " + appName,
+                "KYC validé — " + EmailLayout.BRAND,
                 buildTemplate("Identité vérifiée ✓",
                         "Félicitations ! Votre vérification d'identité a été approuvée.",
                         "Vous pouvez désormais proposer vos services et accepter des missions sur la plateforme."));
@@ -136,7 +139,7 @@ public class NotificationService {
     public void notifyKycRejected(Long userId, String reason) {
         String email = resolveEmail(userId);
         if (email != null) sendEmail(email,
-                "KYC refusé — " + appName,
+                "KYC refusé — " + EmailLayout.BRAND,
                 buildTemplate("Vérification d'identité — action requise",
                         "Votre demande de vérification d'identité n'a pas pu être validée.",
                         "Raison : " + (reason != null ? reason : "Documents non conformes.") +
@@ -148,16 +151,33 @@ public class NotificationService {
     public void notifyCourseAssigned(Long courierId, Long courseId) {
         String email = resolveEmail(courierId);
         if (email != null) sendEmail(email,
-                "Nouvelle mission — " + appName,
+                "Nouvelle mission — " + EmailLayout.BRAND,
                 buildTemplate("Vous avez une nouvelle mission !",
                         "Le client a accepté votre offre pour la course #" + courseId + ".",
                         "Rendez-vous dans votre espace pour discuter des détails et commencer la mission."));
     }
 
+    /** Premier message reçu sur une course publiée (envoyé une seule fois par course). */
+    public void notifyFirstReply(Long clientId, String courierName, String courseDescription, Long courseId) {
+        String email = resolveEmail(clientId);
+        if (email == null) return;
+        String desc = courseDescription == null ? "" : courseDescription.strip();
+        if (desc.length() > 90) desc = desc.substring(0, 87) + "…";
+        desc = org.springframework.web.util.HtmlUtils.htmlEscape(desc);
+        String name = org.springframework.web.util.HtmlUtils.htmlEscape(courierName);
+        sendEmail(email,
+                "Un coursier vous a répondu — " + EmailLayout.BRAND,
+                buildTemplate("Un coursier vous a répondu",
+                        "<strong>" + name + "</strong> vous a écrit au sujet de votre course « " + desc + " ».",
+                        "Lisez son message, discutez du tarif et choisissez votre coursier. "
+                                + "Votre paiement restera bloqué jusqu’à ce que vous validiez les preuves.",
+                        "Lire son message", "/client/select-courier/" + courseId));
+    }
+
     public void notifyCourierNotRetained(Long courierId, Long courseId) {
         String email = resolveEmail(courierId);
         if (email != null) sendEmail(email,
-                "Résultat de votre offre — " + appName,
+                "Résultat de votre offre — " + EmailLayout.BRAND,
                 buildTemplate("Offre non retenue",
                         "Le client a choisi un autre coursier pour la course #" + courseId + ".",
                         "Ne vous découragez pas ! D'autres courses sont disponibles dans votre espace."));
@@ -168,14 +188,14 @@ public class NotificationService {
         // Client
         String clientEmail = resolveEmail(clientId);
         if (clientEmail != null) sendEmail(clientEmail,
-                "Paiement reçu — " + appName,
+                "Paiement reçu — " + EmailLayout.BRAND,
                 buildTemplate("Paiement confirmé",
                         "Votre paiement de " + amount + " a bien été reçu et séquestré (escrow).",
                         "Le coursier a été notifié et peut démarrer la mission. Les fonds seront libérés après validation des preuves ou automatiquement sous 72h."));
         // Coursier
         String courierEmail = resolveEmail(courierId);
         if (courierEmail != null) sendEmail(courierEmail,
-                "Paiement reçu — " + appName,
+                "Paiement reçu — " + EmailLayout.BRAND,
                 buildTemplate("Paiement séquestré",
                         "Le client a effectué le paiement de " + amount + " pour la mission.",
                         "Les fonds sont sécurisés en escrow et vous seront versés après validation de la livraison."));
@@ -184,7 +204,7 @@ public class NotificationService {
     public void notifyProofsSubmitted(Long clientId, Long courseId) {
         String email = resolveEmail(clientId);
         if (email != null) sendEmail(email,
-                "Preuves de livraison soumises — " + appName,
+                "Preuves de livraison soumises — " + EmailLayout.BRAND,
                 buildTemplate("Preuves de livraison disponibles",
                         "Le coursier a soumis les preuves de livraison pour la course #" + courseId + ".",
                         "Vous avez 72h pour valider ou ouvrir un litige. Passé ce délai, la course sera automatiquement validée et les fonds libérés au coursier."));
@@ -193,7 +213,7 @@ public class NotificationService {
     public void notifyCourseValidated(Long courierId, Long courseId) {
         String email = resolveEmail(courierId);
         if (email != null) sendEmail(email,
-                "Course validée — " + appName,
+                "Course validée — " + EmailLayout.BRAND,
                 buildTemplate("Fonds libérés",
                         "La course #" + courseId + " a été validée. Les fonds séquestrés vous ont été versés.",
                         "Merci pour votre travail ! N'oubliez pas de noter le client."));
@@ -203,14 +223,14 @@ public class NotificationService {
         // Client
         String clientEmail = resolveEmail(clientId);
         if (clientEmail != null) sendEmail(clientEmail,
-                "Validation automatique — " + appName,
+                "Validation automatique — " + EmailLayout.BRAND,
                 buildTemplate("Course validée automatiquement (72h)",
                         "La course #" + courseId + " a été automatiquement validée après expiration du délai de 72h.",
                         "Les fonds ont été libérés au coursier. Si vous rencontrez un problème, vous pouvez encore ouvrir un litige."));
         // Coursier
         String courierEmail = resolveEmail(courierId);
         if (courierEmail != null) sendEmail(courierEmail,
-                "Validation automatique — " + appName,
+                "Validation automatique — " + EmailLayout.BRAND,
                 buildTemplate("Course validée automatiquement (72h)",
                         "La course #" + courseId + " a été automatiquement validée après 72h. Les fonds vous ont été versés.",
                         "Merci pour votre travail ! N'oubliez pas de noter le client."));
@@ -224,7 +244,7 @@ public class NotificationService {
     public void notifyProofDeadlineReminder(Long courierId, Long courseId, java.time.LocalDateTime deadline) {
         String email = resolveEmail(courierId);
         if (email != null) sendEmail(email,
-                "Rappel : preuves attendues — " + appName,
+                "Rappel : preuves attendues — " + EmailLayout.BRAND,
                 buildTemplate("Vos preuves sont attendues",
                         "La course #" + courseId + " doit être justifiée avant le " + deadline.format(DEADLINE_FMT) + ".",
                         "Envoyez la vidéo, les photos et les reçus depuis votre espace. Passé ce délai, le client pourra annuler et être remboursé."));
@@ -233,13 +253,13 @@ public class NotificationService {
     public void notifyCourseOverdue(Long clientId, Long courierId, Long courseId) {
         String courierEmail = resolveEmail(courierId);
         if (courierEmail != null) sendEmail(courierEmail,
-                "Course en retard — " + appName,
+                "Course en retard — " + EmailLayout.BRAND,
                 buildTemplate("Échéance de preuves dépassée",
                         "La course #" + courseId + " est en retard : aucune preuve n'a été soumise à temps.",
                         "Vous pouvez encore envoyer vos preuves tant que le client n'a pas choisi d'annuler. Une annulation pour non-livraison est comptée comme incident."));
         String clientEmail = resolveEmail(clientId);
         if (clientEmail != null) sendEmail(clientEmail,
-                "Course en retard — " + appName,
+                "Course en retard — " + EmailLayout.BRAND,
                 buildTemplate("Le coursier n'a pas encore envoyé ses preuves",
                         "L'échéance de la course #" + courseId + " est dépassée. Vos fonds restent bloqués en séquestre.",
                         "Depuis le détail de la course, vous pouvez prolonger le délai, annuler et être remboursé, ou ouvrir un litige."));
@@ -248,7 +268,7 @@ public class NotificationService {
     public void notifyDeadlineExtended(Long courierId, Long courseId, java.time.LocalDateTime newDeadline) {
         String email = resolveEmail(courierId);
         if (email != null) sendEmail(email,
-                "Délai prolongé — " + appName,
+                "Délai prolongé — " + EmailLayout.BRAND,
                 buildTemplate("Le client vous accorde un délai",
                         "Nouvelle échéance pour la course #" + courseId + " : " + newDeadline.format(DEADLINE_FMT) + ".",
                         "Envoyez vos preuves avant cette date."));
@@ -257,14 +277,14 @@ public class NotificationService {
     public void notifyNoShowRefund(Long clientId, Long courierId, Long courseId, boolean automatic) {
         String clientEmail = resolveEmail(clientId);
         if (clientEmail != null) sendEmail(clientEmail,
-                "Remboursement — " + appName,
+                "Remboursement — " + EmailLayout.BRAND,
                 buildTemplate("Course annulée et remboursée",
                         "La course #" + courseId + " a été annulée " + (automatic ? "automatiquement " : "")
                                 + "pour non-livraison.",
                         "Le remboursement est en cours vers votre moyen de paiement."));
         String courierEmail = resolveEmail(courierId);
         if (courierEmail != null) sendEmail(courierEmail,
-                "Course annulée — " + appName,
+                "Course annulée — " + EmailLayout.BRAND,
                 buildTemplate("Course annulée pour non-livraison",
                         "La course #" + courseId + " a été annulée faute de preuves et le client a été remboursé.",
                         "Un incident de non-livraison a été enregistré. Deux incidents en 30 jours entraînent une suspension provisoire."));
@@ -275,11 +295,11 @@ public class NotificationService {
         for (Long userId : new Long[]{clientId, courierId}) {
             String email = resolveEmail(userId);
             if (email != null) sendEmail(email,
-                    "Litige ouvert automatiquement — " + appName,
+                    "Litige ouvert automatiquement — " + EmailLayout.BRAND,
                     buildTemplate("Un administrateur va arbitrer", body,
                             "Des preuves partielles ou des achats ont été déclarés : les fonds restent bloqués jusqu'à la décision."));
         }
-        notifyAdmins("Litige automatique (non-livraison) — " + appName,
+        notifyAdmins("Litige automatique (non-livraison) — " + EmailLayout.BRAND,
                 buildTemplate("Litige automatique à arbitrer", body,
                         "Preuves déposées mais non soumises, ou frais réels engagés. Consultez les brouillons de preuves et le chat."));
     }
@@ -288,7 +308,7 @@ public class NotificationService {
 
     public void notifyDisputeOpened(Long openedById, Long courseId) {
         // Partie adverse : on notifie tous les admins
-        notifyAdmins("Litige ouvert — " + appName,
+        notifyAdmins("Litige ouvert — " + EmailLayout.BRAND,
                 buildTemplate("Nouveau litige à arbitrer",
                         "Un litige a été ouvert sur la course #" + courseId + ".",
                         "Consultez le back-office pour examiner les preuves et l'historique du chat."));
@@ -304,14 +324,14 @@ public class NotificationService {
         // Client
         String clientEmail = resolveEmail(clientId);
         if (clientEmail != null) sendEmail(clientEmail,
-                "Décision sur votre litige — " + appName,
+                "Décision sur votre litige — " + EmailLayout.BRAND,
                 buildTemplate("Litige résolu",
                         "L'administrateur a rendu sa décision concernant votre litige.",
                         "Décision : " + decisionText));
         // Coursier
         String courierEmail = resolveEmail(courierId);
         if (courierEmail != null) sendEmail(courierEmail,
-                "Décision sur votre litige — " + appName,
+                "Décision sur votre litige — " + EmailLayout.BRAND,
                 buildTemplate("Litige résolu",
                         "L'administrateur a rendu sa décision concernant votre litige.",
                         "Décision : " + decisionText));
@@ -320,7 +340,7 @@ public class NotificationService {
     // ─── Notifications Signalement ──────────────────────────────────────────────
 
     public void notifyReportReceived(Long reporterId, Long targetId) {
-        notifyAdmins("Nouveau signalement — " + appName,
+        notifyAdmins("Nouveau signalement — " + EmailLayout.BRAND,
                 buildTemplate("Nouveau signalement à examiner",
                         "Un signalement a été soumis contre l'utilisateur #" + targetId + ".",
                         "Consultez le back-office pour examiner le signalement et prendre une décision."));
@@ -335,7 +355,7 @@ public class NotificationService {
                 default -> "Le signalement vous concernant a été classé sans suite.";
             };
             sendEmail(email,
-                    "Décision sur signalement — " + appName,
+                    "Décision sur signalement — " + EmailLayout.BRAND,
                     buildTemplate("Décision de la modération", decisionText,
                             "Si vous pensez que cette décision est injustifiée, vous pouvez contacter le support."));
         }
@@ -346,14 +366,14 @@ public class NotificationService {
     public void notifyBadRating(Long courierId, int stars) {
         String email = resolveEmail(courierId);
         if (email != null) sendEmail(email,
-                "Vous avez reçu une note — " + appName,
+                "Vous avez reçu une note — " + EmailLayout.BRAND,
                 buildTemplate("Nouvelle note reçue",
                         "Vous avez reçu une note de " + stars + " étoile(s) sur une course récente.",
                         stars <= 2
                                 ? "Attention : plusieurs mauvaises notes peuvent entraîner une suspension provisoire de votre compte."
                                 : "Merci pour votre travail et continuez ainsi !"));
         // Notifier aussi les admins
-        notifyAdmins("Mauvaise note reçue — " + appName,
+        notifyAdmins("Mauvaise note reçue — " + EmailLayout.BRAND,
                 buildTemplate("Alerte notation",
                         "Le coursier #" + courierId + " a reçu une note de " + stars + " étoile(s).",
                         stars <= 2
@@ -364,11 +384,11 @@ public class NotificationService {
     public void notifySuspension(Long userId) {
         String email = resolveEmail(userId);
         if (email != null) sendEmail(email,
-                "Suspension provisoire — " + appName,
+                "Suspension provisoire — " + EmailLayout.BRAND,
                 buildTemplate("Votre compte a été suspendu",
                         "Votre compte a été suspendu provisoirement en raison de signalements ou de notes défavorables récents.",
                         "Un email de justification vous sera envoyé sous 72h. Si vous pensez qu'il s'agit d'une erreur, contactez le support."));
-        notifyAdmins("Suspension automatique — " + appName,
+        notifyAdmins("Suspension automatique — " + EmailLayout.BRAND,
                 buildTemplate("Suspension automatique déclenchée",
                         "L'utilisateur #" + userId + " a été suspendu automatiquement.",
                         "Vérifiez l'historique des notes et signalements pour confirmer ou lever la suspension."));
@@ -379,7 +399,7 @@ public class NotificationService {
     public void notifyBadgeObtained(Long clientId, String badge) {
         String email = resolveEmail(clientId);
         if (email != null) sendEmail(email,
-                "Badge obtenu — " + appName,
+                "Badge obtenu — " + EmailLayout.BRAND,
                 buildTemplate("Félicitations ! 🎉",
                         "Vous avez obtenu le badge : " + badge + " !",
                         "Merci d'être un client de confiance sur la plateforme."));
@@ -418,30 +438,13 @@ public class NotificationService {
      * @return le HTML complet prêt à envoyer
      */
     private String buildTemplate(String title, String message, String details) {
-        return """
-                <!DOCTYPE html>
-                <html lang="fr">
-                  <head><meta charset="UTF-8"/></head>
-                  <body style="margin:0;padding:0;background:#f7f8f5;font-family:Inter,Arial,Helvetica,sans-serif;">
-                    <table role="presentation" width="100%%" cellpadding="0" cellspacing="0"
-                           style="background:#f7f8f5;padding:32px 12px;">
-                      <tr><td align="center">
-                        <table role="presentation" width="420" cellpadding="0" cellspacing="0"
-                               style="background:#ffffff;border:1px solid #e2e8e2;border-radius:16px;overflow:hidden;">
-                          <tr><td style="background:#123b32;padding:24px 28px;">
-                            <span style="color:#ffffff;font-size:18px;font-weight:800;letter-spacing:-0.03em;">%s</span>
-                          </td></tr>
-                          <tr><td style="padding:28px;">
-                            <h2 style="margin:0 0 12px;color:#18271f;font-size:20px;">%s</h2>
-                            <p style="margin:0 0 16px;color:#6d7a71;font-size:14px;line-height:1.6;">%s</p>
-                            <p style="margin:0;color:#94a199;font-size:13px;line-height:1.6;">%s</p>
-                          </td></tr>
-                        </table>
-                        <p style="margin:18px 0 0;color:#94a199;font-size:11px;">© %s — Plateforme de coursier de confiance.</p>
-                      </td></tr>
-                    </table>
-                  </body>
-                </html>
-                """.formatted(appName, title, message, details, appName);
+        return buildTemplate(title, message, details, "Ouvrir mon espace", "/login");
+    }
+
+    /** Email standard : message, précision, et un bouton vers la page utile du site. */
+    private String buildTemplate(String title, String message, String details, String ctaLabel, String ctaPath) {
+        String site = frontendUrl.replaceAll("/+$", "");
+        String body = EmailLayout.p(message) + (details == null || details.isBlank() ? "" : EmailLayout.p(details));
+        return EmailLayout.render(site, title, body, ctaLabel, site + ctaPath, null);
     }
 }

@@ -7,11 +7,11 @@ import { ToastService } from '../../../core/services/toast.service';
 import {
   LucideArrowLeft, LucideArrowRight, LucideCalendarDays, LucideCamera, LucideCheck, LucideFileText,
   LucideLockKeyhole, LucideMapPin, LucideMoreHorizontal, LucidePackage, LucidePencil, LucideShoppingBag,
-  LucideStar, LucideTruck,
+  LucideStar, LucideTruck, LucideUserRound,
 } from '@lucide/angular';
 
 type TypeKey = 'ACHAT' | 'LIVRAISON' | 'RETRAIT' | 'AUTRE';
-type StepKey = 'type' | 'need' | 'place' | 'when' | 'recap';
+type StepKey = 'type' | 'need' | 'place' | 'contact' | 'when' | 'recap';
 
 interface CourseType {
   value: TypeKey;
@@ -49,6 +49,7 @@ const STEPS: { key: StepKey; label: string }[] = [
   { key: 'type', label: 'Type' },
   { key: 'need', label: 'Besoin' },
   { key: 'place', label: 'Lieu' },
+  { key: 'contact', label: 'Contact' },
   { key: 'when', label: 'Date' },
   { key: 'recap', label: 'Vérification' },
 ];
@@ -66,7 +67,7 @@ const STEPS: { key: StepKey; label: string }[] = [
     FormsModule, RouterLink,
     LucideArrowLeft, LucideArrowRight, LucideCalendarDays, LucideCamera, LucideCheck, LucideFileText,
     LucideLockKeyhole, LucideMapPin, LucideMoreHorizontal, LucidePackage, LucidePencil, LucideShoppingBag,
-    LucideStar, LucideTruck,
+    LucideStar, LucideTruck, LucideUserRound,
   ],
   styles: [`
     :host { display: block; --cc-muted-2: #56635c; }
@@ -74,7 +75,7 @@ const STEPS: { key: StepKey; label: string }[] = [
     .wz { max-width: 680px; margin: 0 auto; }
     .wz-head h1 { margin: 0 0 4px; font-size: clamp(26px, 4vw, 32px); line-height: 1.1; letter-spacing: -.04em; font-weight: 800; color: var(--cc-ink); }
     .wz-head p { margin: 0 0 20px; font-size: 15px; color: var(--cc-muted-2); }
-    .wz-progress { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 8px; }
+    .wz-progress { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-bottom: 8px; }
     .wz-progress span { height: 5px; border-radius: 5px; background: var(--cc-line); position: relative; overflow: hidden; }
     .wz-progress span::after { content: ''; position: absolute; inset: 0; background: var(--primary); transform: scaleX(0);
       transform-origin: left; transition: transform .45s cubic-bezier(.16,1,.3,1); }
@@ -108,6 +109,7 @@ const STEPS: { key: StepKey; label: string }[] = [
     .chip { min-height: 44px; padding: 0 16px; border-radius: 999px; border: 1.5px solid var(--cc-line); background: var(--cc-white);
       color: var(--cc-ink); font: inherit; font-size: 14px; font-weight: 650; cursor: pointer; transition: border-color .15s, background .15s; }
     .chip.on { border-color: var(--primary); background: color-mix(in oklab, var(--primary) 9%, var(--cc-white)); color: var(--primary); }
+    .opt { font-weight: 500; color: var(--cc-muted-2); }
     .err { margin: 8px 0 0; font-size: 13px; color: var(--cc-danger); }
     .recap { list-style: none; margin: 0 0 18px; padding: 0; border: 1px solid var(--cc-line); border-radius: 13px; overflow: hidden; }
     .recap li { display: grid; grid-template-columns: 36px 1fr auto; gap: 12px; align-items: start; padding: 14px; }
@@ -217,6 +219,23 @@ const STEPS: { key: StepKey; label: string }[] = [
                   </div>
                 </div>
               }
+              @case ('contact') {
+                <h2 class="wz-q">Une personne à contacter sur place ?</h2>
+                <p class="wz-sub">Facultatif. Utile si quelqu’un reçoit la course pour vous : seul le coursier que vous retiendrez verra ces informations.</p>
+                <div class="grid2">
+                  <div class="form-group">
+                    <label class="form-label" for="cc-cname">Nom <span class="opt">(facultatif)</span></label>
+                    <input id="cc-cname" class="form-input" name="contactName" [(ngModel)]="contactName" data-autofocus
+                           placeholder="Ex : Paul Ndongmo" maxlength="120" autocomplete="off">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" for="cc-cphone">Téléphone <span class="opt">(facultatif)</span></label>
+                    <input id="cc-cphone" type="tel" inputmode="tel" class="form-input" name="contactPhone" [(ngModel)]="contactPhone"
+                           placeholder="+237 6XX XXX XXX" maxlength="20" autocomplete="off">
+                  </div>
+                </div>
+                @if (contactPhone.trim() && !phoneValid()) { <p class="err" role="alert">Numéro invalide : chiffres, espaces et « + » uniquement.</p> }
+              }
               @case ('when') {
                 <h2 class="wz-q">Pour quand ?</h2>
                 <p class="wz-sub">Le jour et l’heure souhaités. Vous pourrez en discuter avec le coursier.</p>
@@ -246,6 +265,10 @@ const STEPS: { key: StepKey; label: string }[] = [
                   <li><span class="recap-ic"><svg lucideMapPin size="17"></svg></span>
                     <div><small>Lieu</small><p>{{ city.trim() }} · {{ neighborhood.trim() }}</p></div>
                     <button type="button" (click)="goTo('place')"><svg lucidePencil size="13"></svg> Modifier</button></li>
+                  <li><span class="recap-ic"><svg lucideUserRound size="17"></svg></span>
+                    <div><small>Contact sur place</small>
+                      <p>@if (contactName.trim() || contactPhone.trim()) { {{ contactName.trim() }}{{ contactName.trim() && contactPhone.trim() ? ' · ' : '' }}{{ contactPhone.trim() }} } @else { Aucun }</p></div>
+                    <button type="button" (click)="goTo('contact')"><svg lucidePencil size="13"></svg> {{ contactName.trim() || contactPhone.trim() ? 'Modifier' : 'Ajouter' }}</button></li>
                   <li><span class="recap-ic"><svg lucideCalendarDays size="17"></svg></span>
                     <div><small>Date souhaitée</small><p>{{ whenLabel() }}</p></div>
                     <button type="button" (click)="goTo('when')"><svg lucidePencil size="13"></svg> Modifier</button></li>
@@ -267,6 +290,7 @@ const STEPS: { key: StepKey; label: string }[] = [
             <button type="submit" class="primary-action btn-next" [disabled]="!canNext() || isLoading">
               @if (step() === 'recap') {
                 @if (isLoading) { Envoi… } @else if (isEditMode) { <svg lucideCheck size="16"></svg> Enregistrer } @else { Publier et choisir un coursier <svg lucideArrowRight size="16"></svg> }
+              } @else if (step() === 'contact' && !contactName.trim() && !contactPhone.trim()) { Passer cette étape <svg lucideArrowRight size="16"></svg>
               } @else { Continuer <svg lucideArrowRight size="16"></svg> }
             </button>
           }
@@ -291,6 +315,8 @@ export class CreateCourseComponent implements OnInit {
   city = '';
   neighborhood = '';
   dateVal = '';
+  contactName = '';
+  contactPhone = '';
   timeVal = '';
   readonly today = this.isoDate(0);
   readonly tomorrow = this.isoDate(1);
@@ -332,6 +358,7 @@ export class CreateCourseComponent implements OnInit {
       case 'type': return true;
       case 'need': return this.description.trim().length >= this.MIN_DESC;
       case 'place': return !!this.city.trim() && !!this.neighborhood.trim();
+      case 'contact': return !this.contactPhone.trim() || this.phoneValid();
       case 'when': return !!this.dateVal && !!this.timeVal && this.isFuture();
       case 'recap': return true;
     }
@@ -355,6 +382,8 @@ export class CreateCourseComponent implements OnInit {
   }
 
   // ── Valeurs ────────────────────────────────────────────────────────────────
+  phoneValid(): boolean { return /^\+?[0-9 ]{6,20}$/.test(this.contactPhone.trim()); }
+
   isFuture(): boolean {
     if (!this.dateVal || !this.timeVal) return false;
     return new Date(`${this.dateVal}T${this.timeVal}:00`).getTime() > Date.now();
@@ -400,6 +429,8 @@ export class CreateCourseComponent implements OnInit {
           this.city = parts[0]?.trim() ?? '';
           this.neighborhood = parts.slice(1).join(' - ').trim();
         }
+        this.contactName = course.contactName ?? '';
+        this.contactPhone = course.contactPhone ?? '';
         if (course.scheduledAt) {
           const [d, t] = (course.scheduledAt as string).substring(0, 16).split('T');
           this.dateVal = d ?? '';
@@ -421,6 +452,8 @@ export class CreateCourseComponent implements OnInit {
       description: this.buildDescription(),
       zone: `${this.city.trim()} - ${this.neighborhood.trim()}`,
       scheduledAt: `${this.dateVal}T${this.timeVal}:00`,
+      contactName: this.contactName.trim() || null,
+      contactPhone: this.contactPhone.trim() || null,
     };
     const request$ = this.isEditMode && this.courseId
       ? this.courseService.updateCourse(this.courseId, data)

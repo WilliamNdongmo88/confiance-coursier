@@ -1,5 +1,6 @@
+import { ChatUnreadService } from '../../../core/services/chat-unread.service';
 import { warnLoadFailed } from '../../../shared/state/load-error';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DatePipe, DecimalPipe, NgClass, SlicePipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
@@ -227,6 +228,14 @@ function buildTimeline(status: string, paidAt?: string, createdAt?: string): Tim
           </div>
         </div>
 
+        @if (course.contactName || course.contactPhone) {
+          <div class="card contact-card">
+            <strong>Contact sur place</strong>
+            <span>{{ course.contactName }}@if (course.contactName && course.contactPhone) { · }@if (course.contactPhone) { <a [href]="'tel:' + course.contactPhone">{{ course.contactPhone }}</a> }</span>
+            <small>Visible uniquement par le coursier retenu.</small>
+          </div>
+        }
+
         <!-- ── Preuves soumises ── -->
         @if (course.status === 'PROOFS_SUBMITTED') {
           <div class="card" style="margin-bottom:20px">
@@ -351,9 +360,10 @@ function buildTimeline(status: string, paidAt?: string, createdAt?: string): Tim
 
         <!-- ── Bouton Chat ── -->
         @if (course.chatRoomId) {
-          <div style="margin-bottom:20px">
-            <a [routerLink]="['/chat', course.chatRoomId]" class="btn btn-secondary" style="width:100%;justify-content:center">
+          <div class="chat-cta">
+            <a [routerLink]="['/chat', course.chatRoomId]" class="btn btn-secondary has-dot">
               <svg lucideMessageSquare size="16"></svg> Ouvrir le chat
+              @if (unread.count(course.chatRoomId); as n) { <span class="chat-dot" aria-hidden="true">{{ n > 9 ? '9+' : n }}</span> }
             </a>
           </div>
         }
@@ -373,6 +383,7 @@ function buildTimeline(status: string, paidAt?: string, createdAt?: string): Tim
   `
 })
 export class CourseDetailComponent implements OnInit {
+  readonly unread = inject(ChatUnreadService);
   courseId = 0;
   course: any = null;
   timeline: TimelineStep[] = [];
@@ -392,6 +403,7 @@ export class CourseDetailComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    this.unread.refresh(true);
     this.courseId = Number(this.route.snapshot.paramMap.get('courseId'));
     this.http.get<any>('/api/commissions/public').subscribe({
       next: (p) => {

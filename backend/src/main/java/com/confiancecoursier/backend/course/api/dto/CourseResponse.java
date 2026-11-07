@@ -53,6 +53,10 @@ public class CourseResponse {
     /** Coursier et admin : montant net versé au coursier = tarif − commission + frais réels. */
     private BigDecimal courierAmount;
 
+    /** Personne à contacter sur place : client, coursier retenu et admin uniquement. */
+    private String contactName;
+    private String contactPhone;
+
     /** TICK-073 : la personne qui consulte doit encore noter cette course terminée. */
     private Boolean reviewDue;
 
@@ -116,6 +120,10 @@ public class CourseResponse {
                 dto.setCourierCommissionAmount(course.getCourseAmount()
                         .subtract(course.getCourierAmount().subtract(real)).max(BigDecimal.ZERO));
             }
+        }
+        if (viewer != Viewer.OTHER) {
+            dto.setContactName(course.getContactName());
+            dto.setContactPhone(course.getContactPhone());
         }
         if (viewer == Viewer.COURIER) {
             // Le total payé inclut les frais de service client : non pertinent pour le coursier

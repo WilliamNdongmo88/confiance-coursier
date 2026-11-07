@@ -17,4 +17,7 @@ public interface ChatRoomRepository extends JpaRepository<ChatRoom, Long> {
     List<ChatRoom> findByCourseIdIn(java.util.Collection<Long> courseIds);
     // Toutes les rooms d'un coursier (pour récupérer ses offres en cours)
     List<ChatRoom> findByCourierId(Long courierId);
+
+    /** Salons d'un client (pastilles de messages non lus). */
+    List<ChatRoom> findByClientId(Long clientId);
 }

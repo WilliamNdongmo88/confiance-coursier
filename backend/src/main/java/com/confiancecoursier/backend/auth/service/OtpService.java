@@ -42,6 +42,9 @@ public class OtpService {
     @Value("${app.otp.sender-email:}")
     private String senderEmail;
 
+    @Value("${app.frontend.url:http://localhost:4200}")
+    private String frontendUrl;
+
     @Value("${app.otp.app-name:ConfianceCoursier}")
     private String appName;
 
@@ -186,9 +189,9 @@ public class OtpService {
 
         // Corps JSON de l'email transactionnel Brevo
         Map<String, Object> body = Map.of(
-                "sender", Map.of("email", senderEmail, "name", appName),
+                "sender", Map.of("email", senderEmail, "name", com.confiancecoursier.backend.notify.service.EmailLayout.BRAND),
                 "to", List.of(Map.of("email", to)),
-                "subject", "Votre code de vérification — " + appName,
+                "subject", "Votre code de vérification — " + com.confiancecoursier.backend.notify.service.EmailLayout.BRAND,
                 "htmlContent", buildHtmlTemplate(otp)
         );
 
@@ -218,38 +221,13 @@ public class OtpService {
     // ─────────────────────────────────────────────────────────────────────────
 
     private String buildHtmlTemplate(String otp) {
-        return """
-                <!DOCTYPE html>
-                <html lang="fr">
-                  <head><meta charset="UTF-8"/></head>
-                  <body style="margin:0;padding:0;background:#f7f8f5;font-family:Inter,Arial,Helvetica,sans-serif;">
-                    <table role="presentation" width="100%%" cellpadding="0" cellspacing="0"
-                           style="background:#f7f8f5;padding:32px 12px;">
-                      <tr><td align="center">
-                        <table role="presentation" width="420" cellpadding="0" cellspacing="0"
-                               style="background:#ffffff;border:1px solid #e2e8e2;border-radius:16px;overflow:hidden;">
-                          <tr><td style="background:#123b32;padding:24px 28px;">
-                            <span style="color:#ffffff;font-size:18px;font-weight:800;letter-spacing:-0.03em;">%s</span>
-                          </td></tr>
-                          <tr><td style="padding:28px;">
-                            <h2 style="margin:0 0 12px;color:#18271f;font-size:20px;">Vérification de votre compte</h2>
-                            <p style="margin:0 0 20px;color:#6d7a71;font-size:14px;line-height:1.5;">
-                              Voici votre code à usage unique. Il est valable <strong>5 minutes</strong>.
-                            </p>
-                            <p style="margin:0 0 8px;text-align:center;">
-                              <span style="display:inline-block;font-size:30px;font-weight:800;letter-spacing:8px;
-                                           color:#123b32;background:#e4f1e8;border-radius:10px;padding:14px 20px;">%s</span>
-                            </p>
-                            <p style="margin:22px 0 0;color:#94a199;font-size:12px;line-height:1.5;">
-                              Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.
-                            </p>
-                          </td></tr>
-                        </table>
-                        <p style="margin:18px 0 0;color:#94a199;font-size:11px;">© %s — Plateforme de coursier de confiance.</p>
-                      </td></tr>
-                    </table>
-                  </body>
-                </html>
-                """.formatted(appName, otp, appName);
+        String site = frontendUrl.replaceAll("/+$", "");
+        String body = com.confiancecoursier.backend.notify.service.EmailLayout.p(
+                "Voici votre code à usage unique. Il est valable <strong>5 minutes</strong>.")
+                + "<p style=\"margin:16px 0 4px;text-align:center;\"><span style=\"display:inline-block;font-size:30px;"
+                + "font-weight:800;letter-spacing:8px;color:#123b32;background:#e4f1e8;border-radius:10px;padding:14px 20px;\">"
+                + otp + "</span></p>";
+        return com.confiancecoursier.backend.notify.service.EmailLayout.render(site, "Vérification de votre compte", body,
+                null, null, "Si vous n’êtes pas à l’origine de cette demande, ignorez cet email.");
     }
 }
