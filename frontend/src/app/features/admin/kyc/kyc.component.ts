@@ -1,413 +1,340 @@
-import { Component, inject, signal, computed, OnInit } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AdminService, AdminKycResponse } from '../../../core/services/admin.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { MediaViewerComponent, MediaItem } from '../../../shared/components/media-viewer/media-viewer.component';
-import {
-  LucideShieldCheck, LucideCalendar, LucideIdCard,
-  LucideImage, LucideUser, LucideCheck, LucideX, LucideTrash2,
-} from '@lucide/angular';
+import { LucideAlertTriangle, LucideCheck, LucideChevronDown, LucideFileText, LucideMaximize2, LucideShieldCheck, LucideTrash2, LucideX } from '@lucide/angular';
 
+type Tab = 'PENDING' | 'APPROVED' | 'REJECTED' | 'ALL';
+
+/** Motifs de refus fréquents (le texte reste modifiable avant l'envoi). */
+const REASONS = [
+  'Photo floue ou illisible',
+  'Pièce coupée ou incomplète',
+  'Le selfie ne permet pas de reconnaître la personne',
+  'Les informations ne correspondent pas à la pièce',
+  'Pièce expirée',
+];
+
+/**
+ * Examen des dossiers d'identité (admin), Impeccable, mode Operate.
+ * Les dossiers à examiner d'abord ; pièces et selfie affichés côte à côte pour comparer sans ouvrir de fenêtre ;
+ * points d'attention détectés automatiquement (âge, nom différent du compte) ; refus avec motif obligatoire.
+ */
 @Component({
   selector: 'app-admin-kyc',
   standalone: true,
-  imports: [
-    DatePipe, FormsModule,
-    MediaViewerComponent,
-    LucideShieldCheck, LucideCalendar, LucideIdCard,
-    LucideImage, LucideUser, LucideCheck, LucideX, LucideTrash2,
-  ],
+  imports: [DatePipe, FormsModule, MediaViewerComponent,
+    LucideAlertTriangle, LucideCheck, LucideChevronDown, LucideFileText, LucideMaximize2, LucideShieldCheck, LucideTrash2, LucideX],
+  styles: [`
+    :host { display: block; --am: #56635c; }
+    :host-context([data-theme="dark"]) { --am: #B0C0B7; }
+    .a { max-width: 1100px; margin: 0 auto; }
+    .a-head h1 { margin: 0 0 6px; font-size: clamp(26px, 4vw, 32px); line-height: 1.1; letter-spacing: -.04em; font-weight: 800; color: var(--cc-ink); }
+    .a-head p { margin: 0 0 16px; font-size: 15px; color: var(--am); }
+    .tabs { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; margin-bottom: 16px; border-radius: 12px; background: var(--cc-paper-2); border: 1px solid var(--cc-line); }
+    .tabs button { min-height: 40px; padding: 0 14px; border: 0; border-radius: 9px; background: none; color: var(--am); font: inherit; font-size: 14px; font-weight: 650; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 6px; }
+    .tabs button.on { background: var(--cc-white); color: var(--cc-ink); box-shadow: 0 2px 8px rgba(18,59,50,.08); }
+    .tabs b { min-width: 22px; height: 20px; padding: 0 6px; border-radius: 10px; display: grid; place-items: center; font-size: 12px; background: var(--cc-line); color: var(--cc-ink); }
+    .tabs button.on b.hot { background: #d93a32; color: #fff; }
+    .kc { background: var(--cc-white); border: 1px solid var(--cc-line); border-radius: 16px; margin-bottom: 14px; overflow: hidden; animation: a-in .4s cubic-bezier(.16,1,.3,1) both; }
+    .top { display: flex; align-items: center; gap: 12px; padding: 16px 18px; flex-wrap: wrap; }
+    .av { flex: none; width: 44px; height: 44px; border-radius: 13px; display: grid; place-items: center; background: var(--cc-paper-2); color: var(--primary); font-weight: 800; }
+    .who { flex: 1 1 220px; min-width: 0; }
+    .who b { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 15.5px; color: var(--cc-ink); }
+    .who span { display: block; margin-top: 2px; font-size: 13px; color: var(--am); overflow: hidden; text-overflow: ellipsis; }
+    .st { padding: 2px 9px; border-radius: 99px; font-size: 12px; font-weight: 750; }
+    .st.PENDING { background: var(--cc-warning-bg); color: #8a5a14; }
+    .st.APPROVED { background: var(--cc-success-bg); color: var(--cc-success); }
+    .st.REJECTED { background: var(--cc-danger-bg); color: var(--cc-danger); }
+    .toggle { min-height: 40px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--cc-line); background: var(--cc-white); color: var(--cc-ink); font: inherit; font-size: 13.5px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+    .toggle svg { transition: transform .2s; }
+    .toggle.open svg { transform: rotate(180deg); }
+    .body { padding: 0 18px 18px; display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 16px; }
+    .docs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    .doc { position: relative; display: block; padding: 0; border: 1px solid var(--cc-line); border-radius: 12px; overflow: hidden; background: #0f1a15; aspect-ratio: 3 / 4; cursor: zoom-in; }
+    .doc img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .doc .lbl { position: absolute; left: 6px; bottom: 6px; padding: 3px 8px; border-radius: 7px; background: rgba(0,0,0,.65); color: #fff; font-size: 12px; font-weight: 750; }
+    .doc .zoom { position: absolute; right: 6px; top: 6px; width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; background: rgba(0,0,0,.55); color: #fff; }
+    .doc .nofile { width: 100%; height: 100%; display: grid; place-items: center; align-content: center; gap: 4px; color: #cfdcd4; font-size: 12.5px; font-weight: 700; }
+    .facts { margin: 0; display: grid; gap: 0; border: 1px solid var(--cc-line); border-radius: 12px; overflow: hidden; }
+    .facts div { display: flex; justify-content: space-between; gap: 10px; padding: 10px 12px; font-size: 13.5px; }
+    .facts div + div { border-top: 1px solid var(--cc-line); }
+    .facts dt { color: var(--am); }
+    .facts dd { margin: 0; font-weight: 650; color: var(--cc-ink); text-align: right; }
+    .warns { display: grid; gap: 6px; margin-top: 10px; }
+    .warn { display: flex; gap: 8px; align-items: flex-start; padding: 9px 11px; border-radius: 10px; background: var(--cc-warning-bg); color: var(--cc-ink); font-size: 13px; line-height: 1.4; }
+    .warn svg { flex: none; margin-top: 1px; color: var(--cc-warning); }
+    .reason { margin-top: 10px; padding: 10px 12px; border-radius: 10px; background: var(--cc-danger-bg); font-size: 13px; color: var(--cc-ink); }
+    .acts { grid-column: 1 / -1; display: flex; gap: 10px; flex-wrap: wrap; padding-top: 14px; border-top: 1px solid var(--cc-line); }
+    .acts .ok, .acts .no { min-height: 46px; padding: 0 18px; border-radius: 11px; border: 0; font: inherit; font-size: 14.5px; font-weight: 750; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; }
+    .ok { background: var(--primary); color: #fff; }
+    .no { background: var(--cc-danger-bg); color: var(--cc-danger); border: 1px solid color-mix(in oklab, var(--cc-danger) 40%, transparent) !important; }
+    .del { margin-left: auto; min-height: 40px; padding: 0 12px; border-radius: 10px; border: 0; background: none; color: var(--am); font: inherit; font-size: 13px; font-weight: 650; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+    .del:hover { color: var(--cc-danger); }
+    .rej { grid-column: 1 / -1; padding: 14px; border-radius: 12px; border: 1.5px solid color-mix(in oklab, var(--cc-danger) 45%, transparent); animation: a-in .3s cubic-bezier(.16,1,.3,1); }
+    .rej h3 { margin: 0 0 8px; font-size: 14.5px; color: var(--cc-ink); }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    .chips button { min-height: 36px; padding: 0 12px; border-radius: 99px; border: 1px solid var(--cc-line); background: var(--cc-white); color: var(--cc-ink); font: inherit; font-size: 13px; cursor: pointer; }
+    .chips button.on { border-color: var(--cc-danger); color: var(--cc-danger); }
+    .rej textarea { min-height: 80px; }
+    .rej-acts { display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px; flex-wrap: wrap; }
+    .rej-acts button { min-height: 44px; padding: 0 16px; border-radius: 10px; font: inherit; font-weight: 750; cursor: pointer; }
+    .b-plain { border: 1px solid var(--cc-line); background: var(--cc-white); color: var(--cc-ink); }
+    .b-danger { border: 0; background: var(--cc-danger); color: #fff; }
+    .b-danger:disabled { opacity: .45; cursor: not-allowed; }
+    .empty { padding: 34px 16px; text-align: center; border: 1px dashed var(--cc-line); border-radius: 16px; color: var(--am); }
+    .empty svg { color: var(--cc-success); }
+    .empty b { display: block; margin: 8px 0 4px; font-size: 16px; color: var(--cc-ink); }
+    .sk { height: 120px; border-radius: 16px; margin-bottom: 14px; background: linear-gradient(90deg, var(--cc-paper-2), var(--cc-white), var(--cc-paper-2)); background-size: 200% 100%; animation: a-sk 1.2s linear infinite; }
+    @keyframes a-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    @keyframes a-sk { to { background-position: -200% 0; } }
+    :host-context([data-theme="dark"]) .a-head h1, :host-context([data-theme="dark"]) .who b, :host-context([data-theme="dark"]) .facts dd,
+    :host-context([data-theme="dark"]) .warn, :host-context([data-theme="dark"]) .reason, :host-context([data-theme="dark"]) .rej h3,
+    :host-context([data-theme="dark"]) .empty b { color: #F3F7F5 !important; }
+    :host-context([data-theme="dark"]) .av, :host-context([data-theme="dark"]) .tabs { background: rgba(255,255,255,.05); }
+    :host-context([data-theme="dark"]) .av { color: var(--cc-lime); }
+    :host-context([data-theme="dark"]) .tabs button.on { background: #2B4A3E; color: #F3F7F5; }
+    :host-context([data-theme="dark"]) .ok { background: var(--cc-lime); color: #123b32; }
+    :host-context([data-theme="dark"]) .no, :host-context([data-theme="dark"]) .st.REJECTED { color: #F0A39C; }
+    :host-context([data-theme="dark"]) .st.PENDING { color: #E3A857; }
+    :host-context([data-theme="dark"]) .warn { background: rgba(227,168,87,.12); }
+    :host-context([data-theme="dark"]) .b-danger { background: #c2413a; }
+    @media (max-width: 860px) { .body { grid-template-columns: 1fr; } }
+    @media (max-width: 640px) {
+      .top, .body { padding-left: 14px; padding-right: 14px; }
+      .acts .ok, .acts .no { flex: 1 1 140px; justify-content: center; }
+      .del { margin-left: 0; }
+      .tabs { display: grid; grid-template-columns: repeat(4, auto); width: 100%; }
+      .tabs button { justify-content: center; padding: 0 6px; font-size: 13px; gap: 4px; }
+      .tabs b { min-width: 18px; padding: 0 4px; }
+      .doc .lbl { font-size: 11px; padding: 2px 6px; }
+    }
+    @media (prefers-reduced-motion: reduce) { .kc, .rej, .sk { animation: none; } }
+  `],
   template: `
-      <section class="page-head">
-        <div>
-          <h1>Validations KYC</h1>
-          <p>{{ pendingList().length }} dossier(s) en attente de vérification.</p>
-        </div>
-        <span class="status-badge status-badge--warning" style="font-size:.85rem;padding:8px 14px">
-          {{ pendingList().length }} en attente
-        </span>
+    <div class="a">
+      <section class="a-head">
+        <h1>Vérifications d’identité</h1>
+        <p>@if (pendingCount()) { {{ pendingCount() }} dossier{{ pendingCount() > 1 ? 's' : '' }} à examiner : les coursiers ne peuvent pas travailler avant votre décision. } @else { Aucun dossier en attente. }</p>
       </section>
 
+      <div class="tabs" role="tablist" aria-label="Filtrer les dossiers">
+        @for (t of tabs; track t.key) {
+          <button type="button" role="tab" [attr.aria-selected]="tab() === t.key" [class.on]="tab() === t.key" (click)="tab.set(t.key)">
+            {{ t.label }} <b [class.hot]="t.key === 'PENDING' && pendingCount() > 0">{{ count(t.key) }}</b>
+          </button>
+        }
+      </div>
+
       @if (loading()) {
-        <p style="text-align:center;padding:40px;color:var(--text-muted)">Chargement…</p>
-      }
-
-      @for (kyc of allList(); track kyc.id) {
-        <div class="kyc-card"
-             [class.kyc-card--approved]="kyc.status === 'APPROVED'"
-             [class.kyc-card--rejected]="kyc.status === 'REJECTED'">
-
-          <!-- ── En-tête de la carte ── -->
-          <div class="kyc-card-header">
-            <div class="kyc-avatar">{{ initials(kyc) }}</div>
-            <div class="kyc-header-info">
-              <h3>
-                {{ kyc.userFullName || 'Utilisateur #' + kyc.userId }}
-                @if (kyc.status === 'PENDING') {
-                  <span class="badge badge-warning" style="font-size:.65rem">En attente</span>
-                } @else if (kyc.status === 'APPROVED') {
-                  <span class="badge badge-success" style="font-size:.65rem">Approuvé</span>
-                } @else {
-                  <span class="badge badge-danger" style="font-size:.65rem">Refusé</span>
-                }
-              </h3>
-              <div class="kyc-meta">
-                <span><svg lucideCalendar size="12"></svg> Soumis le {{ kyc.submittedAt | date:'dd/MM/yyyy' }}</span>
-                <span><svg lucideIdCard size="12"></svg> {{ kyc.documentType }}</span>
-                <span>{{ kyc.userEmail }}</span>
+        <div class="sk"></div><div class="sk"></div>
+      } @else if (list().length === 0) {
+        <div class="empty" role="status">
+          <svg lucideShieldCheck size="30"></svg>
+          <b>{{ tab() === 'PENDING' ? 'Tout est à jour' : 'Aucun dossier' }}</b>
+          <span>{{ tab() === 'PENDING' ? 'Les nouveaux dossiers des coursiers apparaîtront ici.' : 'Aucun dossier dans cette catégorie.' }}</span>
+        </div>
+      } @else {
+        @for (k of list(); track k.id; let i = $index) {
+          <article class="kc" [style.animation-delay.ms]="i * 40">
+            <div class="top">
+              <span class="av" aria-hidden="true">{{ initials(k) }}</span>
+              <div class="who">
+                <b>{{ k.userFullName || ((k.firstName || '') + ' ' + (k.lastName || '')) }} <span class="st" [class]="'st ' + k.status">{{ statusLabel(k.status) }}</span></b>
+                <span>{{ k.documentType === 'PASSPORT' ? 'Passeport' : 'Carte d’identité' }} · envoyé le {{ k.submittedAt | date:'d MMM yyyy à HH:mm' }} · {{ k.userEmail }}</span>
               </div>
+              @if (k.status !== 'PENDING') {
+                <button type="button" class="toggle" [class.open]="isOpen(k)" [attr.aria-expanded]="isOpen(k)" (click)="toggle(k)">
+                  {{ isOpen(k) ? 'Masquer' : 'Voir le dossier' }} <svg lucideChevronDown size="15"></svg>
+                </button>
+              }
             </div>
 
-            <!-- Boutons d'action (coin haut-droit) -->
-            @if (kyc.status === 'PENDING') {
-              <div class="kyc-actions">
-                @if (rejectingId() !== kyc.id) {
-                  <button class="btn btn-primary btn-sm" (click)="approve(kyc)">
-                    <svg lucideCheck size="14"></svg> Approuver
-                  </button>
-                  <button class="btn btn-danger btn-sm" (click)="startReject(kyc)">
-                    <svg lucideX size="14"></svg> Refuser
-                  </button>
-                } @else {
-                  <textarea
-                    class="form-input"
-                    placeholder="Raison du rejet (min. 10 caractères)"
-                    [ngModel]="rejectReason()"
-                    (ngModelChange)="rejectReason.set($event)"
-                    rows="3"
-                    style="font-size:.82rem;width:220px"
-                  ></textarea>
-                  <div style="display:flex;gap:6px">
-                    <button class="btn btn-danger btn-sm"
-                            (click)="confirmReject(kyc)"
-                            [disabled]="rejectReason().length < 10">
-                      Confirmer
+            @if (isOpen(k)) {
+              <div class="body">
+                <div class="docs">
+                  @for (d of docsOf(k); track d.label; let j = $index) {
+                    <button type="button" class="doc" (click)="openViewer(k, j)" [attr.aria-label]="'Agrandir : ' + d.label">
+                      @if (d.url && !failed().has(d.url)) { <img [src]="d.url" [alt]="d.label" loading="lazy" (error)="markFailed(d.url)"> }
+                      @else { <span class="nofile"><svg lucideFileText size="26"></svg>{{ d.url ? 'Ouvrir' : 'Absent' }}</span> }
+                      <span class="lbl">{{ d.label }}</span>
+                      <span class="zoom"><svg lucideMaximize2 size="14"></svg></span>
                     </button>
-                    <button class="btn btn-secondary btn-sm" (click)="cancelReject()">Annuler</button>
+                  }
+                </div>
+                <div>
+                  <dl class="facts">
+                    <div><dt>Prénom</dt><dd>{{ k.firstName || '—' }}</dd></div>
+                    <div><dt>Nom</dt><dd>{{ k.lastName || '—' }}</dd></div>
+                    <div><dt>Naissance</dt><dd>{{ k.birthDate ? (k.birthDate | date:'d MMMM yyyy') : '—' }}@if (age(k) !== null && age(k)! >= 0) { · {{ age(k) }} ans }</dd></div>
+                    <div><dt>Nationalité</dt><dd>{{ k.nationality || '—' }}</dd></div>
+                  </dl>
+                  @if (warnings(k).length) {
+                    <div class="warns">@for (w of warnings(k); track w) { <div class="warn"><svg lucideAlertTriangle size="15"></svg><span>{{ w }}</span></div> }</div>
+                  }
+                  @if (k.status === 'REJECTED' && k.rejectionReason) { <div class="reason"><strong>Motif du refus :</strong> {{ k.rejectionReason }}</div> }
+                </div>
+
+                @if (rejectingId() === k.id) {
+                  <div class="rej" role="group" aria-label="Refuser le dossier">
+                    <h3>Pourquoi refuser ce dossier ? Le coursier recevra ce motif.</h3>
+                    <div class="chips">
+                      @for (r of reasons; track r) { <button type="button" [class.on]="rejectReason() === r" (click)="rejectReason.set(r)">{{ r }}</button> }
+                    </div>
+                    <textarea class="form-input" [ngModel]="rejectReason()" (ngModelChange)="rejectReason.set($event)" maxlength="500"
+                              placeholder="Précisez si besoin ce qu’il faut corriger"></textarea>
+                    <div class="rej-acts">
+                      <button type="button" class="b-plain" (click)="cancelReject()">Annuler</button>
+                      <button type="button" class="b-danger" [disabled]="!rejectReason().trim() || acting()" (click)="confirmReject(k)">Refuser le dossier</button>
+                    </div>
+                  </div>
+                } @else {
+                  <div class="acts">
+                    @if (k.status === 'PENDING') {
+                      <button type="button" class="ok" [disabled]="acting()" (click)="approve(k)"><svg lucideCheck size="16"></svg> Approuver</button>
+                      <button type="button" class="no" [disabled]="acting()" (click)="startReject(k)"><svg lucideX size="16"></svg> Refuser</button>
+                    }
+                    <button type="button" class="del" [disabled]="deletingId() === k.id" (click)="deleteKyc(k)"><svg lucideTrash2 size="14"></svg> Supprimer le dossier</button>
                   </div>
                 }
               </div>
-            } @else {
-              <div class="kyc-actions">
-                @if (kyc.status === 'APPROVED') {
-                  <span class="status-badge status-badge--success">Approuvé</span>
-                } @else {
-                  <!-- Statut REJECTED : badge + bouton supprimer -->
-                  <span class="status-badge status-badge--danger">Refusé</span>
-                  <button class="btn btn-danger btn-sm"
-                          style="margin-top:6px; display:flex; align-items:center; gap:5px;"
-                          [disabled]="deletingId() === kyc.id"
-                          (click)="deleteKyc(kyc)">
-                    @if (deletingId() === kyc.id) {
-                      <span class="spinner" style="width:13px;height:13px;border-width:2px;"></span>
-                    } @else {
-                      <svg lucideTrash2 size="13"></svg>
-                    }
-                    Supprimer
-                  </button>
-                }
-              </div>
             }
-          </div>
-
-          <!-- ── Corps : Infos déclarées | Documents ── -->
-          <div class="kyc-card-body">
-
-            <!-- Colonne gauche : informations personnelles déclarées -->
-            <div class="kyc-section">
-              <p class="kyc-section-title">
-                <svg lucideUser size="13"></svg>
-                Informations déclarées
-              </p>
-              <dl class="kyc-dl">
-                <div class="kyc-dl-row">
-                  <dt>Prénom</dt>
-                  <dd>{{ kyc.firstName || '—' }}</dd>
-                </div>
-                <div class="kyc-dl-row">
-                  <dt>Nom de famille</dt>
-                  <dd>{{ kyc.lastName || '—' }}</dd>
-                </div>
-                <div class="kyc-dl-row">
-                  <dt>Date de naissance</dt>
-                  <dd>{{ kyc.birthDate ? (kyc.birthDate | date:'dd/MM/yyyy') : '—' }}</dd>
-                </div>
-                <div class="kyc-dl-row">
-                  <dt>Nationalité</dt>
-                  <dd>{{ kyc.nationality || '—' }}</dd>
-                </div>
-              </dl>
-            </div>
-
-            <!-- Colonne droite : documents soumis -->
-            <div class="kyc-section">
-              <p class="kyc-section-title">
-                <svg lucideIdCard size="13"></svg>
-                Documents soumis
-              </p>
-              <div class="kyc-docs">
-                @if (kyc.frontFileUrl) {
-                  <button class="kyc-doc-thumb" title="Recto — Cliquez pour agrandir"
-                          (click)="openViewer(kyc, 0)">
-                    <svg lucideImage size="22"></svg>
-                    <span class="kyc-doc-label">Recto</span>
-                  </button>
-                }
-                @if (kyc.backFileUrl) {
-                  <button class="kyc-doc-thumb" title="Verso — Cliquez pour agrandir"
-                          (click)="openViewer(kyc, 1)">
-                    <svg lucideImage size="22"></svg>
-                    <span class="kyc-doc-label">Verso</span>
-                  </button>
-                }
-                @if (kyc.selfieFileUrl) {
-                  <button class="kyc-doc-thumb" title="Selfie — Cliquez pour agrandir"
-                          (click)="openViewer(kyc, kyc.backFileUrl ? 2 : 1)">
-                    <svg lucideUser size="22"></svg>
-                    <span class="kyc-doc-label">Selfie</span>
-                  </button>
-                }
-                @if (!kyc.frontFileUrl && !kyc.backFileUrl && !kyc.selfieFileUrl) {
-                  <p style="font-size:.82rem;color:var(--text-muted)">Aucun document disponible.</p>
-                }
-              </div>
-            </div>
-
-          </div>
-
-          @if (kyc.status === 'REJECTED' && kyc.rejectionReason) {
-            <p style="font-size:.8rem;color:var(--danger);margin-top:10px;padding:0 4px">
-              ✕ Raison du rejet : {{ kyc.rejectionReason }}
-            </p>
-          }
-
-        </div>
-      } @empty {
-        @if (!loading()) {
-          <div style="text-align:center;padding:60px;color:var(--text-muted)">
-            <svg lucideShieldCheck size="40" style="opacity:.3"></svg>
-            <p style="margin-top:12px">Aucune soumission KYC à afficher.</p>
-          </div>
+          </article>
         }
       }
+    </div>
 
-      <!-- Modal prévisualisation documents KYC -->
-      <app-media-viewer
-        [items]="viewerItems()"
-        [activeIndex]="viewerIndex()"
-        [open]="viewerOpen()"
-        (close)="viewerOpen.set(false)">
-      </app-media-viewer>
-
+    <app-media-viewer [items]="viewerItems()" [activeIndex]="viewerIndex()" [open]="viewerOpen()" (close)="viewerOpen.set(false)" />
   `,
-  styles: [`
-    /* ── Carte principale ── */
-    .kyc-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      padding: 20px;
-      margin-bottom: 16px;
-      transition: border-color .15s;
-    }
-    .kyc-card:hover { border-color: var(--primary); }
-    .kyc-card--done { opacity: .65; pointer-events: none; }
-    /* Approuvé : grisé + non interactif */
-    .kyc-card--approved { opacity: .55; pointer-events: none; }
-    /* Rejeté : légèrement atténué mais interactions actives (bouton Supprimer) */
-    .kyc-card--rejected { opacity: .80; }
-
-    /* ── En-tête : avatar + infos + boutons ── */
-    .kyc-card-header {
-      display: flex;
-      align-items: flex-start;
-      gap: 14px;
-      margin-bottom: 16px;
-    }
-    .kyc-avatar {
-      width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0;
-      background: var(--primary-light); color: var(--primary);
-      display: flex; align-items: center; justify-content: center;
-      font-weight: 700; font-size: 1rem;
-    }
-    .kyc-header-info { flex: 1; min-width: 0; }
-    .kyc-header-info h3 {
-      font-size: .98rem; font-weight: 700; color: var(--text);
-      margin: 0 0 4px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
-    }
-    .kyc-meta {
-      display: flex; gap: 10px; flex-wrap: wrap;
-      font-size: .8rem; color: var(--text-muted);
-    }
-    .kyc-meta span { display: flex; align-items: center; gap: 4px; }
-    .kyc-actions { display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; align-items: flex-end; }
-
-    /* ── Corps : 2 colonnes côte à côte ── */
-    .kyc-card-body {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      border-top: 1px solid var(--border);
-      padding-top: 14px;
-    }
-
-    /* ── Section (infos déclarées / documents) ── */
-    .kyc-section {
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 12px 14px;
-    }
-    .kyc-section-title {
-      font-size: .72rem; font-weight: 700;
-      text-transform: uppercase; letter-spacing: .06em;
-      color: var(--primary); margin: 0 0 10px;
-      display: flex; align-items: center; gap: 5px;
-    }
-
-    /* ── Liste définition (label / valeur) ── */
-    .kyc-dl { margin: 0; }
-    .kyc-dl-row {
-      display: flex; justify-content: space-between; align-items: baseline;
-      gap: 8px; padding: 5px 0;
-      border-bottom: 1px dashed var(--border);
-    }
-    .kyc-dl-row:last-child { border-bottom: none; }
-    .kyc-dl-row dt {
-      font-size: .78rem; color: var(--text-muted);
-      font-weight: 500; white-space: nowrap;
-    }
-    .kyc-dl-row dd {
-      font-size: .85rem; font-weight: 600; color: var(--text);
-      margin: 0; text-align: right;
-    }
-
-    /* ── Documents ── */
-    .kyc-docs { display: flex; gap: 8px; flex-wrap: wrap; }
-    .kyc-doc-thumb {
-      width: 80px; height: 64px; border-radius: 8px;
-      border: 1px solid var(--border); background: var(--bg-card);
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center; gap: 4px;
-      color: var(--text-muted); cursor: pointer;
-      transition: border-color .15s, background .15s, color .15s;
-    }
-    .kyc-doc-thumb:hover {
-      border-color: var(--primary);
-      background: var(--primary-light);
-      color: var(--primary);
-    }
-    .kyc-doc-label { font-size: .7rem; font-weight: 600; }
-
-    /* ── Responsive ── */
-    @media (max-width: 700px) {
-      .kyc-card-body { grid-template-columns: 1fr; }
-      .kyc-card-header { flex-wrap: wrap; }
-      .kyc-actions { flex-direction: row; width: 100%; justify-content: flex-start; }
-    }
-  `],
 })
 export class AdminKycComponent implements OnInit {
   private adminService = inject(AdminService);
   private toast = inject(ToastService);
 
-  readonly allList      = signal<AdminKycResponse[]>([]);
-  readonly loading      = signal(false);
-  readonly rejectingId  = signal<number | null>(null);
+  readonly reasons = REASONS;
+  readonly tabs: { key: Tab; label: string }[] = [
+    { key: 'PENDING', label: 'À voir' }, { key: 'APPROVED', label: 'Approuvés' }, { key: 'REJECTED', label: 'Refusés' }, { key: 'ALL', label: 'Tous' },
+  ];
+  readonly tab = signal<Tab>('PENDING');
+  readonly allList = signal<AdminKycResponse[]>([]);
+  readonly loading = signal(false);
+  readonly acting = signal(false);
+  readonly rejectingId = signal<number | null>(null);
   readonly rejectReason = signal('');
-  readonly deletingId   = signal<number | null>(null);
+  readonly deletingId = signal<number | null>(null);
+  readonly failed = signal<Set<string>>(new Set());
+  private readonly opened = signal<Set<number>>(new Set());
 
-  readonly pendingList = computed(() => this.allList().filter(k => k.status === 'PENDING'));
+  readonly pendingCount = computed(() => this.count('PENDING'));
+  readonly list = computed(() => {
+    const t = this.tab();
+    return this.allList()
+      .filter((k) => t === 'ALL' || k.status === t)
+      .sort((a, b) => new Date(t === 'PENDING' ? a.submittedAt ?? 0 : b.submittedAt ?? 0).getTime()
+        - new Date(t === 'PENDING' ? b.submittedAt ?? 0 : a.submittedAt ?? 0).getTime());
+  });
 
-  // ─── Media viewer ─────────────────────────────────────────────────────────
-  readonly viewerOpen  = signal(false);
+  readonly viewerOpen = signal(false);
   readonly viewerItems = signal<MediaItem[]>([]);
   readonly viewerIndex = signal(0);
 
-  openViewer(kyc: AdminKycResponse, startIndex: number): void {
-    const items: MediaItem[] = [];
-    if (kyc.frontFileUrl) items.push({ url: kyc.frontFileUrl, type: 'image', label: 'Recto' });
-    if (kyc.backFileUrl)  items.push({ url: kyc.backFileUrl,  type: 'image', label: 'Verso' });
-    if (kyc.selfieFileUrl) items.push({ url: kyc.selfieFileUrl, type: 'image', label: 'Selfie' });
+  ngOnInit(): void {
+    this.loading.set(true);
+    this.adminService.getKycList().subscribe({
+      next: (data) => { this.allList.set(data); this.loading.set(false); },
+      error: () => { this.toast.error('Erreur lors du chargement des dossiers.'); this.loading.set(false); },
+    });
+  }
+
+  count(t: Tab): number { return t === 'ALL' ? this.allList().length : this.allList().filter((k) => k.status === t).length; }
+
+  /** Les dossiers à examiner sont toujours ouverts ; les autres se déplient à la demande. */
+  isOpen(k: AdminKycResponse): boolean { return k.status === 'PENDING' || this.opened().has(k.id); }
+  toggle(k: AdminKycResponse): void {
+    this.opened.update((s) => { const n = new Set(s); n.has(k.id) ? n.delete(k.id) : n.add(k.id); return n; });
+  }
+
+  docsOf(k: AdminKycResponse): { label: string; url: string | null }[] {
+    return [
+      { label: k.documentType === 'PASSPORT' ? 'Page 1' : 'Recto', url: k.frontFileUrl },
+      { label: k.documentType === 'PASSPORT' ? 'Page 2' : 'Verso', url: k.backFileUrl },
+      { label: 'Selfie', url: k.selfieFileUrl },
+    ];
+  }
+
+  markFailed(url: string): void { this.failed.update((s) => new Set(s).add(url)); }
+
+  openViewer(k: AdminKycResponse, start: number): void {
+    const items: MediaItem[] = this.docsOf(k).filter((d) => !!d.url)
+      .map((d) => ({ url: d.url!, type: this.failed().has(d.url!) ? 'pdf' : 'image', label: d.label }));
+    if (!items.length) return;
     this.viewerItems.set(items);
-    this.viewerIndex.set(Math.min(startIndex, items.length - 1));
+    this.viewerIndex.set(Math.min(start, items.length - 1));
     this.viewerOpen.set(true);
   }
 
-  ngOnInit(): void {
-    this.loadKyc();
+  age(k: AdminKycResponse): number | null {
+    if (!k.birthDate) return null;
+    const b = new Date(k.birthDate);
+    const now = new Date();
+    let a = now.getFullYear() - b.getFullYear();
+    if (now.getMonth() < b.getMonth() || (now.getMonth() === b.getMonth() && now.getDate() < b.getDate())) a--;
+    return a;
   }
 
-  private loadKyc(): void {
-    this.loading.set(true);
-    this.adminService.getKycList().subscribe({
-      next: (data) => {
-        this.allList.set(data);
-        this.loading.set(false);
-      },
-      error: () => {
-        this.toast.error('Erreur lors du chargement des KYC.');
-        this.loading.set(false);
-      },
-    });
-  }
-
-  initials(kyc: AdminKycResponse): string {
-    const name = kyc.userFullName;
-    if (name) {
-      return name.split(/\s+/).slice(0, 2).map(w => w.charAt(0).toUpperCase()).join('');
+  /** Points d'attention détectés automatiquement (aide à la décision, jamais bloquants). */
+  warnings(k: AdminKycResponse): string[] {
+    const w: string[] = [];
+    const a = this.age(k);
+    if (a !== null && a < 0) w.push('La date de naissance est dans le futur.');
+    else if (a !== null && a < 18) w.push(`Personne mineure (${a} ans) : la plateforme exige 18 ans.`);
+    const norm = (x: string) => x.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+    const declared = norm(`${k.firstName ?? ''} ${k.lastName ?? ''}`);
+    const account = norm(k.userFullName ?? '');
+    if (declared && account) {
+      const words = declared.split(' ');
+      if (!words.every((x) => account.includes(x))) w.push(`Le nom déclaré diffère du nom du compte (« ${k.userFullName} »).`);
     }
-    return kyc.userEmail ? kyc.userEmail.charAt(0).toUpperCase() : '?';
+    if (!k.frontFileUrl || !k.backFileUrl || !k.selfieFileUrl) w.push('Un document est manquant.');
+    return w;
   }
 
-  approve(kyc: AdminKycResponse): void {
-    this.adminService.approveKyc(kyc.id).subscribe({
-      next: (updated) => {
-        this.allList.update(list => list.map(k => k.id === updated.id ? updated : k));
-        this.toast.success(`${kyc.userFullName || 'Utilisateur'} approuvé(e) !`);
-      },
-      error: () => this.toast.error('Erreur lors de l\'approbation.'),
+  initials(k: AdminKycResponse): string {
+    const name = k.userFullName || `${k.firstName ?? ''} ${k.lastName ?? ''}`;
+    return name.trim().split(/\s+/).slice(0, 2).map((x) => x.charAt(0).toUpperCase()).join('') || '?';
+  }
+
+  statusLabel(s: string): string { return s === 'APPROVED' ? 'Approuvé' : s === 'REJECTED' ? 'Refusé' : 'À examiner'; }
+
+  approve(k: AdminKycResponse): void {
+    this.acting.set(true);
+    this.adminService.approveKyc(k.id).subscribe({
+      next: (u) => { this.acting.set(false); this.allList.update((l) => l.map((x) => (x.id === u.id ? u : x))); this.toast.success(`${k.userFullName || 'Coursier'} vérifié : il peut maintenant proposer ses services.`); },
+      error: () => { this.acting.set(false); this.toast.error('Erreur lors de l’approbation.'); },
     });
   }
 
-  startReject(kyc: AdminKycResponse): void {
-    this.rejectingId.set(kyc.id);
-    this.rejectReason.set('');
-  }
+  startReject(k: AdminKycResponse): void { this.rejectingId.set(k.id); this.rejectReason.set(''); }
+  cancelReject(): void { this.rejectingId.set(null); this.rejectReason.set(''); }
 
-  cancelReject(): void {
-    this.rejectingId.set(null);
-    this.rejectReason.set('');
-  }
-
-  confirmReject(kyc: AdminKycResponse): void {
-    this.adminService.rejectKyc(kyc.id, this.rejectReason()).subscribe({
-      next: (updated) => {
-        this.allList.update(list => list.map(k => k.id === updated.id ? updated : k));
-        this.toast.success(`Dossier de ${kyc.userFullName || 'utilisateur'} refusé.`);
-        this.cancelReject();
-      },
-      error: () => this.toast.error('Erreur lors du rejet.'),
+  confirmReject(k: AdminKycResponse): void {
+    if (!this.rejectReason().trim()) return;
+    this.acting.set(true);
+    this.adminService.rejectKyc(k.id, this.rejectReason().trim()).subscribe({
+      next: (u) => { this.acting.set(false); this.allList.update((l) => l.map((x) => (x.id === u.id ? u : x))); this.toast.success(`Dossier de ${k.userFullName || 'coursier'} refusé : il a été prévenu.`); this.cancelReject(); },
+      error: () => { this.acting.set(false); this.toast.error('Erreur lors du refus.'); },
     });
   }
 
-  deleteKyc(kyc: AdminKycResponse): void {
-    if (!confirm(`Supprimer définitivement le dossier KYC de ${kyc.userFullName || 'cet utilisateur'} et ses fichiers MinIO ?`)) {
-      return;
-    }
-    this.deletingId.set(kyc.id);
-    this.adminService.deleteKyc(kyc.id).subscribe({
-      next: () => {
-        this.allList.update(list => list.filter(k => k.id !== kyc.id));
-        this.deletingId.set(null);
-        this.toast.success(`Dossier de ${kyc.userFullName || 'utilisateur'} supprimé.`);
-      },
-      error: (err) => {
-        this.deletingId.set(null);
-        const msg = err?.error?.message ?? 'Erreur lors de la suppression.';
-        this.toast.error(msg);
-      },
+  deleteKyc(k: AdminKycResponse): void {
+    if (!confirm(`Supprimer définitivement le dossier de ${k.userFullName || 'cet utilisateur'} et ses fichiers ? Cette action est irréversible.`)) return;
+    this.deletingId.set(k.id);
+    this.adminService.deleteKyc(k.id).subscribe({
+      next: () => { this.allList.update((l) => l.filter((x) => x.id !== k.id)); this.deletingId.set(null); this.toast.success('Dossier supprimé.'); },
+      error: (err) => { this.deletingId.set(null); this.toast.error(err?.error?.message ?? 'Erreur lors de la suppression.'); },
     });
   }
 }

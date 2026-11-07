@@ -41,7 +41,7 @@ import {
     <aside class="app-sidebar" [class.open]="open" id="sidebar">
       <a class="sb-brand" routerLink="/admin/dashboard">
         <span class="sb-brand-icon"><svg lucideShield size="17"></svg></span>
-        Admin Panel
+        ConfianceCoursier
       </a>
 
       <div class="sb-workspace">Administration</div>
