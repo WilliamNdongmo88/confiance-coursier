@@ -1,6 +1,6 @@
 import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
 import { provideRouter } from '@angular/router';
-import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { routes } from './app.routes';
 
@@ -16,6 +16,7 @@ export const appConfig: ApplicationConfig = {
     { provide: LOCALE_ID, useValue: 'fr-FR' },
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes),
-    provideHttpClient(withFetch(), withInterceptors([authInterceptor]))
+    // XHR (et non fetch) : seul XHR remonte l'avancement des envois de fichiers (preuves, KYC)
+    provideHttpClient(withInterceptors([authInterceptor]))
   ]
 };

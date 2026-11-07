@@ -63,7 +63,7 @@ import { LucideArrowLeft, LucideBike, LucideEye, LucideEyeOff, LucideMoon, Lucid
           <div class="form-group">
             <label class="form-label" for="reg-fullname">Nom complet</label>
             <input id="reg-fullname" type="text" class="form-input" [(ngModel)]="fullName" name="fullName" required
-              placeholder="Jean Dupont" autocomplete="name">
+              placeholder="William Ndongmo" autocomplete="name">
           </div>
 
           <div class="form-group">

@@ -102,6 +102,8 @@ const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
     .recap button { min-height: 36px; padding: 0 10px; border: 0; border-radius: 8px; background: none; color: var(--primary); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
     .bar { height: 6px; border-radius: 6px; background: var(--cc-line); overflow: hidden; margin-top: 12px; }
     .bar i { display: block; height: 100%; background: var(--primary); transition: width .2s; }
+    .bar.indet i { animation: k-indet 1.2s ease-in-out infinite; }
+    @keyframes k-indet { from { transform: translateX(-100%); } to { transform: translateX(290%); } }
     .actions { display: flex; gap: 10px; margin-top: 22px; }
     .actions .next { flex: 1 1 0; min-width: 0; min-height: 50px; justify-content: center; white-space: normal; text-align: center; }
     .actions .next.inactive { opacity: .45; box-shadow: none; }
@@ -246,8 +248,9 @@ const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
                     <li><div><small>Reversement</small><p>{{ payoutMethod === 'MTN' ? 'MTN Mobile Money' : 'Orange Money' }} · {{ payoutNumber }}</p></div><button type="button" (click)="goTo('payout')"><svg lucidePencil size="13"></svg> Modifier</button></li>
                   </ul>
                   @if (isLoading()) {
-                    <p class="sub">Envoi des documents… {{ uploadProgress() }} %</p>
-                    <div class="bar" aria-hidden="true"><i [style.width.%]="uploadProgress()"></i></div>
+                    <p class="sub" aria-live="polite">{{ uploadProgress() >= 100 ? 'Documents reçus, enregistrement du dossier…' : uploadProgress() > 0 ? 'Envoi des documents… ' + uploadProgress() + ' %' : 'Envoi des documents…' }}</p>
+                    <div class="bar" [class.indet]="uploadProgress() === 0" role="progressbar" aria-label="Envoi des documents"
+                         [attr.aria-valuenow]="uploadProgress()" aria-valuemin="0" aria-valuemax="100"><i [style.width.%]="uploadProgress() || 35"></i></div>
                   }
                 }
               }
@@ -409,7 +412,7 @@ export class KycComponent implements OnInit {
     this.http.post('/api/kyc/submit', form, { reportProgress: true, observe: 'events' }).subscribe({
       next: (event) => {
         if (event.type === HttpEventType.UploadProgress && event.total) {
-          this.uploadProgress.set(Math.round((100 * event.loaded) / event.total));
+          this.uploadProgress.set(Math.min(99, Math.round((100 * event.loaded) / event.total))); // 100 % = réponse reçue
         } else if (event.type === HttpEventType.Response) {
           this.isLoading.set(false);
           this.uploadProgress.set(100);
