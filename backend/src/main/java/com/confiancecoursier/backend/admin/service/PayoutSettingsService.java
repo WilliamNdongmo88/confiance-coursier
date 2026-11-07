@@ -4,6 +4,7 @@ import com.confiancecoursier.backend.admin.api.dto.PayoutSettingsResponse;
 import com.confiancecoursier.backend.admin.api.dto.UpdatePayoutSettingsRequest;
 import com.confiancecoursier.backend.admin.domain.PlatformSetting;
 import com.confiancecoursier.backend.admin.repository.PlatformSettingRepository;
+import com.confiancecoursier.backend.shared.exception.BusinessException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -65,7 +66,18 @@ public class PayoutSettingsService {
         upsertIfPresent(KEY_BANK_NAME,         req.bankName(),         adminId);
         upsertIfPresent(KEY_BANK_ACCOUNT_NAME, req.bankAccountName(),  adminId);
         upsertIfPresent(KEY_PREFERRED_METHOD,  req.preferredMethod(),  adminId);
-        return getSettings();
+
+        // La méthode principale doit désigner un compte réellement renseigné
+        PayoutSettingsResponse saved = getSettings();
+        String m = saved.getPreferredMethod();
+        boolean usable = m == null
+                || ("MTN".equals(m) && notBlank(saved.getMtnNumber()))
+                || ("ORANGE".equals(m) && notBlank(saved.getOrangeNumber()))
+                || ("BANK".equals(m) && notBlank(saved.getBankIban()));
+        if (!usable) {
+            throw new BusinessException("Renseignez le compte choisi comme méthode principale.");
+        }
+        return saved;
     }
 
     // ─── Utilitaires ──────────────────────────────────────────────────────────
@@ -76,10 +88,20 @@ public class PayoutSettingsService {
                 .orElse(null);
     }
 
-    /** N'écrit que si la valeur fournie est non nulle et non vide. */
+    private static boolean notBlank(String v) { return v != null && !v.isBlank(); }
+
+    /**
+     * {@code null} : champ non envoyé, rien ne change. Chaîne vide : le champ a été vidé, la valeur est effacée.
+     * Sinon la valeur (sans espaces superflus) est enregistrée.
+     */
     private void upsertIfPresent(String key, String value, Long adminId) {
         if (value == null) return;
         Optional<PlatformSetting> existing = settingRepository.findBySettingKey(key);
+        if (value.isBlank()) {
+            existing.ifPresent(settingRepository::delete);
+            return;
+        }
+        value = value.trim();
         if (existing.isPresent()) {
             PlatformSetting s = existing.get();
             s.setSettingValue(value);
