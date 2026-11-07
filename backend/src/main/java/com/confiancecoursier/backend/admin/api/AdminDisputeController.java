@@ -2,6 +2,8 @@ package com.confiancecoursier.backend.admin.api;
 
 
 import com.confiancecoursier.backend.shared.exception.NotFoundException;
+import com.confiancecoursier.backend.admin.api.dto.AdminDisputeDetailResponse;
+import com.confiancecoursier.backend.admin.service.AdminDisputeDetailService;
 import com.confiancecoursier.backend.dispute.api.dto.DisputeResponse;
 import com.confiancecoursier.backend.dispute.service.DisputeService;
 import com.confiancecoursier.backend.shared.exception.BusinessException;
@@ -18,6 +20,7 @@ import java.util.List;
  *
  * <ul>
  *   <li>{@code GET  /api/admin/disputes}                  — liste des litiges (filtre {@code ?status=})</li>
+ *   <li>{@code GET  /api/admin/disputes/{id}}            — dossier complet (course, montants, preuves, discussion)</li>
  *   <li>{@code POST /api/admin/disputes/{id}/resolve}    — résoudre un litige</li>
  * </ul>
  */
@@ -27,10 +30,19 @@ public class AdminDisputeController {
 
     private final DisputeService disputeService;
     private final UserRepository userRepository;
+    private final AdminDisputeDetailService detailService;
 
-    public AdminDisputeController(DisputeService disputeService, UserRepository userRepository) {
+    public AdminDisputeController(DisputeService disputeService, UserRepository userRepository,
+                                  AdminDisputeDetailService detailService) {
         this.disputeService = disputeService;
         this.userRepository = userRepository;
+        this.detailService = detailService;
+    }
+
+    /** GET /api/admin/disputes/{id} — dossier d'arbitrage d'un litige. */
+    @GetMapping("/{id}")
+    public ResponseEntity<AdminDisputeDetailResponse> detail(@PathVariable Long id) {
+        return ResponseEntity.ok(detailService.getDetail(id));
     }
 
     /**

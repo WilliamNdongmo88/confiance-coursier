@@ -28,7 +28,7 @@ const REASONS = [
   imports: [DatePipe, FormsModule, MediaViewerComponent,
     LucideAlertTriangle, LucideCheck, LucideChevronDown, LucideFileText, LucideMaximize2, LucideShieldCheck, LucideTrash2, LucideX],
   styles: [`
-    :host { display: block; --am: #56635c; }
+    :host { display: block; min-width: 0; --am: #56635c; }
     :host-context([data-theme="dark"]) { --am: #B0C0B7; }
     .a { max-width: 1100px; margin: 0 auto; }
     .a-head h1 { margin: 0 0 6px; font-size: clamp(26px, 4vw, 32px); line-height: 1.1; letter-spacing: -.04em; font-weight: 800; color: var(--cc-ink); }

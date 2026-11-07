@@ -36,6 +36,32 @@ export interface DisputeResponse {
   decidedAt: string | null;
 }
 
+export interface DisputeParty { id: number; fullName: string | null; email: string | null; status: string | null; }
+
+export interface DisputeProof {
+  id: number;
+  proofType: 'PHOTO' | 'VIDEO' | 'RECEIPT' | string;
+  presignedUrl: string;
+  mimeType: string | null;
+  uploadedAt: string | null;
+  videoDurationMs: number | null;
+}
+
+/** Dossier d'arbitrage d'un litige ({@code GET /api/admin/disputes/{id}}). */
+export interface DisputeDetail {
+  dispute: DisputeResponse;
+  openedByRole: 'CLIENT' | 'COURIER';
+  client: DisputeParty | null;
+  courier: DisputeParty | null;
+  course: { id: number; description: string; zone: string | null; status: string; escrowStatus: string | null;
+    paidAt: string | null; proofDeadline: string | null; completedAt: string | null; };
+  amounts: { held: number; courseAmount: number | null; realCosts: number | null;
+    courierOnRelease: number | null; platformOnRelease: number | null;
+    clientOnFullRefund: number | null; platformOnFullRefund: number | null; };
+  proofs: DisputeProof[];
+  chatRoomId: number | null;
+}
+
 export interface ReportResponse {
   id: number;
   reporterId: number;
@@ -161,6 +187,10 @@ export class AdminService {
     const params: Record<string, string> = {};
     if (status) params['status'] = status;
     return this.http.get<DisputeResponse[]>('/api/admin/disputes', { params });
+  }
+
+  getDisputeDetail(id: number): Observable<DisputeDetail> {
+    return this.http.get<DisputeDetail>(`/api/admin/disputes/${id}`);
   }
 
   resolveDispute(id: number, decision: string, refundAmount?: number): Observable<DisputeResponse> {

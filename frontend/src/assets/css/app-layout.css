@@ -81,6 +81,7 @@
 /* Zone de contenu */
 .app-main {
   flex: 1;
+  min-width: 0; /* sans cela, un texte long sur une ligne élargit la zone au-delà de l'écran (tablette) */
   margin-left: var(--sidebar-width);
   min-height: 100vh;
   padding: 0 36px 48px;

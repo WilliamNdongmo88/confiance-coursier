@@ -240,6 +240,17 @@ public class ProofService {
                 .toList();
     }
 
+    /**
+     * Toutes les preuves d'une course, pour l'arbitrage d'un litige (admin uniquement : la route
+     * {@code /api/admin/**} est réservée à ROLE_ADMIN). Inclut les fichiers pas encore soumis.
+     */
+    @Transactional(readOnly = true)
+    public List<ProofResponse> getProofsForAdmin(Long courseId) {
+        return proofRepository.findByCourseIdOrderByUploadedAtAsc(courseId).stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
     // ─── Utilitaires ─────────────────────────────────────────────────────────
 
     private Course lockCourse(Long courseId) {

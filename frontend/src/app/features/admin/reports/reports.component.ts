@@ -34,7 +34,7 @@ const DECISIONS: Record<Decision, { label: string; done: string; effect: string 
   standalone: true,
   imports: [DatePipe, LucideAlertOctagon, LucideCheck, LucideCircleCheck, LucideFlag, LucideInfo, LucideTriangleAlert],
   styles: [`
-    :host { display: block; --rm: #56635c; }
+    :host { display: block; min-width: 0; --rm: #56635c; }
     :host-context([data-theme="dark"]) { --rm: #B0C0B7; }
     .r { max-width: 980px; margin: 0 auto; }
     .r-head h1 { margin: 0 0 6px; font-size: clamp(26px, 4vw, 32px); line-height: 1.1; letter-spacing: -.04em; font-weight: 800; color: var(--cc-ink); }
@@ -58,7 +58,7 @@ const DECISIONS: Record<Decision, { label: string; done: string; effect: string 
     .chip.SUSPENSION { background: var(--cc-danger-bg); color: var(--cc-danger); }
     .chip.AVERTISSEMENT { background: var(--cc-warning-bg); color: #8a5a14; }
     .chip.REJET { background: var(--cc-success-bg); color: var(--cc-success); }
-    .who { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+    .who { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; margin-bottom: 12px; }
     .p { padding: 12px; border-radius: 12px; border: 1px solid var(--cc-line); min-width: 0; }
     .p small { display: block; font-size: 12px; font-weight: 700; color: var(--rm); margin-bottom: 4px; }
     .p b { display: block; font-size: 14.5px; color: var(--cc-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

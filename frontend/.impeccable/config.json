@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "inter",
+        "createdAt": "2026-11-07T15:21:44.132Z",
+        "reason": "user confirmed: Inter est la police de la marque ConfianceCoursier (2026-11-07)"
+      }
+    ]
+  }
+}

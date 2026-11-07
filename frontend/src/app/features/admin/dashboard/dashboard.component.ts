@@ -20,7 +20,7 @@ interface Task { id: number; title: string; meta: string; since: string; link: s
   standalone: true,
   imports: [RouterLink, LucideArrowRight, LucideCircleCheck, LucideFlag, LucideFlaskConical, LucideScale, LucideShieldCheck, LucideTrendingUp, LucideUsers],
   styles: [`
-    :host { display: block; --dm: #56635c; }
+    :host { display: block; min-width: 0; --dm: #56635c; }
     :host-context([data-theme="dark"]) { --dm: #B0C0B7; }
     .d { max-width: 1100px; margin: 0 auto; }
     .d-head h1 { margin: 0 0 6px; font-size: clamp(26px, 4vw, 32px); line-height: 1.1; letter-spacing: -.04em; font-weight: 800; color: var(--cc-ink); }
