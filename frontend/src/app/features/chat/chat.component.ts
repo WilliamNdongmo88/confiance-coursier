@@ -20,6 +20,9 @@ import {
   LucideArrowRight,
   LucideAlertTriangle,
   LucideMenu,
+  LucideEllipsisVertical,
+  LucideLockKeyhole,
+  LucideCheckCircle,
   LucideBike,
   LucideLayoutDashboard,
   LucidePlus,
@@ -72,6 +75,9 @@ interface ChatMsg {
     LucideArrowRight,
     LucideAlertTriangle,
     LucideMenu,
+    LucideEllipsisVertical,
+    LucideLockKeyhole,
+    LucideCheckCircle,
     LucideBike,
     LucideLayoutDashboard,
     LucidePlus,
@@ -236,6 +242,11 @@ interface ChatMsg {
       background: var(--cc-paper);
     }
 
+    .chat-empty { margin: auto; display: grid; justify-items: center; gap: 6px; max-width: 34ch; padding: 30px 16px; text-align: center; color: var(--cc-muted); font-size: 14px; line-height: 1.5; }
+    .chat-empty svg { color: var(--primary); }
+    .chat-empty strong { color: var(--cc-ink); font-size: 15px; }
+    .chat-subtitle { max-width: 46ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .offer-note svg, .st-fs-0-78rem-c-success-ta-center svg { display: inline-block; vertical-align: -2px; margin-right: 4px; }
     .chat-date-divider {
       text-align: center;
       font-size: 0.8rem;
@@ -592,13 +603,13 @@ interface ChatMsg {
       <aside class="app-sidebar" [class.open]="sidebarOpen()">
         <a class="sb-brand" [routerLink]="isCOURIER ? '/courier/dashboard' : '/client/dashboard'">
           <span class="sb-brand-icon"><svg lucideBike size="17"></svg></span>
-          confiancecoursier
+          ConfianceCoursier
         </a>
         <div class="sb-workspace">{{ isCOURIER ? 'Espace coursier' : 'Espace client' }}</div>
         <nav class="sb-nav" aria-label="Navigation">
           @if (isCOURIER) {
             <a routerLink="/courier/dashboard" routerLinkActive="active">
-              <svg lucideLayoutDashboard size="16"></svg> Tableau de bord
+              <svg lucideLayoutDashboard size="16"></svg> Vue d'ensemble
             </a>
             <a routerLink="/courier/earnings" routerLinkActive="active">
               <svg lucideWallet size="16"></svg> Mes gains
@@ -614,10 +625,10 @@ interface ChatMsg {
             </a>
           } @else {
             <a routerLink="/client/dashboard" routerLinkActive="active">
-              <svg lucideLayoutDashboard size="16"></svg> Tableau de bord
+              <svg lucideLayoutDashboard size="16"></svg> Vue d'ensemble
             </a>
             <a routerLink="/client/create-course" routerLinkActive="active">
-              <svg lucidePlusCircle size="16"></svg> Créer une course
+              <svg lucidePlus size="16"></svg> Nouvelle course
             </a>
             <a routerLink="/client/history" routerLinkActive="active">
               <svg lucideHistory size="16"></svg> Historique
@@ -635,7 +646,7 @@ interface ChatMsg {
             <span class="sb-avatar">{{ userInitials }}</span>
             <div class="sb-account-info">
               <span class="sb-account-name">{{ userName }}</span>
-              <span class="sb-account-role">{{ isCOURIER ? 'Coursier' : 'Client' }}</span>
+              <span class="sb-account-role">{{ isCOURIER ? 'Compte coursier' : 'Compte client' }}</span>
             </div>
             <button class="sb-logout-btn" type="button" aria-label="Déconnexion" (click)="logout()">
               <svg lucideLogOut size="15"></svg>
@@ -661,7 +672,7 @@ interface ChatMsg {
                   <span class="badge-verified"><svg lucideShieldCheck size="10"></svg> Vérifié</span>
                 }
               </div>
-              <div class="chat-subtitle">Salle #{{ roomId }}</div>
+              <div class="chat-subtitle" [title]="courseTitle()">{{ courseTitle() || 'Discussion de la course' }}</div>
             </div>
           </div>
 
@@ -675,7 +686,7 @@ interface ChatMsg {
             <div class="chat-more">
               <button class="btn btn-secondary btn-sm st-min-44px-mh-44px" type="button" aria-label="Plus d'actions"
                       [attr.aria-expanded]="moreOpen()" (click)="moreOpen.set(!moreOpen())">
-                ⋮
+                <svg lucideEllipsisVertical size="18"></svg>
               </button>
               @if (moreOpen()) {
                 <div class="chat-more-menu" role="menu">
@@ -708,9 +719,9 @@ interface ChatMsg {
 
         <!-- Messages -->
         <div class="chat-body" #chatBody>
-          <div class="chat-date-divider">Aujourd'hui</div>
 
-          @for (msg of messages; track msg.id ?? msg.clientRef ?? $index) {
+          @for (msg of messages; track msg.id ?? msg.clientRef ?? $index; let i = $index) {
+            @if (dayLabel(i); as day) { <div class="chat-date-divider">{{ day }}</div> }
             @if (msg.messageType === 'OFFER') {
               <!-- Bulle + carte offre -->
               <div class="message-row" [class.incoming]="msg.senderId !== currentUserId" [class.outgoing]="msg.senderId === currentUserId">
@@ -726,14 +737,14 @@ interface ChatMsg {
                       <span>Tarif proposé :</span>
                       <span>{{ msg.offerAmount | number:'1.0-0' }} XAF</span>
                     </div>
-                    <p class="offer-note">🔒 Le coût des achats sera ajouté sur la page de paiement sécurisée.</p>
+                    <p class="offer-note"><svg lucideLockKeyhole size="13"></svg> Le montant des achats éventuels s’ajoute à la page de paiement. L’argent reste bloqué jusqu’à votre validation.</p>
                     @if (canAccept(msg)) {
                       <button class="btn btn-primary st-w-100-mt-4px" (click)="acceptOffer(msg)" [disabled]="accepting">
                         Accepter et payer <svg class="st-marg-4px" lucideArrowRight size="16"></svg>
                       </button>
                     } @else if (msg.offerStatus === 'ACCEPTED') {
                       <div class="st-fs-0-78rem-c-success-ta-center">
-                        ✓ Offre acceptée{{ courseStatus === 'ASSIGNED' ? ' — en attente de paiement' : '' }}
+                        <svg lucideCheckCircle size="14"></svg> Offre acceptée{{ courseStatus === 'ASSIGNED' ? ' · en attente de paiement' : '' }}
                       </div>
                       @if (isCLIENT && courseStatus === 'ASSIGNED') {
                         <button class="btn btn-primary st-w-100-mt-4px" (click)="goToPayment()">
@@ -762,6 +773,12 @@ interface ChatMsg {
                 }
               </div>
             }
+          } @empty {
+            <div class="chat-empty">
+              <svg lucideMessageSquare size="26"></svg>
+              <strong>Démarrez la discussion</strong>
+              <span>{{ isCOURIER ? 'Présentez-vous et posez vos questions avant de proposer votre tarif.' : 'Précisez votre besoin : le coursier vous proposera son tarif ici.' }}</span>
+            </div>
           }
         </div>
 
@@ -890,6 +907,8 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   /** TICK-073 : course terminée que le coursier doit noter avant toute nouvelle offre. */
   pendingReviewCourseId: number | null = null;
   readonly connected = signal(false);
+  /** Description de la course, affichée sous le nom du correspondant. */
+  readonly courseTitle = signal('');
   private everConnected = false;
 
   private chatSubscription: Subscription | null = null;
@@ -936,6 +955,12 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         this.courseId = room.courseId ?? 0;
         // Stocker le statut de la course (pilote la visibilité des boutons TICK-059)
         this.courseStatus = room.courseStatus ?? '';
+        if (this.courseId) {
+          this.courseService.getCourseById(this.courseId).subscribe({
+            next: (c: any) => this.courseTitle.set((c?.description ?? '').trim()),
+            error: () => { /* sous-titre générique */ },
+          });
+        }
         // TICK-078 : « Vérifié » uniquement si le KYC du coursier est réellement validé
         this.courierVerified = room.courierVerified === true;
         // Le correspondant = l'autre participant (pas soi-même)
@@ -1084,6 +1109,20 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         error: () => this.patch(clientRef, { pending: false, failed: true }),
       });
     }, 5000);
+  }
+
+  /** « Aujourd’hui », « Hier » ou la date, au premier message de chaque jour. */
+  dayLabel(i: number): string | null {
+    const day = (m?: ChatMsg) => (m?.createdAt ? new Date(m.createdAt).toDateString() : '');
+    const cur = this.messages[i];
+    if (!cur?.createdAt || (i > 0 && day(this.messages[i - 1]) === day(cur))) return null;
+    const d = new Date(cur.createdAt);
+    const today = new Date();
+    const yesterday = new Date(); yesterday.setDate(today.getDate() - 1);
+    if (d.toDateString() === today.toDateString()) return 'Aujourd’hui';
+    if (d.toDateString() === yesterday.toDateString()) return 'Hier';
+    const label = d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+    return label.charAt(0).toUpperCase() + label.slice(1);
   }
 
   private patch(clientRef: string, changes: Partial<ChatMsg>): void {

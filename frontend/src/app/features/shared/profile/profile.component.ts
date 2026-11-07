@@ -6,6 +6,7 @@ import { ToastService } from '../../../core/services/toast.service';
 import { AuthService } from '../../../core/services/auth.service';
 import {
   LucideLogOut,
+  LucideStar,
   LucideLock,
   LucideSave,
   LucideShieldCheck,
@@ -39,6 +40,7 @@ interface UserProfile {
     RouterLink,
     NgIf,
     LucideLogOut,
+    LucideStar,
     LucideLock,
     LucideSave,
     LucideShieldCheck,
@@ -86,6 +88,8 @@ interface UserProfile {
     }
     [data-theme="dark"] .avatar-section { border-bottom-color: var(--cc-line); }
     :host-context([data-theme="dark"]) .avatar-lg { background: rgba(215,237,154,.14) !important; color: var(--cc-lime) !important; }
+    .sec-hint { margin: -4px 0 10px; }
+    .star { color: #d99d45; fill: currentColor; }
     .logout-zone { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--cc-line); }
     .btn-logout { width: 100%; min-height: 48px; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
       border-radius: 10px; border: 0; background: #b54843; color: #fff; font: inherit; font-weight: 750; cursor: pointer;
@@ -194,7 +198,7 @@ interface UserProfile {
         </h3>
         <p class="text-sm text-muted st-mb-8px">
           <ng-container *ngIf="profile()!.trustScore !== null && (profile()!.trustScore ?? 0) > 0">
-            ⭐ {{ profile()!.trustScore?.toFixed(1) }} / 5 ·
+            <svg class="st-d-inline-vert-middle-marg-3px star" lucideStar size="13"></svg>{{ rating() }} / 5 ·
           </ng-container>
           {{ profile()!.role === 'COURIER' ? 'Compte coursier' : 'Compte client' }}
         </p>
@@ -219,6 +223,7 @@ interface UserProfile {
         </ng-container>      </div>
     </div>
 
+    <p class="section-title">Vos informations</p>
     <!-- Nom complet -->
     <div class="form-group st-mb-16px">
       <label class="form-label" for="fullName">Nom complet</label>
@@ -234,8 +239,8 @@ interface UserProfile {
         <input id="email" type="email" class="form-input st-opac-65-curs-not-allowed"
                [value]="profile()!.email" disabled
 
-               title="L'email ne peut pas être modifié.">
-        <p class="form-hint">L'email ne peut pas être modifié.</p>
+               title="L’email ne peut pas être modifié.">
+        <p class="form-hint">Sert à vous connecter et à recevoir vos codes : il ne peut pas être modifié.</p>
       </div>
       <div class="form-group">
         <label class="form-label" for="phone">Téléphone</label>
@@ -248,35 +253,26 @@ interface UserProfile {
     <!-- Pays + Ville -->
     <div class="profile-grid st-mb-16px">
       <div class="form-group">
-        <label class="form-label" for="country">Pays de résidence</label>
+        <label class="form-label" for="country">Pays où vous vivez</label>
         <select id="country" class="form-select"
                 [value]="country" (change)="country = getVal($event)">
           <option value="">— Sélectionner —</option>
-          <option value="Cameroun">Cameroun</option>
-          <option value="France">France</option>
-          <option value="Belgique">Belgique</option>
-          <option value="Canada">Canada</option>
-          <option value="Autre">Autre</option>
+          @for (c of countries; track c) { <option [value]="c" [selected]="country === c">{{ c }}</option> }
         </select>
       </div>
       <div class="form-group">
         <label class="form-label" for="city">
-          {{ isCourier ? 'Zone de couverture' : 'Ville cible au Cameroun' }}
+          {{ isCourier ? 'Zone où vous intervenez' : 'Ville de vos courses au Cameroun' }}
         </label>
         <ng-container *ngIf="!isCourier; else courierCity">
-          <select id="city" class="form-select"
-                  [value]="city" (change)="city = getVal($event)">
-            <option value="">— Sélectionner —</option>
-            <option value="Yaoundé">Yaoundé</option>
-            <option value="Douala">Douala</option>
-            <option value="Bafoussam">Bafoussam</option>
-            <option value="Autre">Autre</option>
-          </select>
+          <input id="city" class="form-input" list="profile-cities" [value]="city" (input)="city = getVal($event)" placeholder="Ex : Douala">
+          <datalist id="profile-cities">@for (c of cities; track c) { <option [value]="c"></option> }</datalist>
+          <p class="form-hint">Proposée automatiquement à la création de vos courses.</p>
         </ng-container>
         <ng-template #courierCity>
           <input id="city" type="text" class="form-input"
                  [value]="city" (input)="city = getVal($event)"
-                 placeholder="Ex: Yaoundé centre">
+                 placeholder="Ex : Yaoundé centre, Bastos">
         </ng-template>
       </div>
     </div>
@@ -310,6 +306,7 @@ interface UserProfile {
     <!-- Section Sécurité -->
     <hr class="st-bd-0-bt-1px-solid-li-m-22px-0">
     <p class="section-title">Sécurité</p>
+    <p class="form-hint sec-hint">Un lien pour choisir un nouveau mot de passe vous sera envoyé par email.</p>
     <button type="button" class="btn btn-secondary"
             (click)="goForgotPassword()">
       <svg lucideLock size="15"></svg> Changer le mot de passe
@@ -349,6 +346,13 @@ export class ProfileComponent implements OnInit {
   isSaving  = signal<boolean>(false);
 
   // ── Champs du formulaire (initialisés à partir du profil) ────────────────
+  readonly countries = ['Cameroun', 'France', 'Belgique', 'Suisse', 'Allemagne', 'Royaume-Uni', 'Italie', 'Espagne',
+    'Canada', 'États-Unis', 'Côte d’Ivoire', 'Gabon', 'Nigeria', 'Afrique du Sud', 'Autre'];
+  readonly cities = ['Douala', 'Yaoundé', 'Bafoussam', 'Bamenda', 'Garoua', 'Maroua', 'Ngaoundéré', 'Bertoua',
+    'Ebolowa', 'Buea', 'Limbe', 'Kribi', 'Kumba', 'Dschang', 'Nkongsamba', 'Edéa'];
+
+  rating(): string { return (this.profile()?.trustScore ?? 0).toFixed(1).replace('.', ','); }
+
   fullName = '';
   phone    = '';
   country  = '';

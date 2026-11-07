@@ -1,6 +1,7 @@
 import { warnLoadFailed } from '../../../shared/state/load-error';
 import { Component, ElementRef, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { CourseService } from '../../../core/services/course.service';
 import { ToastService } from '../../../core/services/toast.service';
@@ -356,6 +357,7 @@ export class CreateCourseComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private toast = inject(ToastService);
   private host = inject(ElementRef<HTMLElement>);
+  private http = inject(HttpClient);
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');
@@ -364,6 +366,7 @@ export class CreateCourseComponent implements OnInit {
       this.courseId = Number(id);
       this.loadCourseData(this.courseId);
     } else {
+      this.prefillFromProfile();
       this.courseService.getPendingReviews().subscribe({
         next: (list) => (this.pendingReview = list[0] ?? null),
         error: warnLoadFailed('avis en attente du client', 'création non bloquée côté écran (le serveur revérifie)'),
@@ -404,6 +407,19 @@ export class CreateCourseComponent implements OnInit {
       (this.host.nativeElement.querySelector('[data-autofocus]') as HTMLElement | null)?.focus({ preventScroll: true });
       this.host.nativeElement.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
     }, 0);
+  }
+
+  /** Pré-remplit la ville (profil) et, à défaut de choix mémorisé, le lieu de paiement (pays du profil). */
+  private prefillFromProfile(): void {
+    this.http.get<any>('/api/users/me').subscribe({
+      next: (p) => {
+        const city = String(p?.city ?? '').trim();
+        if (!this.city && city && city !== 'Autre') this.city = city;
+        const country = String(p?.country ?? '').trim();
+        if (!this.clientLocation() && country) this.clientLocation.set(country === 'Cameroun' ? 'CAMEROON' : 'ABROAD');
+      },
+      error: () => { /* pré-remplissage facultatif */ },
+    });
   }
 
   chooseLocation(loc: 'CAMEROON' | 'ABROAD'): void {
