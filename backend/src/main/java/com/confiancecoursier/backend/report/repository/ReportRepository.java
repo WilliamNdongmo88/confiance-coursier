@@ -32,4 +32,7 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
            "  (c.courierId = r.reporterId AND c.clientId = :targetId))")
     long countDistinctReportersWithSharedCourse(@Param("targetId") Long targetId,
                                                 @Param("since") LocalDateTime since);
+
+    /** Signalements reçus par ce compte (résumé admin). */
+    long countByTargetId(Long targetId);
 }

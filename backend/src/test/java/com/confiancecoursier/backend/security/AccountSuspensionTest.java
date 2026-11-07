@@ -181,6 +181,21 @@ class AccountSuspensionTest {
         verifyNoInteractions(auth);
     }
 
+    @Test
+    void adminCannotSuspendAnotherAdmin() {
+        User other = user(3, "admin2@test.com", "ACTIVE");
+        other.setRole("ADMIN");
+        user(1, "admin@test.com", "ACTIVE");
+        AuthService auth = mock(AuthService.class);
+        loggedInAs("admin@test.com");
+
+        assertThatThrownBy(() -> new AdminUserController(userRepository, auth).suspend(3L))
+                .isInstanceOf(BusinessException.class);
+        assertThat(other.getStatus()).isEqualTo("ACTIVE");
+        verify(userRepository, never()).save(any());
+        verifyNoInteractions(auth);
+    }
+
     private static <T> T eq(T value) {
         return org.mockito.ArgumentMatchers.eq(value);
     }

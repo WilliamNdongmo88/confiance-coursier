@@ -80,6 +80,10 @@ public class AdminUserController {
         if (user.getEmail().equalsIgnoreCase(currentEmail)) {
             throw new BusinessException("Vous ne pouvez pas suspendre votre propre compte.");
         }
+        // Même règle que les signalements : un compte administrateur n'est jamais suspendu depuis l'interface.
+        if ("ADMIN".equalsIgnoreCase(user.getRole())) {
+            throw new BusinessException("Un compte administrateur ne peut pas être suspendu.");
+        }
 
         user.setStatus("SUSPENDED");
         userRepository.save(user);

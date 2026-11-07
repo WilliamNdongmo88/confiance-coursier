@@ -67,4 +67,11 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
 
     /** Détail des 50 dernières courses clôturées (les gains sont lus depuis le ledger — TICK-061). */
     List<Course> findTop50ByStatusInAndPlatformFeeAmountIsNotNullOrderByCompletedAtDesc(java.util.Collection<String> statuses);
+
+    /** Résumé admin d'un compte (écran Utilisateurs). */
+    long countByClientId(Long clientId);
+
+    long countByCourierId(Long courierId);
+
+    long countByCourierIdAndStatus(Long courierId, String status);
 }

@@ -2,7 +2,9 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AdminService, DisputeDetail, DisputeProof, DisputeResponse } from '../../../core/services/admin.service';
+import { ActivatedRoute } from '@angular/router';
 import { ChatService } from '../../../core/services/chat.service';
+import { DISPUTE_DONE as DONE, DISPUTE_MOTIFS as MOTIFS } from './dispute-labels';
 import { ToastService } from '../../../core/services/toast.service';
 import { MediaViewerComponent, MediaItem } from '../../../shared/components/media-viewer/media-viewer.component';
 import {
@@ -12,17 +14,6 @@ import {
 type Tab = 'OPEN' | 'RESOLVED' | 'ALL';
 type Decision = 'LIBERATION' | 'REMBOURSEMENT_TOTAL' | 'REMBOURSEMENT_PARTIEL';
 
-/** Mêmes codes que le formulaire d'ouverture (dispute-form) + litige automatique de non-livraison. */
-const MOTIFS: Record<string, string> = {
-  'L-C1': 'La course n’a pas été faite', 'L-C2': 'La course est incomplète', 'L-C3': 'Les preuves ne sont pas conformes',
-  'L-C4': 'Argent détourné', 'L-C5': 'Comportement irrespectueux du coursier', 'L-C6': 'Retard important',
-  'L-F1': 'Le client ne valide pas', 'L-F2': 'Supplément légitime refusé', 'L-F3': 'Client injurieux ou menaçant',
-  'L-F4': 'Fausse accusation', 'SYS-NL': 'Non-livraison (litige automatique)',
-};
-
-const DONE: Record<string, string> = {
-  LIBERATION: 'Payé au coursier', REMBOURSEMENT_TOTAL: 'Client remboursé', REMBOURSEMENT_PARTIEL: 'Montant partagé', SANCTION: 'Payé au coursier (sanction)',
-};
 
 interface Msg { id: number; senderId: number; content: string | null; attachmentType: string | null; offerAmount: number | null; createdAt: string; }
 
@@ -156,7 +147,7 @@ interface Msg { id: number; senderId: number; content: string | null; attachment
           <span>{{ tab() === 'OPEN' ? 'Les litiges ouverts par les clients ou les coursiers apparaîtront ici.' : 'Rien dans cette catégorie.' }}</span></div>
       } @else {
         @for (d of list(); track d.id; let i = $index) {
-          <article class="lc" [class.done]="d.status !== 'OPEN'" [class.open]="isOpen(d.id)" [style.animation-delay.ms]="i * 40">
+          <article class="lc" [id]="'litige-' + d.id" [class.done]="d.status !== 'OPEN'" [class.open]="isOpen(d.id)" [style.animation-delay.ms]="i * 40">
             <button type="button" class="lc-h" [attr.aria-expanded]="isOpen(d.id)" (click)="toggle(d)">
               <span class="lc-ic" aria-hidden="true"><svg lucideScale size="18"></svg></span>
               <span class="lc-t">
@@ -273,6 +264,7 @@ interface Msg { id: number; senderId: number; content: string | null; attachment
 })
 export class AdminDisputesComponent implements OnInit {
   private adminService = inject(AdminService);
+  private route = inject(ActivatedRoute);
   private chatService = inject(ChatService);
   private toast = inject(ToastService);
 
@@ -303,7 +295,15 @@ export class AdminDisputesComponent implements OnInit {
       next: (data) => {
         this.allList.set(data);
         this.loading.set(false);
-        // Le plus ancien litige à arbitrer s'ouvre d'office
+        // Lien direct (fiche utilisateur) : /admin/disputes?id=… ouvre ce litige ; sinon le plus ancien à arbitrer
+        const wanted = Number(this.route.snapshot.queryParamMap.get('id'));
+        const target = wanted ? data.find((d) => d.id === wanted) : undefined;
+        if (target) {
+          if (target.status !== 'OPEN') this.tab.set('RESOLVED');
+          this.toggle(target);
+          setTimeout(() => document.getElementById('litige-' + target.id)?.scrollIntoView({ block: 'start', behavior: 'smooth' }), 50);
+          return;
+        }
         const first = this.list()[0];
         if (first && first.status === 'OPEN') this.toggle(first);
       },

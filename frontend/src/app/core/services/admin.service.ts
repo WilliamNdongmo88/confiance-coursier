@@ -90,6 +90,17 @@ export interface UserProfileResponse {
   updatedAt: string;
 }
 
+/** Activité réelle d'un compte ({@code GET /api/admin/users/{id}/summary}). */
+export interface UserActivitySummary {
+  coursesAsClient: number;
+  coursesAsCourier: number;
+  completedAsCourier: number;
+  disputesOpened: number;
+  reportsReceived: number;
+  /** Litiges des courses où le compte est client ou coursier (les plus récents d'abord). */
+  disputes: { id: number; courseId: number; motifCode: string; status: string; decision: string | null; openedByThisUser: boolean; createdAt: string; }[];
+}
+
 export interface CommissionSettings {
   commissionRateClient: number;
   commissionRateCourier: number;
@@ -214,6 +225,10 @@ export class AdminService {
   }
 
   // ─── Users ────────────────────────────────────────────────────────────────
+
+  getUserSummary(id: number): Observable<UserActivitySummary> {
+    return this.http.get<UserActivitySummary>(`/api/admin/users/${id}/summary`);
+  }
 
   getUsers(role?: string, status?: string): Observable<UserProfileResponse[]> {
     const params: Record<string, string> = {};
