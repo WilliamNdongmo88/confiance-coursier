@@ -135,7 +135,7 @@ public class ReviewService {
 
         // ── Notification de la note reçue (coursier uniquement) ──────────────
         if ("COURIER".equals(target.getRole())) {
-            notificationService.notifyBadRating(targetId, request.stars());
+            notificationService.notifyRatingReceived(targetId, request.stars());
         }
 
         // ── Mise à jour du trustScore de la cible ────────────────────────────

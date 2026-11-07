@@ -363,22 +363,37 @@ public class NotificationService {
 
     // ─── Notifications Notation ──────────────────────────────────────────────
 
-    public void notifyBadRating(Long courierId, int stars) {
+    /**
+     * Note reçue par un coursier. Le coursier est prévenu à chaque note ; les administrateurs seulement
+     * pour une mauvaise note (≤ 2 étoiles), qui compte pour la suspension automatique.
+     */
+    public void notifyRatingReceived(Long courierId, int stars) {
+        boolean bad = stars <= 2;
+        String plural = stars > 1 ? "s" : "";
         String email = resolveEmail(courierId);
         if (email != null) sendEmail(email,
-                "Vous avez reçu une note — " + EmailLayout.BRAND,
-                buildTemplate("Nouvelle note reçue",
-                        "Vous avez reçu une note de " + stars + " étoile(s) sur une course récente.",
-                        stars <= 2
-                                ? "Attention : plusieurs mauvaises notes peuvent entraîner une suspension provisoire de votre compte."
-                                : "Merci pour votre travail et continuez ainsi !"));
-        // Notifier aussi les admins
-        notifyAdmins("Mauvaise note reçue — " + EmailLayout.BRAND,
-                buildTemplate("Alerte notation",
-                        "Le coursier #" + courierId + " a reçu une note de " + stars + " étoile(s).",
-                        stars <= 2
-                                ? "⚠ Cette note est ≤ 2⭐. Vérifiez l'historique du coursier (règle : 2 notes ≤ 2⭐ en 30j → suspension)."
-                                : "Note satisfaisante, aucune action requise."));
+                (bad ? "Une note basse vous a été attribuée — " : "Vous avez reçu une note de " + stars + " étoile" + plural + " — ")
+                        + EmailLayout.BRAND,
+                buildTemplate(bad ? "Une note basse vous a été attribuée" : "Nouvelle note reçue",
+                        "Un client vous a attribué <strong>" + stars + " étoile" + plural + " sur 5</strong> pour une course récente.",
+                        bad ? "Plusieurs notes basses sur 30 jours peuvent entraîner une suspension provisoire de votre compte. "
+                                + "Prenez connaissance du commentaire dans votre espace."
+                            : "Merci pour votre travail : continuez ainsi !",
+                        "Voir mon espace", "/courier/dashboard"));
+        if (bad) {
+            String name = org.springframework.web.util.HtmlUtils.htmlEscape(resolveName(courierId));
+            notifyAdmins("Note basse : " + stars + " étoile" + plural + " pour " + resolveName(courierId) + " — " + EmailLayout.BRAND,
+                    buildTemplate("Note basse attribuée à un coursier",
+                            "<strong>" + name + "</strong> a reçu une note de <strong>" + stars + " étoile" + plural + " sur 5</strong>.",
+                            "Vérifiez son historique : 2 notes de 2 étoiles ou moins en 30 jours entraînent une suspension automatique.",
+                            "Ouvrir l’administration", "/admin/users"));
+        }
+    }
+
+    private String resolveName(Long userId) {
+        return userRepository.findById(userId)
+                .map(u -> u.getFullName() == null || u.getFullName().isBlank() ? "Coursier #" + userId : u.getFullName())
+                .orElse("Coursier #" + userId);
     }
 
     public void notifySuspension(Long userId) {
