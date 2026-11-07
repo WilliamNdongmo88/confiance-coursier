@@ -1,7 +1,7 @@
 # AGENT CONTEXT — confiance-coursier
 > Fichier de continuité pour tout agent IA qui reprend ce projet.
-> Mis à jour au : 2026-11-05 (session 48)
-> Dernier agent : Kiro CLI
+> Mis à jour au : 2026-11-07 (session 85)
+> Dernier agent : Claude Code (sessions 72 à 85) — avant : Kiro CLI
 
 ---
 
@@ -1486,6 +1486,121 @@ Choix utilisateur : deux variantes sur deux branches, comparées visuellement av
 - Budget `anyComponentStyle` maximumError 8 → 12 kB (angular.json) : seul le chat (10,4 kB) dépassait ; à redescendre à 8 kB quand le chat sera refait (Sprints 9 à 11). Le build de production passe.
 - Lighthouse mobile ≥ 90 : à mesurer par l'utilisateur sur le build de production.
 
+---
+
+> **Sessions 72 à 85 (2026-11-06 → 2026-11-07, Claude Code) — refonte écran par écran.**
+> Méthode : l'utilisateur dépose des captures dans `C:\Users\DELL\Desktop\prompts\captures`, l'écran est refait à partir de
+> `maquette-v2` quand une maquette existe (jamais de « v3 »), avec le skill Impeccable, vérifié par captures Playwright
+> (mobile 393 px, tablette, bureau 1280 px, thèmes clair et sombre), puis commité seulement après « Valide, commite ».
+> Cette refonte recoupe en partie les tickets TICK-080 à TICK-094 de `PLAN_AMELIORATION.md`, **sans qu'aucun n'ait été clos** :
+> à revoir ticket par ticket avec l'utilisateur.
+
+### Session 72 — Landing v2 et contexte de design (2026-11-06) — `ca33e3a`, `12fa78b`
+
+- Landing fidèle à `maquette-v2` : mobile avec la photo d'abord, carte « Course protégée », menu, boutons pleine largeur ; bureau avec liens centrés et bandeau final.
+- Moment signature animé (photo dévoilée, carte posée, « Vérifié » allumé), révélations au défilement ; « Partout au Cameroun » (jamais une seule ville).
+- `PRODUCT.md`, `DESIGN.md` et `frontend/.impeccable/` : contexte produit et système de design (couleurs `--cc-*`, Inter).
+
+### Session 73 — Écrans d'authentification (2026-11-06) — `12fa78b`, `2ae73a4`, `32b4ebd`, `68c33ab`
+
+- Connexion, inscription, vérification du code, mot de passe oublié et réinitialisation alignés (logo, plein écran mobile, œil sur les mots de passe, thème sombre lisible).
+- Notifications (toasts) : le texte prenait la couleur du fond → lisibles dans les deux thèmes, en haut sur mobile, avec fermeture.
+- Inscription : champs Véhicule/Zone retirés (jamais envoyés), liens CGU vides retirés, choix Client/Coursier accessible.
+- Code : envoyé par email (plus de faux numéro), collage et validation au 6ᵉ chiffre, erreur sous les cases.
+- Mot de passe oublié : réponse anti-énumération comme le serveur ; une vraie erreur n'est plus affichée comme un succès.
+
+### Session 74 — Conditions d'utilisation et confidentialité (2026-11-06) — `d4466bd`
+
+- Pages `/conditions-utilisation` et `/confidentialite` (sommaire collant), fondées sur le droit camerounais (lois 2010/021, 2024/017, 2010/012, 2011/012) et sur le fonctionnement réel vérifié dans le code.
+- Bandeau « en cours de validation juridique » : **RCCM, NIU, hébergeur, autorisations, durées de conservation et rétractation restent à fournir par l'utilisateur** (ne rien inventer).
+
+### Session 75 — Espace client : tableau de bord et création de course (2026-11-06) — `bfedf6b`
+
+- Tableau de bord : une action principale selon la situation, encart « argent protégé », compteurs sans zéros de remplissage.
+- Création de course en étapes (type, besoin, lieu, date, vérification), toute ville du Cameroun, date future exigée.
+- Déconnexion rouge dans la barre latérale (tous rôles) ; contrôles natifs lisibles en sombre.
+
+### Session 76 — Choix du coursier, contact sur place, messages non lus, chat fiable (2026-11-07) — `54dd573`
+
+- Choix du coursier : « Ils vous ont écrit » d'abord (`GET /api/courses/{id}/conversations`), puis coursiers disponibles triés par note.
+- Contact sur place facultatif (V20 : `contact_name`, `contact_phone`), visible du client, du coursier retenu et de l'admin uniquement.
+- Messages non lus : `GET /api/chat/unread`, `POST /api/chat/rooms/{id}/read`, pastille rouge sur les boutons Chat (rafraîchie toutes les 30 s).
+- Chat : affichage immédiat, « Non envoyé · Réessayer », rattrapage à la reconnexion, diffusion après commit.
+- Email au client au premier message d'un coursier ; mise en page commune des emails.
+
+### Session 77 — Paiement et suivi de course (2026-11-07) — `79fc07e`, `c2b2f34`
+
+- Paiement : achats à rembourser + moyen de paiement (MTN, Orange, carte), récapitulatif collant.
+- `/api/commissions/public` expose aussi `autoValidateHours`, `proofDeadlineHours` et `paymentMode`. **`app.payment.mode = SIMULATION` par défaut** : annoncé à l'écran tant qu'aucun prestataire réel n'est branché (logo Stripe retiré).
+- Suivi client : « Prochaine étape » avec une seule action selon le statut, comptes à rebours, 5 étapes, « Votre paiement ». Le litige est enfin accessible.
+- `LOCALE_ID` fr-FR : dates et nombres au format français dans toute l'application.
+
+### Session 78 — Preuves : limites vidéo et validation (2026-11-07) — `a99c40e`, `69233cb`
+
+- Vidéo de preuve : **30 s et 60 Mo maximum** (avant : 10 s et 30 Mo), côté application et serveur ; refus de vidéo visible.
+- Validation client : preuves groupées avec aperçus, échéance de validation automatique, confirmation avant le versement.
+- PDF enfin affichés (URL approuvée par Angular ; « Ouvrir le PDF » sur mobile) ; URL présignées avec le type réel et affichage en ligne.
+
+### Session 79 — Notation, lieu de paiement, pastilles réparées (2026-11-07) — `baeee07`, `690b431`
+
+- Notation : étoiles animées accessibles au clavier, points rapides selon la note, écran de remerciement.
+- Emails de note corrigés : « Mauvaise note reçue » était envoyé pour toutes les notes ; les admins ne sont alertés qu'à 2 étoiles ou moins.
+- Lieu de paiement du client (V22 : `courses.client_location`) : Cameroun → MTN/Orange, étranger → carte ; refusé côté serveur si incohérent (tests).
+- **Pastilles non lues réparées** : le builder JPA écrivait `is_read = NULL` → `@Builder.Default`, colonne NOT NULL et réparation des données (V21), test de non-régression.
+
+### Session 80 — Litige, signalement, chat et profil (2026-11-07) — `389cd47`, `92ef258`, `758892a`
+
+- Formulaire de litige : motifs en cartes (codes L-C*/L-F* envoyés sans être affichés), conséquences en 3 points, confirmation (fonds gelés).
+- Signalement : nom de la personne signalée, motifs, rappels, renvoi vers le litige pour les problèmes d'argent, certification obligatoire.
+- Chat : sujet de la course sous le nom, séparateurs de date réels, icônes au lieu des émojis.
+- Profil : note « 4,0 / 5 », pays élargis (diaspora), ville libre ; la création de course est pré-remplie depuis le profil.
+
+### Session 81 — Espace coursier (2026-11-07) — `39fb19c`, `859c37f`, `8834349`, `b232d6b`, `ac33652`
+
+- Tableau de bord : bandeau de la mission la plus urgente, vérification d'identité claire, « Discuter et proposer mon tarif ».
+- KYC en 5 étapes (identité, pièce recto/verso, selfie, reversement, vérification), 18 ans minimum.
+- **Coordonnées de reversement enfin enregistrées** (demandées mais jamais envoyées) : V23 `users.payout_method`, `payout_number`, validées côté serveur ; Mobile Money uniquement. Le profil renvoie `payoutMethod` et `payoutNumberMasked` (3 derniers chiffres).
+- **Avancement des envois** : `withFetch` retiré de `provideHttpClient` (le backend fetch ne remonte pas la progression d'un envoi). **Ne pas le remettre.**
+- Envoi des preuves : contexte de la course, cases qui se cochent en direct, aperçus réels, zone d'envoi collante.
+- Gains coursier : gagné ce mois, « En attente » en séquestre, total. « Libéré » tant que le paiement est en simulation, « Versé » seulement avec un prestataire réel.
+
+### Session 82 — Admin : vérifications d'identité, tableau de bord, signalements (2026-11-07) — `6f6fd09`, `2bcfc28`, `4d06d5d`
+
+- KYC : onglets par statut, pièces et selfie côte à côte, points d'attention automatiques (âge, nom différent du compte, document manquant), motifs de refus. La barre latérale admin affiche « ConfianceCoursier ».
+- Tableau de bord : tuiles de ce qui attend une décision, files du plus ancien au plus récent avec le temps d'attente, activité réelle, rappel du mode test.
+- Signalements : personnes nommées, motifs en clair, décisions confirmées avec leurs conséquences. Règle réelle rappelée : suspension automatique quand **3 signaleurs distincts ayant une course commune** signalent en 30 jours.
+
+### Session 83 — Admin : arbitrage des litiges, logo de la plateforme (2026-11-07) — `7ec6223`, `036236d`
+
+- Nouvel endpoint `GET /api/admin/disputes/{id}` (`AdminDisputeDetailService`, `ProofService.getProofsForAdmin`) : course, parties, preuves, salle de discussion et répartition de l'argent bloqué selon la décision (mêmes formules qu'`EscrowService`), avec tests.
+- Écran des litiges : dossier dépliable, preuves, discussion en lecture, décision avec répartition affichée avant confirmation, partage avec montant vérifié.
+- **Correctif tablette global** : `.app-main { min-width: 0 }` dans `app-layout.css` (un texte long sur une ligne élargissait la zone au-delà de l'écran).
+- Police Inter conservée comme police de la marque (exception enregistrée dans `frontend/.impeccable/config.json`, sur décision de l'utilisateur).
+- Onglet du navigateur et PWA : favicon SVG/ICO, icônes 72→512 px, icône Apple au logo (vélo blanc sur vert `#123b32`), titre « ConfianceCoursier », `lang="fr"`, manifeste.
+
+### Session 84 — Admin : commissions et utilisateurs (2026-11-07) — `b940d25`, `ee39b83`
+
+- Commissions : libellés exacts et exemple modifiable avec les formules du serveur. **Vérifié et testé : le taux client ne change jamais ce que reçoit le coursier** (frais client = (tarif + achats) × taux client, ajoutés au prix payé ; coursier = tarif − commission + achats).
+- Utilisateurs (serveur) : **un compte administrateur ne peut plus être suspendu** (avant, seul l'admin lui-même était protégé).
+- Utilisateurs (serveur) : nouvel endpoint `GET /api/admin/users/{id}/summary` (courses, missions, litiges, signalements, litiges de ses courses ouverts par lui ou contre lui) ; requête `DisputeRepository.findInvolvingUser` ; tests.
+- Utilisateurs (écran) : liste sans tableau qui défile, onglets et recherche, fiche latérale avec litiges liés cliquables (`/admin/disputes?id=…` ouvre le dossier), suspension confirmée. Libellés des litiges partagés dans `features/admin/disputes/dispute-labels.ts`.
+
+### Session 85 — Admin : gains de la plateforme et comptes de reversement (2026-11-07) — `5a3764a`, `cd94b39`
+
+- Gains : aucune évolution inventée quand le mois dernier est vide, « part pour la plateforme » au lieu de « marge » (le volume inclut les achats), historique lisible sur mobile, dernières courses avec leur issue (payée, remboursée, partagée). Serveur : description, statut et issue du séquestre ajoutés au détail.
+- Comptes de reversement de l'admin (simple mémo, rien n'est versé automatiquement) :
+  - un champ vidé est réellement effacé (avant, il était ignoré) ;
+  - numéros et IBAN vérifiés ;
+  - la méthode principale doit désigner un compte renseigné ;
+  - tests ajoutés.
+- État final : **282 tests backend verts** (`AuthControllerTest` exclu comme d'habitude) ; build front OK. Tous les écrans client, coursier et admin sont refaits.
+
+**Décisions encore ouvertes (à l'utilisateur) :**
+1. Mentions légales : RCCM, NIU, hébergeur, autorisations, durées de conservation (à fournir, jamais inventées).
+2. Rétractation après paiement : règle à décider.
+3. Frais de service client calculés aussi sur les achats avancés : à garder, ou à limiter au tarif du coursier ?
+4. Recouper la refonte avec les tickets TICK-080 à TICK-094 et décider lesquels sont clos.
+
 ## 9. DOMAINES À IMPLÉMENTER (par ordre de priorité métier)
 
 ### 1. Guards Angular (prérequis avant tout)
@@ -1585,6 +1700,19 @@ cd backend
 9. **`status("ACTIVE")`** doit être explicitement défini dans les builders `User` (le défaut `"ACTIVE"` ne s'applique pas via Lombok @Builder).
 10. **`SecurityConfig`** : routes publiques actuelles = `/api/auth/**`, `/api/health`, `/ws/**`. Toute nouvelle route publique doit y être ajoutée.
 11. **⛔ RÈGLE DE VALIDATION OBLIGATOIRE** : après chaque ticket terminé, **s'arrêter et informer l'utilisateur** "Ticket TICK-XXX terminé — je vérifie avant de te demander de continuer." Ne jamais enchaîner deux tickets sans validation explicite de l'utilisateur.
+12. **Migrations** : la dernière est `V23__user_payout_details.sql` → la prochaine est **V24** (le point 4 ci-dessus date de l'époque V1/V2).
+13. **Paiement en simulation** (`app.payment.mode = SIMULATION`) : ne jamais afficher « Versé » ni laisser croire qu'un vrai paiement a eu lieu ; les reversements ne sont que des écritures du registre de séquestre.
+14. **`provideHttpClient` sans `withFetch`** (XHR) : nécessaire pour voir l'avancement des envois de fichiers.
+15. **Règles de design** (sessions 72 à 85) :
+    - passer par le skill Impeccable et `maquette-v2` ;
+    - couleurs uniquement en tokens `--cc-*`, aucun `style=""` ;
+    - textes lisibles en clair **et** en sombre (`:host-context([data-theme="dark"])`) ;
+    - animations avec `prefers-reduced-motion` respecté ;
+    - « partout au Cameroun » ;
+    - aucune donnée factice (avis, étoiles, compteurs, badges, mentions légales) sans source réelle ;
+    - vérifier par captures Playwright mobile, tablette et bureau.
+16. **Commits** : seulement après « Valide, commite » de l'utilisateur, avec `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>` ; ne jamais inclure `maquette-v2` ni `.env`.
+17. **Tests backend** : `./mvnw -q -o test "-Dtest=!AuthControllerTest" "-Dsurefire.failIfNoSpecifiedTests=false"` (282 verts au 2026-11-07).
 
 ---
 
