@@ -71,6 +71,9 @@ public class GainsService {
         List<CourseGainEntry> recentCourses = recentRaw.stream().map(c ->
                 CourseGainEntry.builder()
                         .courseId(c.getId())
+                        .description(c.getDescription())
+                        .status(c.getStatus())
+                        .escrowStatus(c.getEscrowStatus())
                         .completedAt(c.getCompletedAt() != null ? c.getCompletedAt().format(DT_FMT) : null)
                         .totalAmount(c.getTotalAmount())
                         .commissionAmount(c.getCommissionAmount())

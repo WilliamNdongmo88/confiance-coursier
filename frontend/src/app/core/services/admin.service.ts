@@ -125,6 +125,9 @@ export interface MonthlyGain {
 
 export interface CourseGainEntry {
   courseId: number;
+  description: string | null;
+  status: string;
+  escrowStatus: string | null;
   completedAt: string | null;
   totalAmount: number;
   commissionAmount: number;

@@ -53,6 +53,12 @@ public class GainsStatsResponse {
     @Builder
     public static class CourseGainEntry {
         private Long       courseId;
+        /** Description de la course (pour la reconnaître dans la liste). */
+        private String     description;
+        /** COMPLETED (payée au coursier ou partagée) | REFUNDED (client remboursé). */
+        private String     status;
+        /** RELEASED | REFUNDED | SPLIT : issue du séquestre. */
+        private String     escrowStatus;
         private String     completedAt;
         private BigDecimal totalAmount;
         private BigDecimal commissionAmount;
