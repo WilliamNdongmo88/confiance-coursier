@@ -12,7 +12,8 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface CourseRepository extends JpaRepository<Course, Long> {
+public interface CourseRepository extends JpaRepository<Course, Long>,
+        org.springframework.data.jpa.repository.JpaSpecificationExecutor<Course> {
 
     /**
      * Charge une course avec un verrou pessimiste (SELECT … FOR UPDATE).

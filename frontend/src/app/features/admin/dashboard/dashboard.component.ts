@@ -6,7 +6,7 @@ import { catchError } from 'rxjs/operators';
 import {
   AdminService, AdminKycResponse, DisputeResponse, GainsStatsResponse, ReportResponse, UserProfileResponse,
 } from '../../../core/services/admin.service';
-import { LucideArrowRight, LucideCircleCheck, LucideFlag, LucideFlaskConical, LucideScale, LucideShieldCheck, LucideTrendingUp, LucideUsers } from '@lucide/angular';
+import { LucideAlertTriangle, LucideArrowRight, LucideCircleCheck, LucideFlag, LucideFlaskConical, LucideScale, LucideShieldCheck, LucideTrendingUp, LucideUsers } from '@lucide/angular';
 
 /** Motifs de signalement en clair (mêmes valeurs que le formulaire de signalement). */
 const REPORT_MOTIFS: Record<string, string> = {
@@ -24,7 +24,7 @@ interface Task { id: number; title: string; meta: string; since: string; link: s
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
-  imports: [RouterLink, LucideArrowRight, LucideCircleCheck, LucideFlag, LucideFlaskConical, LucideScale, LucideShieldCheck, LucideTrendingUp, LucideUsers],
+  imports: [RouterLink, LucideAlertTriangle, LucideArrowRight, LucideCircleCheck, LucideFlag, LucideFlaskConical, LucideScale, LucideShieldCheck, LucideTrendingUp, LucideUsers],
   styles: [`
     :host { display: block; min-width: 0; --dm: #56635c; }
     :host-context([data-theme="dark"]) { --dm: #B0C0B7; }
@@ -33,7 +33,7 @@ interface Task { id: number; title: string; meta: string; since: string; link: s
     .d-head p { margin: 0 0 18px; font-size: 15px; color: var(--dm); }
     .test { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; margin-bottom: 16px; border-radius: 12px; background: var(--cc-paper-2); border: 1px solid var(--cc-line); font-size: 13.5px; line-height: 1.45; color: var(--cc-ink); }
     .test svg { flex: none; margin-top: 1px; color: var(--primary); }
-    .todo { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 22px; }
+    .todo { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin-bottom: 22px; }
     .t { display: flex; align-items: center; gap: 12px; padding: 16px; border-radius: 16px; background: var(--cc-white); border: 1px solid var(--cc-line); color: inherit; text-decoration: none;
       transition: transform .2s, box-shadow .2s, border-color .2s; animation: d-in .45s cubic-bezier(.16,1,.3,1) both; }
     .t:nth-child(2) { animation-delay: .05s; } .t:nth-child(3) { animation-delay: .1s; }
@@ -97,7 +97,7 @@ interface Task { id: number; title: string; meta: string; since: string; link: s
       }
 
       @if (loading()) {
-        <div class="todo"><div class="sk"></div><div class="sk"></div><div class="sk"></div></div>
+        <div class="todo"><div class="sk"></div><div class="sk"></div><div class="sk"></div><div class="sk"></div></div>
       } @else {
         <section class="todo" aria-label="À traiter">
           <a class="t" [class.hot]="kyc().length > 0" routerLink="/admin/kyc">
@@ -115,6 +115,13 @@ interface Task { id: number; title: string; meta: string; since: string; link: s
             <div><b>{{ reports().length }}</b><span>{{ reports().length > 1 ? 'signalements à examiner' : 'signalement à examiner' }}</span></div>
             <svg class="go" lucideArrowRight size="16"></svg>
           </a>
+          @if (blocked() !== null) {
+            <a class="t" [class.hot]="blocked()! > 0" routerLink="/admin/courses" [queryParams]="{ status: 'BLOCKED' }">
+              <span class="t-ic"><svg lucideAlertTriangle size="20"></svg></span>
+              <div><b>{{ blocked() }}</b><span>{{ blocked()! > 1 ? 'courses bloquées' : 'course bloquée' }}</span></div>
+              <svg class="go" lucideArrowRight size="16"></svg>
+            </a>
+          }
         </section>
 
         @if (activeGroups().length) {
@@ -173,12 +180,14 @@ export class AdminDashboardComponent implements OnInit {
   readonly reports = signal<ReportResponse[]>([]);
   readonly gains = signal<GainsStatsResponse | null>(null);
   readonly users = signal<UserProfileResponse[] | null>(null);
+  /** TICK-090/091 : courses en retard ou argent bloqué depuis plus de 72 h (null si indisponible). */
+  readonly blocked = signal<number | null>(null);
   readonly simulation = signal(false);
 
   readonly today = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }).replace(/^./, (c) => c.toUpperCase());
   readonly monthName = new Date().toLocaleDateString('fr-FR', { month: 'long' });
 
-  readonly totalTodo = computed(() => this.kyc().length + this.disputes().length + this.reports().length);
+  readonly totalTodo = computed(() => this.kyc().length + this.disputes().length + this.reports().length + (this.blocked() ?? 0));
   readonly couriers = computed(() => (this.users() ?? []).filter((u) => u.role === 'COURIER').length);
   readonly verifiedCouriers = computed(() => (this.users() ?? []).filter((u) => u.role === 'COURIER' && u.kycStatus === 'APPROVED').length);
   readonly clients = computed(() => (this.users() ?? []).filter((u) => u.role === 'CLIENT').length);
@@ -206,6 +215,7 @@ export class AdminDashboardComponent implements OnInit {
       reports: safe(this.adminService.getReports('OPEN')),
       gains: safe(this.adminService.getGains()),
       users: safe(this.adminService.getUsers()),
+      blocked: safe(this.adminService.getCourses('BLOCKED', '', 0, 1)),
       pub: safe(this.http.get<{ paymentMode?: string }>('/api/commissions/public')),
     }).subscribe((r) => {
       this.kyc.set(r.kyc ?? []);
@@ -213,6 +223,7 @@ export class AdminDashboardComponent implements OnInit {
       this.reports.set(r.reports ?? []);
       this.gains.set(r.gains);
       this.users.set(r.users);
+      this.blocked.set(r.blocked ? r.blocked.total : null);
       this.simulation.set(r.pub?.paymentMode === 'SIMULATION');
       this.loading.set(false);
     });

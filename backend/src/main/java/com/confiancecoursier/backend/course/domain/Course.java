@@ -125,6 +125,16 @@ public class Course {
     @Column(name = "started_at")
     private LocalDateTime startedAt;
 
+    /** TICK-091 : annulation par un administrateur (motif envoyé au client et au coursier). */
+    @Column(name = "cancel_reason", length = 500)
+    private String cancelReason;
+
+    @Column(name = "cancelled_by")
+    private Long cancelledBy;
+
+    @Column(name = "cancelled_at")
+    private LocalDateTime cancelledAt;
+
     /** Rappel « échéance − N h » déjà envoyé au coursier. */
     @Column(name = "proof_reminder_sent_at")
     private LocalDateTime proofReminderSentAt;

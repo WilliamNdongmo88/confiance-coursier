@@ -11,6 +11,7 @@ import {
   LucideTrendingUp,
   LucideCreditCard,
   LucideLogOut,
+  LucidePackage,
 } from '@lucide/angular';
 
 /**
@@ -36,6 +37,7 @@ import {
     LucideTrendingUp,
     LucideCreditCard,
     LucideLogOut,
+    LucidePackage,
   ],
   template: `
     <aside class="app-sidebar" [class.open]="open" id="sidebar">
@@ -49,6 +51,9 @@ import {
       <nav class="sb-nav" aria-label="Navigation admin">
         <a routerLink="/admin/dashboard" routerLinkActive="active" ariaCurrentWhenActive="page">
           <svg lucideLayoutDashboard size="16"></svg> Tableau de bord
+        </a>
+        <a routerLink="/admin/courses" routerLinkActive="active" ariaCurrentWhenActive="page">
+          <svg lucidePackage size="16"></svg> Courses
         </a>
         <a routerLink="/admin/kyc" routerLinkActive="active" ariaCurrentWhenActive="page">
           <svg lucideShield size="16"></svg> Validations KYC

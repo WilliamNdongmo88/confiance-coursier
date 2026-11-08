@@ -83,6 +83,8 @@ class RoleRouteMatrixTest {
                 Arguments.of("POST",   "/api/reports",                          PARTIES),
                 // ADMIN
                 Arguments.of("GET",    "/api/admin/disputes",                   ADMIN),
+                Arguments.of("GET",    "/api/admin/courses",                    ADMIN),
+                Arguments.of("POST",   "/api/admin/courses/1/cancel",           ADMIN),
                 Arguments.of("POST",   "/api/admin/users/1/suspend",            ADMIN),
                 // Lecture authentifiée (l'appartenance est contrôlée dans les services)
                 Arguments.of("GET",    "/api/courses/1",                        ANY),

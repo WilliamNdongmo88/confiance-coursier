@@ -66,6 +66,8 @@ export const routes: Routes = [
     children: [
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
       { path: 'dashboard',       loadComponent: () => import('./features/admin/dashboard/dashboard.component').then(m => m.AdminDashboardComponent),      data: { title: "Vue d'ensemble" } },
+      { path: 'courses',         loadComponent: () => import('./features/admin/courses/courses.component').then(m => m.AdminCoursesComponent),      data: { title: 'Courses' } },
+      { path: 'courses/:id',     loadComponent: () => import('./features/admin/courses/course-admin-detail.component').then(m => m.AdminCourseDetailComponent), data: { title: 'Course' } },
       { path: 'kyc',             loadComponent: () => import('./features/admin/kyc/kyc.component').then(m => m.AdminKycComponent),            data: { title: 'Validations KYC' } },
       { path: 'disputes',        loadComponent: () => import('./features/admin/disputes/disputes.component').then(m => m.AdminDisputesComponent),       data: { title: 'Litiges' } },
       { path: 'reports',         loadComponent: () => import('./features/admin/reports/reports.component').then(m => m.AdminReportsComponent),        data: { title: 'Signalements' } },

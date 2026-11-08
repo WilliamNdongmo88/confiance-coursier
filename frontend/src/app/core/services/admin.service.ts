@@ -62,6 +62,32 @@ export interface DisputeDetail {
   chatRoomId: number | null;
 }
 
+// ─── TICK-091 : gestion des courses ──────────────────────────────────────────
+
+export interface AdminCourseRow {
+  id: number; description: string; zone: string | null; status: string; escrowStatus: string | null;
+  clientName: string | null; courierName: string | null; totalAmount: number | null; courseAmount: number | null;
+  createdAt: string; scheduledAt: string | null; paidAt: string | null; blocked: boolean;
+}
+export interface AdminCoursePage { items: AdminCourseRow[]; total: number; page: number; size: number; }
+export interface AdminParty { id: number; fullName: string | null; email: string | null; phone: string | null; status: string | null; }
+export interface AdminCourseDetail {
+  course: any;
+  client: AdminParty | null;
+  courier: AdminParty | null;
+  blocked: boolean;
+  timeline: { label: string; at: string }[];
+  ledger: { id: number; entryType: string; amount: number; provider: string | null; providerRef: string | null; status: string | null; createdAt: string }[];
+  held: number;
+  proofs: DisputeProof[];
+  rooms: { chatRoomId: number; courierId: number; courierName: string; archived: boolean; retained: boolean }[];
+  disputes: { id: number; motifCode: string; status: string; decision: string | null; createdAt: string }[];
+  cancelReason: string | null;
+  cancelledAt: string | null;
+  /** CANCEL (pas encore payée), REFUND (argent bloqué), ou null. */
+  cancelAction: 'CANCEL' | 'REFUND' | null;
+}
+
 export interface ReportResponse {
   id: number;
   reporterId: number;
@@ -201,6 +227,23 @@ export class AdminService {
     const params: Record<string, string> = {};
     if (status) params['status'] = status;
     return this.http.get<DisputeResponse[]>('/api/admin/disputes', { params });
+  }
+
+  // ─── Courses (TICK-091) ──────────────────────────────────────────────────
+
+  getCourses(status: string, q: string, page: number, size = 20): Observable<AdminCoursePage> {
+    const params: Record<string, string> = { page: String(page), size: String(size) };
+    if (status) params['status'] = status;
+    if (q.trim()) params['q'] = q.trim();
+    return this.http.get<AdminCoursePage>('/api/admin/courses', { params });
+  }
+
+  getCourseDetail(id: number): Observable<AdminCourseDetail> {
+    return this.http.get<AdminCourseDetail>(`/api/admin/courses/${id}`);
+  }
+
+  cancelCourse(id: number, reason: string): Observable<AdminCourseDetail> {
+    return this.http.post<AdminCourseDetail>(`/api/admin/courses/${id}/cancel`, { reason });
   }
 
   getDisputeDetail(id: number): Observable<DisputeDetail> {

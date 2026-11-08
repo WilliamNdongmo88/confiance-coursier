@@ -857,7 +857,8 @@ Contrôles :
 
 ### SPRINT 9 — PARCOURS CLIENT SIMPLIFIÉ
 
-#### TICK-080 🟠 [FE] Accueil client « Trouver un coursier » et « À faire maintenant » — 4 h
+#### TICK-080 ✅ [FE] Accueil client « Trouver un coursier » et « À faire maintenant » — 4 h
+**Statut :** ✅ (2026-11-08, bilan `docs/bilan-tickets-080-105.md`) — fait pendant la refonte ; compteurs réels conservés.
 **Critères d'acceptation :**
 - CTA principal en haut (wireframe §2.3).
 - Liste « À faire » triée par urgence (preuves à valider > paiement à faire > offres reçues > en cours), avec le CTA du helper de statut.
@@ -865,7 +866,8 @@ Contrôles :
 - Skeleton, état vide (« Créez votre première course ») et état d'erreur présents.
 **Validation :** chaque statut de course produit le bon CTA.
 
-#### TICK-081 🟠 [FULL] Création de course en un écran — 4 h
+#### TICK-081 ✅ [FULL] Création de course en un écran — 4 h
+**Statut :** ✅ (2026-11-08, bilan `docs/bilan-tickets-080-105.md`) — remplacé par un assistant en étapes (une question à la fois), choix validé.
 **Anomalie :** A-33 · **Fichiers :** `create-course`, `CreateCourseRequest`
 **Critères d'acceptation :**
 - 3 à 4 champs (quoi, ville + quartier, quand : « dès que possible » ou date ≥ maintenant).
@@ -874,7 +876,8 @@ Contrôles :
 - Le mode édition fonctionne et reste accessible depuis le détail (PUBLISHED seulement).
 **Validation :** création en moins de 30 s sur mobile (chronométré).
 
-#### TICK-082 🟠 [FULL] Écran « Coursiers » : offres reçues + coursiers proches — 5 h
+#### TICK-082 ⚙️ [FULL] Écran « Coursiers » : offres reçues + coursiers proches — 5 h
+**Statut :** ⚙️ (2026-11-08, bilan `docs/bilan-tickets-080-105.md`) — reste : bouton « Annuler » sur une course publiée côté client ; coursiers proches (dépend de TICK-089).
 **Anomalies :** A-22, CL-11, CL-12, CL-20 · **Fichiers :** `select-courier`, `course-detail`, `GET /courses/{id}/offers` (avec nom, note, KYC), `GET /users/couriers?zone=`
 **Critères d'acceptation :**
 - Onglet « Offres reçues » (montant, coursier, Discuter / Accepter) et onglet « Proches » (Discuter).
@@ -883,7 +886,8 @@ Contrôles :
 - Annuler une course PUBLISHED est possible.
 **Validation :** 2 coursiers proposent → le client compare et accepte.
 
-#### TICK-083 🟡 [FE] Paiement simplifié — 3 h
+#### TICK-083 ✅ [FE] Paiement simplifié — 3 h
+**Statut :** ✅ (2026-11-08, bilan `docs/bilan-tickets-080-105.md`).
 **Fichiers :** `pay.component.ts`
 **Critères d'acceptation :**
 - Conforme au wireframe : tarif en lecture seule, « Achats à avancer » optionnel, total en direct, séquestre expliqué en une phrase.
@@ -891,7 +895,8 @@ Contrôles :
 - Retour d'erreur explicite (409 « déjà payée »).
 **Validation :** paiement avec et sans achats.
 
-#### TICK-084 🟠 [FE] Suivi et validation fusionnés — 5 h
+#### TICK-084 ✅ [FE] Suivi et validation fusionnés — 5 h
+**Statut :** ✅ (2026-11-08, bilan `docs/bilan-tickets-080-105.md`) — suivi et validation gardés séparés (choix validé), tous les autres critères remplis.
 **Anomalies :** A-22, CL-08, CL-17, CL-18 · **Fichiers :** `course-detail`, `validate` (absorbé), `media-viewer`
 **Critères d'acceptation :**
 - Timeline avec DISPUTED.
@@ -908,7 +913,8 @@ Contrôles :
 
 ### SPRINT 10 — PARCOURS COURSIER SIMPLIFIÉ
 
-#### TICK-085 🟠 [FULL] Accueil coursier « Nouvelles demandes » en premier — 5 h
+#### TICK-085 ⚙️ [FULL] Accueil coursier « Nouvelles demandes » en premier — 5 h
+**Statut :** ⚙️ (2026-11-08, bilan `docs/bilan-tickets-080-105.md`) — reste : demandes avant les missions, rafraîchissement automatique des demandes, filtre par zone (TICK-089).
 **Anomalies :** A-23, CO-09, CO-13
 **Critères d'acceptation :**
 - Demandes visibles sans scroll sur 390×844.
@@ -917,7 +923,8 @@ Contrôles :
 - Filtre zone (déclarée à l'inscription, TICK-089).
 **Validation :** une course publiée par le client apparaît en moins de 20 s chez le coursier.
 
-#### TICK-086 🟠 [FE] Détail demande → « Proposer mon tarif » — 4 h
+#### TICK-086 ✅ [FE] Détail demande → « Proposer mon tarif » — 4 h
+**Statut :** ✅ (2026-11-08, bilan `docs/bilan-tickets-080-105.md`) — l’offre se fait dans le chat (minimum et net affichés), choix validé.
 **Critères d'acceptation :**
 - Écran détail (et non une modale).
 - Saisie du tarif avec net estimé (taux lu du serveur) et minimum affiché.
@@ -925,7 +932,8 @@ Contrôles :
 - Offre modifiable tant que la course est PUBLISHED.
 **Validation :** de l'accueil à l'offre envoyée en 3 taps au maximum.
 
-#### TICK-087 🟠 [FULL] Missions : statut clair et action suivante — 3 h
+#### TICK-087 ⚙️ [FULL] Missions : statut clair et action suivante — 3 h
+**Statut :** ⚙️ (2026-11-08, bilan `docs/bilan-tickets-080-105.md`) — reste : litige et signalement depuis la carte de mission.
 **Anomalies :** CO-04, CO-15 · **Fichiers :** `CourseService.getMyMissions`, dashboard et missions du coursier
 **Critères d'acceptation :**
 - Sections « En négociation », « À réaliser (payées) », « Terminées ».
@@ -934,7 +942,8 @@ Contrôles :
 - Litige et Signaler accessibles depuis la mission.
 **Validation :** coursier perdant → aucune action de preuve possible.
 
-#### TICK-088 🟡 [FULL] Gains réels et notification de paiement — 3 h
+#### TICK-088 ✅ [FULL] Gains réels et notification de paiement — 3 h
+**Statut :** ✅ (2026-11-08, bilan `docs/bilan-tickets-080-105.md`) — « Versé » s’affichera quand un vrai prestataire de paiement sera branché.
 **Fichiers :** `earnings`, `history`, notifications (`NotificationService`)
 **Critères d'acceptation :**
 - Montants issus de `courierAmount` + frais réels.
@@ -956,7 +965,8 @@ Contrôles :
 
 ### SPRINT 11 — PARCOURS ADMIN SIMPLIFIÉ
 
-#### TICK-090 🟠 [FULL] Accueil admin = files d'actions — 5 h
+#### TICK-090 ✅ [FULL] Accueil admin = files d'actions — 5 h
+**Statut :** ✅ (2026-11-08) — compteur « courses bloquées » ajouté avec TICK-091 (en retard, ou argent bloqué depuis plus de 72 h).
 **Anomalie :** A-24, AD-09 · **Fichiers :** nouveau `GET /api/admin/overview`, `admin/dashboard`
 **Critères d'acceptation :**
 - Compteurs réels (litiges ouverts, KYC en attente, courses bloquées = statut `OVERDUE` ou HELD depuis plus de 72 h, signalements), chacun cliquable vers sa file.
@@ -964,7 +974,8 @@ Contrôles :
 - Plus de `loading.set(false)` prématuré.
 **Validation :** créer un litige → le compteur passe de 0 à 1.
 
-#### TICK-091 🟠 [FULL] Gestion des courses (nouveau) — 6 h
+#### TICK-091 ✅ [FULL] Gestion des courses (nouveau) — 6 h
+**Statut :** ✅ (2026-11-08) — `/admin/courses` (filtres dont « Bloquées », recherche, pagination), dossier `/admin/courses/{id}` (parties, montants, registre du séquestre, chronologie, preuves, discussions, litiges), annulation avec motif obligatoire (remboursement intégral si payée), V25, tests.
 **Anomalie :** AD-10 · **Fichiers :** `GET /api/admin/courses?status=&q=&page=`, `GET /api/admin/courses/{id}` (timeline, ledger, preuves, chat en lecture), nouveaux composants admin `courses`
 **Critères d'acceptation :**
 - Liste paginée filtrable et recherchable (cartes sur mobile).
@@ -972,7 +983,8 @@ Contrôles :
 - Action « Annuler et rembourser » (via EscrowService, avec confirmation et motif).
 **Validation :** retrouver une course par client et par statut, puis lire son ledger.
 
-#### TICK-092 🟠 [FULL] Détail litige et décisions chiffrées — 5 h
+#### TICK-092 ✅ [FULL] Détail litige et décisions chiffrées — 5 h
+**Statut :** ✅ (2026-11-08, bilan `docs/bilan-tickets-080-105.md`) — note écrite avec la décision non ajoutée (facultative).
 **Anomalie :** AD-08 · **Fichiers :** `admin/disputes`, `AdminDisputeController`
 **Critères d'acceptation :**
 - Écran détail : parties (noms), motif, montants, preuves, chat.
@@ -980,7 +992,8 @@ Contrôles :
 - Écriture dans le ledger (TICK-061).
 **Validation :** E2E-3 entièrement depuis le mobile admin.
 
-#### TICK-093 🟠 [FULL] Écran unique « Paramètres plateforme » — 5 h
+#### TICK-093 ⚙️ [FULL] Écran unique « Paramètres plateforme » — 5 h
+**Statut :** ⚙️ (2026-11-08, bilan `docs/bilan-tickets-080-105.md`) — reste : réglages remboursement des frais et délais modifiables, historique des changements, moyens de paiement (TICK-103). Deux écrans séparés acceptés.
 **Anomalies :** AD-07, AD-14 · **Fichiers :** `admin/commissions` + `admin/payout-settings` fusionnés, `CommissionService`, `PayoutSettingsService`
 **Description :** un écran à sections : *Tarification* (taux, tarif minimum, option « Rembourser les frais de plateforme en cas de remboursement total », défaut NON), *Délais* (échéance de preuves, délai de grâce `OVERDUE`, nombre de prolongations, remboursement des frais en cas de non-livraison, défaut OUI ; cf. TICK-065b), *Moyens de paiement* (TICK-103), *Encaissement plateforme* (coordonnées et mode de reversement, TICK-104), *Versements coursiers* (politique, TICK-105).
 **Critères d'acceptation :**
@@ -994,7 +1007,8 @@ Contrôles :
 - Historique des changements (qui, quand).
 **Validation :** modifier le taux → une nouvelle course utilise le nouveau taux, une course payée garde l'ancien.
 
-#### TICK-094 🟡 [FULL] Utilisateurs, KYC et signalements : efficacité et sûreté — 6 h
+#### TICK-094 ⚙️ [FULL] Utilisateurs, KYC et signalements : efficacité et sûreté — 6 h
+**Statut :** ⚙️ (2026-11-08, bilan `docs/bilan-tickets-080-105.md`) — reste : motif obligatoire pour une suspension, pagination.
 **Anomalies :** AD-11, AD-12, AD-13, UI-08, UI-09
 **Critères d'acceptation :**
 - Pagination et recherche (nom, email, téléphone) ; noms affichés à la place des IDs.
@@ -1024,7 +1038,8 @@ Contrôles :
 - Rapprochement CSV : encaissé = versé aux coursiers + remboursé + gains (écart affiché s'il y en a un).
 **Validation :** après E2E-1 et E2E-3, reverser le solde MTN → solde à 0, ligne PAID dans l'historique, CSV équilibré.
 
-#### TICK-105 🟠 [FULL] Versements aux coursiers — 5 h
+#### TICK-105 ⚙️ [FULL] Versements aux coursiers — 5 h
+**Statut :** ⚙️ (2026-11-08, bilan `docs/bilan-tickets-080-105.md`) — comptes de reversement des coursiers enregistrés (V23) ; reste la file de versements avec un vrai prestataire.
 **Référence :** §4.3 niveau (2) · **Fichiers :** coordonnées de reversement du coursier (KYC étape 4 / profil : à vérifier si elles sont persistées aujourd'hui, sinon table `courier_payout_accounts`), `EscrowService`, nouvelle file admin « Versements coursiers », `earnings`
 **Critères d'acceptation :**
 - À la libération, `COURIER_PAYOUT` est créé en PENDING (montant = tarif − commission + frais réels).

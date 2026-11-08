@@ -70,7 +70,7 @@ class CourseServiceTest {
         service.deleteCourse(100L, 1L);
 
         assertThat(course.getStatus()).isEqualTo("CANCELLED");
-        verify(courses, never()).delete(any());
+        verify(courses, never()).delete(any(Course.class));
         assertThat(active.getStatus()).isEqualTo("REJECTED");
         assertThat(superseded.getStatus()).isEqualTo("SUPERSEDED"); // historique conservé
         assertThat(room1.getIsArchived()).isTrue();

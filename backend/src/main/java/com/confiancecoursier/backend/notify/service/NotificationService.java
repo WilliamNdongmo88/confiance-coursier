@@ -295,6 +295,25 @@ public class NotificationService {
                         "Envoyez vos preuves avant cette date."));
     }
 
+    /** TICK-091 : course annulée par l'administration, avec le motif ; remboursement intégral si elle était payée. */
+    public void notifyCancelledByAdmin(Long clientId, Long courierId, Long courseId, String reason, boolean refunded) {
+        String motif = org.springframework.web.util.HtmlUtils.htmlEscape(reason == null ? "" : reason);
+        String clientEmail = resolveEmail(clientId);
+        if (clientEmail != null) sendEmail(clientEmail,
+                "Course annulée par l’équipe — " + EmailLayout.BRAND,
+                buildTemplate("Votre course a été annulée",
+                        "L’équipe ConfianceCoursier a annulé la course #" + courseId + ". Motif : « " + motif + " ».",
+                        refunded ? "Vous êtes remboursé intégralement, frais de service compris, sur votre moyen de paiement."
+                                 : "Aucun paiement n’avait été effectué. Vous pouvez créer une nouvelle course à tout moment."));
+        String courierEmail = resolveEmail(courierId);
+        if (courierEmail != null) sendEmail(courierEmail,
+                "Course annulée par l’équipe — " + EmailLayout.BRAND,
+                buildTemplate("Une course a été annulée",
+                        "L’équipe ConfianceCoursier a annulé la course #" + courseId + ". Motif : « " + motif + " ».",
+                        "Cette annulation n’entraîne pas de pénalité pour vous. D’autres demandes vous attendent dans votre espace.",
+                        "Voir les demandes", "/courier/dashboard"));
+    }
+
     /** Le coursier a démarré la course (le client ne peut plus l'annuler librement). */
     public void notifyCourseStarted(Long clientId, Long courseId) {
         String email = resolveEmail(clientId);
