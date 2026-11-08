@@ -114,6 +114,9 @@ export interface UserProfileResponse {
   initials: string;
   createdAt: string;
   updatedAt: string;
+  /** Motif et date de la suspension en cours (null si le compte est actif). */
+  suspensionReason?: string | null;
+  suspendedAt?: string | null;
 }
 
 /** Activité réelle d'un compte ({@code GET /api/admin/users/{id}/summary}). */
@@ -283,8 +286,9 @@ export class AdminService {
     return this.http.get<UserProfileResponse[]>('/api/admin/users', { params });
   }
 
-  suspendUser(id: number): Observable<UserProfileResponse> {
-    return this.http.post<UserProfileResponse>(`/api/admin/users/${id}/suspend`, {});
+  /** TICK-094 : motif obligatoire (10 à 500 caractères), envoyé à la personne suspendue. */
+  suspendUser(id: number, reason: string): Observable<UserProfileResponse> {
+    return this.http.post<UserProfileResponse>(`/api/admin/users/${id}/suspend`, { reason });
   }
 
   activateUser(id: number): Observable<UserProfileResponse> {

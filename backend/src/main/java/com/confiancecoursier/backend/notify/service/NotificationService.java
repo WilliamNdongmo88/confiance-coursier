@@ -479,6 +479,31 @@ public class NotificationService {
                 .orElse("Coursier #" + userId);
     }
 
+    /** TICK-094 : suspension décidée par un administrateur, avec son motif. */
+    public void notifySuspendedByAdmin(Long userId, String reason) {
+        String email = resolveEmail(userId);
+        if (email == null) return;
+        String motif = org.springframework.web.util.HtmlUtils.htmlEscape(reason == null ? "" : reason);
+        sendEmail(email,
+                "Compte suspendu — " + EmailLayout.BRAND,
+                buildTemplate("Votre compte a été suspendu",
+                        "L’équipe ConfianceCoursier a suspendu votre compte. Motif : « " + motif + " ».",
+                        "Vous ne pouvez plus vous connecter tant que la suspension est en cours. "
+                                + "Si vous pensez qu’il s’agit d’une erreur, répondez à cet email ou contactez le support."));
+    }
+
+    /** Le compte a été réactivé par un administrateur. */
+    public void notifyReactivated(Long userId) {
+        String email = resolveEmail(userId);
+        if (email == null) return;
+        sendEmail(email,
+                "Compte réactivé — " + EmailLayout.BRAND,
+                buildTemplate("Votre compte est de nouveau actif",
+                        "L’équipe ConfianceCoursier a levé la suspension de votre compte.",
+                        "Vous pouvez à nouveau vous connecter et utiliser la plateforme.",
+                        "Me connecter", "/login"));
+    }
+
     public void notifySuspension(Long userId) {
         String email = resolveEmail(userId);
         if (email != null) sendEmail(email,

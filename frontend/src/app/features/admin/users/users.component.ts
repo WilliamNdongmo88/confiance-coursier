@@ -92,6 +92,11 @@ type Tab = 'ALL' | 'CLIENT' | 'COURIER' | 'SUSPENDED';
     .cf { padding: 14px; border-radius: 12px; border: 1.5px solid color-mix(in oklab, var(--cc-danger) 45%, transparent); animation: u-in .25s ease; }
     .cf b { display: block; font-size: 14.5px; color: var(--cc-ink); }
     .cf p { margin: 4px 0 12px; font-size: 13px; line-height: 1.45; color: var(--um); }
+    .cf .reason { width: 100%; min-height: 84px; }
+    .cf .count { display: block; margin: 4px 0 10px; font-size: 12px; color: var(--um); }
+    .why { margin: -4px 0 12px; padding: 10px 12px; border-radius: 12px; background: var(--cc-danger-bg); font-size: 13.5px; line-height: 1.45; color: var(--cc-ink); overflow-wrap: anywhere; }
+    .why small { display: block; margin-bottom: 2px; font-size: 12px; font-weight: 700; color: var(--um); }
+    :host-context([data-theme="dark"]) .why { background: rgba(240,163,156,.12); color: #F3F7F5; }
     .acts { display: flex; gap: 8px; flex-wrap: wrap; }
     .acts button { flex: 1 1 140px; min-height: 46px; padding: 0 16px; border-radius: 11px; font: inherit; font-size: 14px; font-weight: 750; cursor: pointer; }
     .b-plain { border: 1px solid var(--cc-line); background: var(--cc-white); color: var(--cc-ink); }
@@ -237,10 +242,14 @@ type Tab = 'ALL' | 'CLIENT' | 'COURIER' | 'SUSPENDED';
           @if (confirming()) {
             <div class="cf" role="group" aria-label="Confirmer la suspension">
               <b>Suspendre {{ s.fullName || s.email }} ?</b>
-              <p>La personne est déconnectée tout de suite et ne peut plus se connecter tant que le compte reste suspendu. Vous pourrez le réactiver à tout moment.</p>
+              <p>La personne est déconnectée tout de suite et ne peut plus se connecter tant que le compte reste suspendu. Elle reçoit le motif par e-mail. Vous pourrez réactiver le compte à tout moment.</p>
+              <textarea class="form-input reason" maxlength="500" aria-label="Motif de la suspension"
+                        placeholder="Motif envoyé à la personne (10 caractères minimum)"
+                        [ngModel]="reason()" (ngModelChange)="reason.set($event)"></textarea>
+              <span class="count">{{ reason().trim().length }} / 500</span>
               <div class="acts">
                 <button type="button" class="b-plain" (click)="confirming.set(false)">Annuler</button>
-                <button type="button" class="b-danger solid" [disabled]="acting()" (click)="suspend(s)">Suspendre</button>
+                <button type="button" class="b-danger solid" [disabled]="acting() || reason().trim().length < 10" (click)="suspend(s)">Suspendre</button>
               </div>
             </div>
           } @else {
@@ -248,6 +257,9 @@ type Tab = 'ALL' | 'CLIENT' | 'COURIER' | 'SUSPENDED';
           }
         } @else {
           <p class="note">Ce compte est suspendu : la personne ne peut pas se connecter.</p>
+          @if (s.suspensionReason) {
+            <div class="why"><small>Motif@if (s.suspendedAt) { · le {{ s.suspendedAt | date:'d MMM yyyy à HH:mm' }} }</small>« {{ s.suspensionReason }} »</div>
+          }
           <div class="acts"><button type="button" class="b-ok" [disabled]="acting()" (click)="activate(s)">Réactiver le compte</button></div>
         }
       </aside>
@@ -291,9 +303,12 @@ export class AdminUsersComponent implements OnInit {
     return t === 'ALL' ? this.all().length : this.all().filter((u) => (t === 'SUSPENDED' ? u.status !== 'ACTIVE' : u.role === t)).length;
   }
 
+  readonly reason = signal('');
+
   open(u: UserProfileResponse): void {
     this.selected.set(u);
     this.confirming.set(false);
+    this.reason.set('');
     this.summary.set(null);
     this.summaryFailed.set(false);
     if (u.role === 'ADMIN') return;
@@ -308,8 +323,10 @@ export class AdminUsersComponent implements OnInit {
 
   suspend(u: UserProfileResponse): void {
     this.acting.set(true);
-    this.adminService.suspendUser(u.id).subscribe({
-      next: (x) => { this.replace(x); this.acting.set(false); this.confirming.set(false); this.toast.success(`Compte suspendu : ${x.fullName || x.email} a été déconnecté.`); },
+    const r = this.reason().trim();
+    if (r.length < 10) return;
+    this.adminService.suspendUser(u.id, r).subscribe({
+      next: (x) => { this.replace(x); this.acting.set(false); this.confirming.set(false); this.reason.set(''); this.toast.success(`Compte suspendu : ${x.fullName || x.email} a été déconnecté.`); },
       error: (err) => { this.acting.set(false); this.toast.error(err?.error?.message ?? 'Erreur lors de la suspension.'); },
     });
   }

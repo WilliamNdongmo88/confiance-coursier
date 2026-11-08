@@ -161,7 +161,7 @@ class AccountSuspensionTest {
         AuthService auth = mock(AuthService.class);
         loggedInAs("admin@test.com");
 
-        new AdminUserController(userRepository, auth).suspend(2L);
+        new AdminUserController(userRepository, auth).suspend(2L, new AdminUserController.SuspendRequest("Fraude répétée signalée par plusieurs clients"));
 
         assertThat(target.getStatus()).isEqualTo("SUSPENDED");
         verify(userRepository).save(target);
@@ -174,7 +174,7 @@ class AccountSuspensionTest {
         AuthService auth = mock(AuthService.class);
         loggedInAs("admin@test.com");
 
-        assertThatThrownBy(() -> new AdminUserController(userRepository, auth).suspend(1L))
+        assertThatThrownBy(() -> new AdminUserController(userRepository, auth).suspend(1L, new AdminUserController.SuspendRequest("Fraude répétée signalée par plusieurs clients")))
                 .isInstanceOf(BusinessException.class);
         assertThat(admin.getStatus()).isEqualTo("ACTIVE");
         verify(userRepository, never()).save(any());
@@ -189,7 +189,7 @@ class AccountSuspensionTest {
         AuthService auth = mock(AuthService.class);
         loggedInAs("admin@test.com");
 
-        assertThatThrownBy(() -> new AdminUserController(userRepository, auth).suspend(3L))
+        assertThatThrownBy(() -> new AdminUserController(userRepository, auth).suspend(3L, new AdminUserController.SuspendRequest("Fraude répétée signalée par plusieurs clients")))
                 .isInstanceOf(BusinessException.class);
         assertThat(other.getStatus()).isEqualTo("ACTIVE");
         verify(userRepository, never()).save(any());
@@ -198,5 +198,34 @@ class AccountSuspensionTest {
 
     private static <T> T eq(T value) {
         return org.mockito.ArgumentMatchers.eq(value);
+    }
+
+    @Test
+    void suspensionReasonIsMandatoryAndStored() {
+        User target = user(2, "s@test.com", "ACTIVE");
+        User admin = user(1, "admin@test.com", "ACTIVE");
+        when(userRepository.findByEmail("admin@test.com")).thenReturn(java.util.Optional.of(admin));
+        AuthService auth = mock(AuthService.class);
+        var notifications = mock(com.confiancecoursier.backend.notify.service.NotificationService.class);
+        loggedInAs("admin@test.com");
+        AdminUserController controller = new AdminUserController(userRepository, auth, notifications);
+
+        assertThatThrownBy(() -> controller.suspend(2L, new AdminUserController.SuspendRequest("  abus  ")))
+                .isInstanceOf(BusinessException.class);
+        assertThatThrownBy(() -> controller.suspend(2L, null)).isInstanceOf(BusinessException.class);
+        assertThat(target.getStatus()).isEqualTo("ACTIVE");
+
+        controller.suspend(2L, new AdminUserController.SuspendRequest("  Paiements hors plateforme répétés  "));
+
+        assertThat(target.getStatus()).isEqualTo("SUSPENDED");
+        assertThat(target.getSuspensionReason()).isEqualTo("Paiements hors plateforme répétés");
+        assertThat(target.getSuspendedBy()).isEqualTo(1L);
+        assertThat(target.getSuspendedAt()).isNotNull();
+        verify(notifications).notifySuspendedByAdmin(2L, "Paiements hors plateforme répétés");
+
+        controller.activate(2L);
+        assertThat(target.getStatus()).isEqualTo("ACTIVE");
+        assertThat(target.getSuspensionReason()).isNull();
+        verify(notifications).notifyReactivated(2L);
     }
 }

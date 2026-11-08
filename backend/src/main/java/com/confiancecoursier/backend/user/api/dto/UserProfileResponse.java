@@ -34,6 +34,9 @@ public class UserProfileResponse {
     private String payoutNumberMasked;
     /** TICK-078 : nombre d'avis reçus — 0 = « pas encore d'avis » (le trustScore vaut alors 0 sans être une note). */
     private Long reviewCount;
+    /** TICK-094 : motif et date de la suspension en cours (null si le compte est actif). */
+    private String suspensionReason;
+    private LocalDateTime suspendedAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -59,6 +62,8 @@ public class UserProfileResponse {
                 .initials(computeInitials(user))
                 .payoutMethod(user.getPayoutMethod())
                 .payoutNumberMasked(mask(user.getPayoutNumber()))
+                .suspensionReason("ACTIVE".equals(user.getStatus()) ? null : user.getSuspensionReason())
+                .suspendedAt("ACTIVE".equals(user.getStatus()) ? null : user.getSuspendedAt())
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
                 .build();

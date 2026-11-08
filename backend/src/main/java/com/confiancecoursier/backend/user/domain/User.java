@@ -30,6 +30,16 @@ public class User {
     @Column(name = "payout_method", length = 10)
     private String payoutMethod;
 
+    /** TICK-094 : suspension décidée par un administrateur (motif envoyé à la personne). */
+    @Column(name = "suspension_reason", length = 500)
+    private String suspensionReason;
+
+    @Column(name = "suspended_at")
+    private java.time.LocalDateTime suspendedAt;
+
+    @Column(name = "suspended_by")
+    private Long suspendedBy;
+
     @Column(name = "payout_number", length = 30)
     private String payoutNumber;
 

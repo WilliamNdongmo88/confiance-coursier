@@ -30,11 +30,23 @@ public class AdminUserController {
 
     private final UserRepository userRepository;
     private final AuthService authService;
+    /** Emails de suspension et de réactivation (null dans les tests unitaires qui ne s'en servent pas). */
+    private final com.confiancecoursier.backend.notify.service.NotificationService notificationService;
 
     public AdminUserController(UserRepository userRepository, AuthService authService) {
+        this(userRepository, authService, null);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public AdminUserController(UserRepository userRepository, AuthService authService,
+                               com.confiancecoursier.backend.notify.service.NotificationService notificationService) {
         this.userRepository = userRepository;
         this.authService = authService;
+        this.notificationService = notificationService;
     }
+
+    /** Corps de {@code POST /suspend} : motif obligatoire (10 à 500 caractères), envoyé à la personne. */
+    public record SuspendRequest(String reason) {}
 
     /**
      * GET /api/admin/users?role=COURIER&status=ACTIVE
@@ -71,7 +83,13 @@ public class AdminUserController {
      * Suspend un utilisateur (passe son statut à {@code SUSPENDED}).
      */
     @PostMapping("/{id}/suspend")
-    public ResponseEntity<UserProfileResponse> suspend(@PathVariable Long id) {
+    public ResponseEntity<UserProfileResponse> suspend(@PathVariable Long id,
+                                                       @RequestBody(required = false) SuspendRequest body) {
+        String reason = body == null || body.reason() == null ? "" : body.reason().trim();
+        if (reason.length() < 10) {
+            throw new BusinessException("Indiquez le motif de la suspension (10 caractères minimum) : il est envoyé à la personne.");
+        }
+        if (reason.length() > 500) reason = reason.substring(0, 500);
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Utilisateur introuvable."));
 
@@ -85,8 +103,13 @@ public class AdminUserController {
             throw new BusinessException("Un compte administrateur ne peut pas être suspendu.");
         }
 
+        Long adminId = userRepository.findByEmail(currentEmail).map(User::getId).orElse(null);
         user.setStatus("SUSPENDED");
+        user.setSuspensionReason(reason);
+        user.setSuspendedAt(java.time.LocalDateTime.now());
+        user.setSuspendedBy(adminId);
         userRepository.save(user);
+        if (notificationService != null) notificationService.notifySuspendedByAdmin(user.getId(), reason);
         // Coupe la session longue (plus de refresh). Le JWT court déjà émis est refusé
         // dès la requête suivante par JwtAuthenticationFilter.
         authService.revokeSessions(user.getId());
@@ -103,8 +126,13 @@ public class AdminUserController {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Utilisateur introuvable."));
 
+        boolean wasSuspended = !"ACTIVE".equals(user.getStatus());
         user.setStatus("ACTIVE");
+        user.setSuspensionReason(null);
+        user.setSuspendedAt(null);
+        user.setSuspendedBy(null);
         userRepository.save(user);
+        if (wasSuspended && notificationService != null) notificationService.notifyReactivated(user.getId());
         return ResponseEntity.ok(UserProfileResponse.fromUser(user));
     }
 }
