@@ -19,8 +19,11 @@ export interface CourierSummary {
   initials: string;
   averageRating: number | null;
   completedCourses: number;
-  zone: string;
+  zone: string | null;
   kycVerified: boolean;
+  /** TICK-089 : moyen de déplacement et même ville que la course. */
+  vehicle: string | null;
+  sameCity: boolean;
 }
 
 /** Conversation d'un coursier sur une course ouverte (GET /api/courses/{id}/conversations). */
@@ -72,8 +75,9 @@ export class CourseService {
     return this.http.get<any[]>(`${this.apiUrl}/my-missions`);
   }
 
-  getAvailableCouriers(): Observable<CourierSummary[]> {
-    return this.http.get<CourierSummary[]>('/api/users/couriers');
+  /** Coursiers vérifiés ; ceux de {@code city} (ville de la course) d'abord. */
+  getAvailableCouriers(city?: string): Observable<CourierSummary[]> {
+    return this.http.get<CourierSummary[]>('/api/users/couriers', { params: city ? { city } : {} });
   }
 
   /** TICK-059 — Le client accepte une offre ACTIVE → course passe en ASSIGNED. */

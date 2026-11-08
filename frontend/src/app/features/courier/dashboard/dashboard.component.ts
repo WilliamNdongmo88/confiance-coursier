@@ -17,6 +17,8 @@ import {
   LucideShieldAlert, LucideShieldCheck, LucideShoppingBag, LucideStar, LucideTruck, LucideWallet, LucideX, LucideRefreshCw, LucideFlag,
 } from '@lucide/angular';
 
+import { courseCity, normalizeCity } from '../../../shared/data/courier-profile';
+
 @Component({
   selector: 'app-courier-dashboard',
   standalone: true,
@@ -27,6 +29,15 @@ import {
   ],
   styles: [`
     .m.declined { opacity: .78; }
+    .zone-tabs { display: inline-flex; gap: 4px; padding: 4px; margin: 4px 16px 12px; border-radius: 12px; background: var(--cc-paper-2); border: 1px solid var(--cc-line); max-width: 100%; }
+    .zone-tabs button { min-height: 38px; padding: 0 12px; border: 0; border-radius: 9px; background: none; color: var(--cm); font: inherit; font-size: 13.5px;
+      font-weight: 650; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+    .zone-tabs button.on { background: var(--cc-white); color: var(--cc-ink); box-shadow: 0 2px 8px rgba(18,59,50,.08); }
+    .zone-tabs b { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; display: grid; place-items: center; font-size: 12px; background: var(--cc-line); color: var(--cc-ink); }
+    .zone-empty { padding: 18px 4px 6px; text-align: center; color: var(--cm); font-size: 14px; }
+    .zone-empty p { margin: 0 0 10px; }
+    :host-context([data-theme="dark"]) .zone-tabs { background: rgba(255,255,255,.05); }
+    :host-context([data-theme="dark"]) .zone-tabs button.on { background: #2B4A3E; color: #F3F7F5; }
     .rq-count { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 6px; margin-left: 4px; border-radius: 11px;
       vertical-align: 2px; font-size: 12px; font-weight: 800; background: var(--cc-success-bg); color: var(--cc-success); }
     .refresh { flex: none; width: 40px; height: 40px; border-radius: 11px; border: 1px solid var(--cc-line); background: var(--cc-white); color: var(--cc-ink);
@@ -226,6 +237,14 @@ import {
               <button type="button" class="refresh" [class.spin]="refreshing()" (click)="loadPublished(true)" aria-label="Actualiser les demandes">
                 <svg lucideRefreshCw size="16"></svg></button>
             </div>
+            @if (myCity() && publishedCourses.length) {
+              <div class="zone-tabs" role="tablist" aria-label="Filtrer les demandes">
+                <button type="button" role="tab" [attr.aria-selected]="onlyMyCity()" [class.on]="onlyMyCity()" (click)="onlyMyCity.set(true)">
+                  {{ myCity() }} <b>{{ inMyCity().length }}</b></button>
+                <button type="button" role="tab" [attr.aria-selected]="!onlyMyCity()" [class.on]="!onlyMyCity()" (click)="onlyMyCity.set(false)">
+                  Tout le Cameroun <b>{{ publishedCourses.length }}</b></button>
+              </div>
+            }
             @if (kycStatus() !== 'APPROVED' && publishedCourses.length) {
               <p class="kyc-note">Vous pourrez proposer un tarif une fois votre identité vérifiée.</p>
             }
@@ -235,8 +254,13 @@ import {
               <app-error-state message="Impossible de charger les nouvelles demandes." (retry)="loadPublished()" />
             } @else if (publishedCourses.length === 0) {
               <app-empty-state title="Aucune demande pour le moment" message="Les courses publiées par les clients apparaîtront ici." />
+            } @else if (shownRequests().length === 0) {
+              <div class="zone-empty">
+                <p>Aucune demande à {{ myCity() }} pour le moment.</p>
+                <button type="button" class="a-sec" (click)="onlyMyCity.set(false)">Voir tout le Cameroun ({{ publishedCourses.length }})</button>
+              </div>
             }
-            @for (course of publishedCourses; track course.id; let i = $index) {
+            @for (course of shownRequests(); track course.id; let i = $index) {
               <article class="m" [class.fresh]="freshIds().has(course.id)" [style.animation-delay.ms]="i * 40">
                 <div class="m-top">
                   <span class="m-ic" aria-hidden="true">
@@ -273,7 +297,7 @@ import {
             } @else if (missionsError()) {
               <app-error-state message="Impossible de charger vos missions." (retry)="loadMissions()" />
             } @else if (myMissions.length === 0) {
-              <app-empty-state title="Aucune mission en cours" message="Choisissez une demande ci-dessous et proposez votre tarif au client." />
+              <app-empty-state title="Aucune mission en cours" message="Choisissez une demande ci-dessus et proposez votre tarif au client." />
             }
             @for (mission of myMissions; track mission.id; let i = $index) {
               <article class="m" [class.declined]="mission.notRetained" [style.animation-delay.ms]="i * 40">
@@ -444,6 +468,7 @@ export class CourierDashboardComponent implements OnInit {
         this.kycStatus.set(profile.kycStatus || 'NONE');
         this.trustScore.set(Number(profile.trustScore ?? 0));
         this.reviewCount.set(Number(profile.reviewCount ?? 0));
+        this.myCity.set((profile.city ?? '').trim());
       },
       error: warnLoadFailed('profil coursier (statut KYC)', 'bannière KYC affichée'),
     });
@@ -479,6 +504,15 @@ export class CourierDashboardComponent implements OnInit {
    * 3. Courses publiées disponibles (principal). {@code silent} : rafraîchissement sans squelette ni message
    * d'erreur (minuterie, retour sur l'onglet) ; les demandes apparues depuis le dernier chargement sont signalées.
    */
+  /** TICK-089 : ville du coursier ; ses demandes d'abord (filtre « Ma ville » / « Tout le Cameroun »). */
+  readonly myCity = signal('');
+  readonly onlyMyCity = signal(true);
+  inMyCity(): any[] {
+    const mine = normalizeCity(this.myCity());
+    return this.publishedCourses.filter((c) => normalizeCity(courseCity(c.zone)) === mine);
+  }
+  shownRequests(): any[] { return this.myCity() && this.onlyMyCity() ? this.inMyCity() : this.publishedCourses; }
+
   readonly refreshedAt = signal<Date | null>(null);
   readonly refreshing = signal(false);
   readonly freshIds = signal<Set<number>>(new Set());

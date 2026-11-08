@@ -114,6 +114,8 @@ export interface UserProfileResponse {
   initials: string;
   createdAt: string;
   updatedAt: string;
+  /** TICK-089 : moyen de déplacement du coursier. */
+  vehicle?: string | null;
   /** Motif et date de la suspension en cours (null si le compte est actif). */
   suspensionReason?: string | null;
   suspendedAt?: string | null;

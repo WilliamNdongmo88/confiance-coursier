@@ -876,8 +876,8 @@ Contrôles :
 - Le mode édition fonctionne et reste accessible depuis le détail (PUBLISHED seulement).
 **Validation :** création en moins de 30 s sur mobile (chronométré).
 
-#### TICK-082 ⚙️ [FULL] Écran « Coursiers » : offres reçues + coursiers proches — 5 h
-**Statut :** ⚙️ (2026-11-08, bilan `docs/bilan-tickets-080-105.md`) — « Annuler » et « Modifier » ajoutés dans le détail client (2026-11-08) ; reste : coursiers proches (dépend de TICK-089).
+#### TICK-082 ✅ [FULL] Écran « Coursiers » : offres reçues + coursiers proches — 5 h
+**Statut :** ✅ (2026-11-08, bilan `docs/bilan-tickets-080-105.md`) — « Annuler » et « Modifier » ajoutés dans le détail client (2026-11-08) ; coursiers de la ville de la course en premier, avec ville, moyen de déplacement et nombre réel de courses (TICK-089, 2026-11-08).
 **Anomalies :** A-22, CL-11, CL-12, CL-20 · **Fichiers :** `select-courier`, `course-detail`, `GET /courses/{id}/offers` (avec nom, note, KYC), `GET /users/couriers?zone=`
 **Critères d'acceptation :**
 - Onglet « Offres reçues » (montant, coursier, Discuter / Accepter) et onglet « Proches » (Discuter).
@@ -913,8 +913,8 @@ Contrôles :
 
 ### SPRINT 10 — PARCOURS COURSIER SIMPLIFIÉ
 
-#### TICK-085 ⚙️ [FULL] Accueil coursier « Nouvelles demandes » en premier — 5 h
-**Statut :** ⚙️ (2026-11-08, bilan `docs/bilan-tickets-080-105.md`) — demandes avant les missions et rafraîchissement automatique (20 s, retour sur l’onglet, bouton, repère « Nouvelle ») faits le 2026-11-08 ; reste : filtre par zone (TICK-089).
+#### TICK-085 ✅ [FULL] Accueil coursier « Nouvelles demandes » en premier — 5 h
+**Statut :** ✅ (2026-11-08, bilan `docs/bilan-tickets-080-105.md`) — demandes avant les missions et rafraîchissement automatique (20 s, retour sur l’onglet, bouton, repère « Nouvelle ») faits le 2026-11-08 ; filtre « Ma ville / Tout le Cameroun » ajouté avec TICK-089 (2026-11-08).
 **Anomalies :** A-23, CO-09, CO-13
 **Critères d'acceptation :**
 - Demandes visibles sans scroll sur 390×844.
@@ -952,7 +952,8 @@ Contrôles :
 - Badge sur l'onglet Missions.
 **Validation :** les montants correspondent au ledger après E2E-1.
 
-#### TICK-089 🟡 [FULL] Persister véhicule et zone du coursier — 2 h
+#### TICK-089 ✅ [FULL] Persister véhicule et zone du coursier — 2 h
+**Statut :** ✅ (2026-11-08) — ville et moyen de déplacement demandés à l’inscription coursier, modifiables dans le profil, visibles dans la fiche admin ; V27 (users.vehicle) ; la zone est la ville du compte.
 **Anomalie :** CO-19 · **Fichiers :** `RegisterRequest`, `User` + migration, `register.component.ts`, profil
 **Critères d'acceptation :**
 - Véhicule et zone enregistrés à l'inscription et modifiables dans le profil.

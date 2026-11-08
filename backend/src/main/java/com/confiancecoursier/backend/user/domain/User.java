@@ -30,6 +30,10 @@ public class User {
     @Column(name = "payout_method", length = 10)
     private String payoutMethod;
 
+    /** TICK-089 : moyen de déplacement du coursier (A_PIED | VELO | MOTO | VOITURE | TRICYCLE). */
+    @Column(name = "vehicle", length = 20)
+    private String vehicle;
+
     /** TICK-094 : suspension décidée par un administrateur (motif envoyé à la personne). */
     @Column(name = "suspension_reason", length = 500)
     private String suspensionReason;

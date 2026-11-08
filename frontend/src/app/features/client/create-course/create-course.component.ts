@@ -10,6 +10,7 @@ import {
   LucideLockKeyhole, LucideMapPin, LucideMoreHorizontal, LucidePackage, LucidePencil, LucideShoppingBag,
   LucideGlobe, LucideSmartphone, LucideStar, LucideTruck, LucideUserRound,
 } from '@lucide/angular';
+import { ComboFieldComponent } from '../../../shared/components/combo-field/combo-field.component';
 
 type TypeKey = 'ACHAT' | 'LIVRAISON' | 'RETRAIT' | 'AUTRE';
 type StepKey = 'type' | 'need' | 'place' | 'contact' | 'when' | 'payer' | 'recap';
@@ -66,6 +67,7 @@ const STEPS: { key: StepKey; label: string }[] = [
   selector: 'app-create-course',
   standalone: true,
   imports: [
+    ComboFieldComponent,
     FormsModule, RouterLink,
     LucideArrowLeft, LucideArrowRight, LucideCalendarDays, LucideCamera, LucideCheck, LucideFileText,
     LucideLockKeyhole, LucideMapPin, LucideMoreHorizontal, LucidePackage, LucidePencil, LucideShoppingBag,
@@ -215,9 +217,9 @@ const STEPS: { key: StepKey; label: string }[] = [
                 <div class="grid2">
                   <div class="form-group">
                     <label class="form-label" for="cc-city">Ville</label>
-                    <input id="cc-city" class="form-input" name="city" [(ngModel)]="city" list="cc-cities" data-autofocus
-                           placeholder="Ex : Douala" autocomplete="address-level2">
-                    <datalist id="cc-cities">@for (c of cities; track c) { <option [value]="c"></option> }</datalist>
+                    <app-combo-field inputId="cc-city" name="city" [freeText]="true" [options]="cities" [value]="city"
+                                     (valueChange)="city = $event" [autofocus]="true" placeholder="Ex : Douala"
+                                     autocomplete="address-level2" ariaLabel="Villes du Cameroun" />
                   </div>
                   <div class="form-group">
                     <label class="form-label" for="cc-area">Quartier</label>

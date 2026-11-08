@@ -23,6 +23,7 @@ interface UserProfile {
   role: string;
   country: string | null;
   city: string | null;
+  vehicle?: string | null;
   status: string;
   trustScore: number | null;
   badge: string | null;
@@ -32,10 +33,14 @@ interface UserProfile {
   updatedAt: string;
 }
 
+import { CAMEROON_CITIES } from '../../../shared/data/courier-profile';
+import { VehiclePickerComponent } from '../../../shared/components/vehicle-picker/vehicle-picker.component';
+import { ComboFieldComponent } from '../../../shared/components/combo-field/combo-field.component';
+
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [
+  imports: [VehiclePickerComponent, ComboFieldComponent, 
     RouterLink,
     NgIf,
     LucideLogOut,
@@ -252,27 +257,31 @@ interface UserProfile {
     <div class="profile-grid st-mb-16px">
       <div class="form-group">
         <label class="form-label" for="country">Pays où vous vivez</label>
-        <select id="country" class="form-select"
-                [value]="country" (change)="country = getVal($event)">
-          <option value="">— Sélectionner —</option>
-          @for (c of countries; track c) { <option [value]="c" [selected]="country === c">{{ c }}</option> }
-        </select>
+        <app-combo-field inputId="country" [options]="countries" [value]="country" (valueChange)="country = $event"
+                         emptyLabel="— Sélectionner —" placeholder="— Sélectionner —" ariaLabel="Pays" />
       </div>
       <div class="form-group">
         <label class="form-label" for="city">
-          {{ isCourier ? 'Zone où vous intervenez' : 'Ville de vos courses au Cameroun' }}
+          {{ isCourier ? 'Ville où vous travaillez' : 'Ville de vos courses au Cameroun' }}
         </label>
         <ng-container *ngIf="!isCourier; else courierCity">
-          <input id="city" class="form-input" list="profile-cities" [value]="city" (input)="city = getVal($event)" placeholder="Ex : Douala">
-          <datalist id="profile-cities">@for (c of cities; track c) { <option [value]="c"></option> }</datalist>
+          <app-combo-field inputId="city" [freeText]="true" [options]="cities" [value]="city" (valueChange)="city = $event"
+                           placeholder="Ex : Douala" autocomplete="address-level2" ariaLabel="Villes du Cameroun" />
           <p class="form-hint">Proposée automatiquement à la création de vos courses.</p>
         </ng-container>
         <ng-template #courierCity>
-          <input id="city" type="text" class="form-input"
-                 [value]="city" (input)="city = getVal($event)"
-                 placeholder="Ex : Yaoundé centre, Bastos">
+          <app-combo-field inputId="city" [freeText]="true" [options]="cities" [value]="city" (valueChange)="city = $event"
+                           placeholder="Ex : Douala" autocomplete="address-level2" ariaLabel="Villes du Cameroun" />
+          <p class="form-hint">Les demandes de cette ville vous sont proposées en premier, et les clients vous voient comme « proche ».</p>
         </ng-template>
       </div>
+      @if (isCourier) {
+        <div class="form-group">
+          <span class="form-label" id="vehicle-label">Moyen de déplacement</span>
+          <app-vehicle-picker [value]="vehicle" [allowNone]="true" (valueChange)="vehicle = $event" labelledBy="vehicle-label" />
+          <p class="form-hint">Affiché aux clients quand ils choisissent un coursier.</p>
+        </div>
+      }
     </div>
 
     <!-- Section KYC (coursier uniquement) -->
@@ -346,8 +355,8 @@ export class ProfileComponent implements OnInit {
   // ── Champs du formulaire (initialisés à partir du profil) ────────────────
   readonly countries = ['Cameroun', 'France', 'Belgique', 'Suisse', 'Allemagne', 'Royaume-Uni', 'Italie', 'Espagne',
     'Canada', 'États-Unis', 'Côte d’Ivoire', 'Gabon', 'Nigeria', 'Afrique du Sud', 'Autre'];
-  readonly cities = ['Douala', 'Yaoundé', 'Bafoussam', 'Bamenda', 'Garoua', 'Maroua', 'Ngaoundéré', 'Bertoua',
-    'Ebolowa', 'Buea', 'Limbe', 'Kribi', 'Kumba', 'Dschang', 'Nkongsamba', 'Edéa'];
+  readonly cities = CAMEROON_CITIES;
+  vehicle = '';
 
   rating(): string { return (this.profile()?.trustScore ?? 0).toFixed(1).replace('.', ','); }
 
@@ -387,6 +396,7 @@ export class ProfileComponent implements OnInit {
         this.phone    = p.phone    ?? '';
         this.country  = p.country  ?? '';
         this.city     = p.city     ?? '';
+        this.vehicle  = p.vehicle  ?? '';
         this.isLoading.set(false);
       },
       error: () => {
@@ -407,6 +417,7 @@ export class ProfileComponent implements OnInit {
       phone:    this.phone.trim()    || null,
       country:  this.country.trim()  || null,
       city:     this.city.trim()     || null,
+      ...(this.isCourier ? { vehicle: this.vehicle } : {}),
     };
 
     this.http.put<UserProfile>('/api/users/me', body).subscribe({

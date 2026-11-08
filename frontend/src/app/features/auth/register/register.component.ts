@@ -6,10 +6,14 @@ import { ThemeService } from '../../../core/services/theme.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { LucideArrowLeft, LucideBike, LucideEye, LucideEyeOff, LucideMoon, LucideShieldCheck, LucideSun, LucideUser } from '@lucide/angular';
 
+import { CAMEROON_CITIES } from '../../../shared/data/courier-profile';
+import { VehiclePickerComponent } from '../../../shared/components/vehicle-picker/vehicle-picker.component';
+import { ComboFieldComponent } from '../../../shared/components/combo-field/combo-field.component';
+
 @Component({
   selector: 'app-register',
   standalone: true,
-  imports: [FormsModule, RouterLink, LucideArrowLeft, LucideBike, LucideEye, LucideEyeOff, LucideMoon, LucideShieldCheck, LucideSun, LucideUser],
+  imports: [FormsModule, RouterLink, VehiclePickerComponent, ComboFieldComponent, LucideArrowLeft, LucideBike, LucideEye, LucideEyeOff, LucideMoon, LucideShieldCheck, LucideSun, LucideUser],
   template: `
     <div class="auth-wrapper">
       <div class="auth-card auth-card--wide">
@@ -73,6 +77,20 @@ import { LucideArrowLeft, LucideBike, LucideEye, LucideEyeOff, LucideMoon, Lucid
             <p id="reg-email-hint" class="form-hint">Votre code de confirmation sera envoyé à cette adresse.</p>
           </div>
 
+          @if (role === 'COURIER') {
+            <div class="form-group">
+              <label class="form-label" for="reg-city">Ville où vous travaillez</label>
+              <app-combo-field inputId="reg-city" [freeText]="true" [options]="cities" [value]="city" (valueChange)="city = $event"
+                               placeholder="Ex : Douala" autocomplete="address-level2" describedBy="reg-city-hint"
+                               ariaLabel="Villes du Cameroun" />
+              <p id="reg-city-hint" class="form-hint">Les demandes de votre ville vous sont proposées en premier.</p>
+            </div>
+            <div class="form-group">
+              <span class="form-label" id="reg-vehicle-label">Moyen de déplacement</span>
+              <app-vehicle-picker [value]="vehicle" (valueChange)="vehicle = $event" labelledBy="reg-vehicle-label" />
+            </div>
+          }
+
           <div class="form-group">
             <label class="form-label" for="reg-phone">Téléphone <span class="optional">(facultatif)</span></label>
             <input id="reg-phone" type="tel" class="form-input" [(ngModel)]="phone" name="phone"
@@ -123,6 +141,7 @@ import { LucideArrowLeft, LucideBike, LucideEye, LucideEyeOff, LucideMoon, Lucid
     </div>
   `,
   styles: [`
+
     :host { display: block; --reg-muted: #56635c; }
     :host-context([data-theme="dark"]) { --reg-muted: var(--cc-muted); }
     .auth-card--wide { max-width: 500px; }
@@ -191,6 +210,9 @@ export class RegisterComponent {
   password = '';
   confirmPassword = '';
   role = 'CLIENT';
+  city = '';
+  vehicle = '';
+  readonly cities = CAMEROON_CITIES;
   acceptCgu = false;
   isLoading = false;
   /** Mots de passe affichés en clair (bouton œil, s'applique aux deux champs). */
@@ -221,6 +243,10 @@ export class RegisterComponent {
       this.toast.error('Vous devez accepter les CGU pour continuer.');
       return;
     }
+    if (this.role === 'COURIER' && (!this.city.trim() || !this.vehicle)) {
+      this.toast.error('Indiquez votre ville et votre moyen de déplacement.');
+      return;
+    }
 
     this.isLoading = true;
 
@@ -230,6 +256,8 @@ export class RegisterComponent {
       phone: this.phone,
       password: this.password,
       role: this.role,
+      city: this.role === 'COURIER' ? this.city.trim() : undefined,
+      vehicle: this.role === 'COURIER' ? this.vehicle : undefined,
     }).subscribe({
       next: () => {
         this.isLoading = false;

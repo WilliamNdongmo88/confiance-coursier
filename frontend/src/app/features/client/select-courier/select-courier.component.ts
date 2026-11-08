@@ -16,6 +16,8 @@ type Conversation = CourseConversation;
  * En tête : les coursiers qui ont déjà écrit (pastille de messages non lus), puis les coursiers disponibles.
  * Rien de factice : pas de « recommandés » inventés ni de bouton inactif ; la note n'apparaît que si elle existe.
  */
+import { courseCity, vehicleLabel } from '../../../shared/data/courier-profile';
+
 @Component({
   selector: 'app-select-courier',
   standalone: true,
@@ -52,6 +54,8 @@ type Conversation = CourseConversation;
     .stats { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 5px; font-size: 13px; color: var(--sc-muted); }
     .stats span { display: inline-flex; align-items: center; gap: 4px; }
     .stats .star { color: #a2671b; font-weight: 700; }
+    .stats .near { color: var(--cc-success); font-weight: 700; }
+    :host-context([data-theme="dark"]) .stats .near { color: #9FDDB4; }
     .go { flex: none; min-height: 44px; }
     .offer { flex: none; display: grid; justify-items: end; gap: 1px; padding: 6px 12px; border-radius: 12px; background: var(--cc-success-bg); text-align: right; animation: sc-pop .35s cubic-bezier(.16,1,.3,1) both; }
     .offer small { font-size: 11.5px; font-weight: 700; color: var(--sc-muted); }
@@ -162,7 +166,8 @@ type Conversation = CourseConversation;
                   @if (c.averageRating != null) { <span class="star"><svg lucideStar size="13"></svg> {{ rating(c.averageRating) }}</span> }
                   @else { <span>Pas encore noté</span> }
                   <span><svg lucideCheckCircle size="13"></svg> {{ c.completedCourses }} course{{ c.completedCourses !== 1 ? 's' : '' }}</span>
-                  @if (c.zone) { <span><svg lucideMapPin size="13"></svg> {{ c.zone }}</span> }
+                  @if (c.zone) { <span [class.near]="c.sameCity"><svg lucideMapPin size="13"></svg> {{ c.sameCity ? 'À ' + c.zone : c.zone }}</span> }
+                  @if (c.vehicle) { <span>{{ vehicleLabel(c.vehicle) }}</span> }
                 </div>
               </div>
               <button type="button" class="primary-action go" [disabled]="choosingCourierId === c.id" (click)="chooseCourier(c)">
@@ -203,7 +208,12 @@ export class SelectCourierComponent implements OnInit {
     this.courseId = id ? Number(id) : null;
     if (this.courseId) {
       this.courseService.getCourseById(this.courseId).subscribe({
-        next: (c: any) => this.course.set({ zone: (c?.zone ?? '').replace(' - ', ' · '), scheduledAt: c?.scheduledAt }),
+        next: (c: any) => {
+          this.course.set({ zone: (c?.zone ?? '').replace(' - ', ' · '), scheduledAt: c?.scheduledAt });
+          // TICK-089 : coursiers de la ville de la course d'abord
+          const city = courseCity(c?.zone);
+          if (city && city !== this.city) { this.city = city; this.loadCouriers(); }
+        },
         error: warnLoadFailed('détail de la course (en-tête)', 'en-tête générique'),
       });
       this.courseService.listConversations(this.courseId).subscribe({
@@ -217,13 +227,15 @@ export class SelectCourierComponent implements OnInit {
 
   loadCouriers(): void {
     this.isLoading = true;
-    this.courseService.getAvailableCouriers().subscribe({
+    this.courseService.getAvailableCouriers(this.city || undefined).subscribe({
       next: (list) => { this.couriers.set(list); this.isLoading = false; },
       error: () => { this.isLoading = false; this.toast.error('Impossible de charger la liste des coursiers.'); },
     });
   }
 
   rating(v: number): string { return v.toFixed(1).replace('.', ','); }
+  private city = '';
+  vehicleLabel(v: string | null): string { return vehicleLabel(v); }
   /** Offre en cours (montant positif, encore active). */
   hasOffer(c: Conversation): boolean { return c.offerAmount != null && Number(c.offerAmount) > 0 && c.offerStatus === 'ACTIVE'; }
   xaf(v: number): string { return `${new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(Math.round(Number(v) || 0)).replace(/ /g, ' ')} XAF`; }

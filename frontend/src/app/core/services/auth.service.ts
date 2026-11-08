@@ -9,6 +9,9 @@ export interface RegisterRequest {
   fullName: string;
   phone: string;
   role: string;
+  /** TICK-089 : ville et moyen de déplacement du coursier. */
+  city?: string;
+  vehicle?: string;
 }
 
 export interface LoginRequest {

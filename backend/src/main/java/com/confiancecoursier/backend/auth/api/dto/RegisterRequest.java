@@ -21,6 +21,14 @@ public class RegisterRequest {
 
     private String phone;
 
+    /** TICK-089 : ville du coursier (sa zone d'intervention) ; facultative pour un client. */
+    @Size(max = 100, message = "La ville ne doit pas dépasser 100 caractères.")
+    private String city;
+
+    /** TICK-089 : moyen de déplacement du coursier. */
+    @Pattern(regexp = "^$|A_PIED|VELO|MOTO|VOITURE|TRICYCLE", message = "Moyen de déplacement invalide.")
+    private String vehicle;
+
     /**
      * Seuls CLIENT et COURIER sont autorisés à l'inscription publique.
      * Le rôle ADMIN ne peut jamais être obtenu par cette voie (TICK-051).

@@ -1,5 +1,6 @@
 package com.confiancecoursier.backend.user.api.dto;
 
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
@@ -25,4 +26,8 @@ public class UpdateProfileRequest {
 
     @Size(max = 100, message = "La ville ne doit pas dépasser 100 caractères.")
     private String city;
+
+    /** TICK-089 : moyen de déplacement (coursier) ; chaîne vide = effacé. */
+    @Pattern(regexp = "^$|A_PIED|VELO|MOTO|VOITURE|TRICYCLE", message = "Moyen de déplacement invalide.")
+    private String vehicle;
 }

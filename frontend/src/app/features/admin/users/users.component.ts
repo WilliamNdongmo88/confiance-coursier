@@ -14,6 +14,8 @@ type Tab = 'ALL' | 'CLIENT' | 'COURIER' | 'SUSPENDED';
  * Liste lisible à toutes les largeurs (sans tableau qui défile), fiche latérale avec l'activité réelle du compte,
  * suspension confirmée et jamais proposée sur un compte administrateur (refusée aussi par le serveur).
  */
+import { vehicleLabel } from '../../../shared/data/courier-profile';
+
 @Component({
   selector: 'app-admin-users',
   standalone: true,
@@ -194,6 +196,7 @@ type Tab = 'ALL' | 'CLIENT' | 'COURIER' | 'SUSPENDED';
         <dl class="facts">
           <div><dt>Téléphone</dt><dd>{{ s.phone || '—' }}</dd></div>
           <div><dt>Ville</dt><dd>{{ place(s) }}</dd></div>
+          @if (s.role === 'COURIER') { <div><dt>Déplacement</dt><dd>{{ vehicleLabel(s.vehicle) || 'Non précisé' }}</dd></div> }
           <div><dt>Inscrit le</dt><dd>{{ s.createdAt | date:'d MMMM yyyy' }}</dd></div>
           @if (s.role !== 'ADMIN') {
             <div><dt>Note reçue</dt><dd>@if (s.trustScore > 0) { <svg lucideStar size="13"></svg> {{ rating(s.trustScore) }} / 5 } @else { Pas encore d’avis }</dd></div>
@@ -352,6 +355,7 @@ export class AdminUsersComponent implements OnInit {
   goLinked(e: Event): void { e.preventDefault(); document.getElementById('litiges-lies')?.scrollIntoView({ block: 'start', behavior: 'smooth' }); }
   motif(code: string): string { return DISPUTE_MOTIFS[code] ?? code; }
   doneLabel(dec: string | null): string { return (dec && DISPUTE_DONE[dec]) || 'Résolu'; }
+  vehicleLabel(v: string | null | undefined): string { return vehicleLabel(v); }
   place(u: UserProfileResponse): string { return [u.city, u.country].filter(Boolean).join(', ') || '—'; }
   rating(v: number): string { return new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(v); }
   private norm(s: string): string { return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim(); }

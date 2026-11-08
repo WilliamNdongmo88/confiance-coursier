@@ -31,6 +31,8 @@ public class UserProfileResponse {
     private String initials;
     /** Compte de reversement du coursier (MTN | ORANGE) — numéro masqué sauf les 3 derniers chiffres. */
     private String payoutMethod;
+    /** TICK-089 : moyen de déplacement du coursier. */
+    private String vehicle;
     private String payoutNumberMasked;
     /** TICK-078 : nombre d'avis reçus — 0 = « pas encore d'avis » (le trustScore vaut alors 0 sans être une note). */
     private Long reviewCount;
@@ -61,6 +63,7 @@ public class UserProfileResponse {
                 .kycStatus(user.getKycStatus())
                 .initials(computeInitials(user))
                 .payoutMethod(user.getPayoutMethod())
+                .vehicle(user.getVehicle())
                 .payoutNumberMasked(mask(user.getPayoutNumber()))
                 .suspensionReason("ACTIVE".equals(user.getStatus()) ? null : user.getSuspensionReason())
                 .suspendedAt("ACTIVE".equals(user.getStatus()) ? null : user.getSuspendedAt())

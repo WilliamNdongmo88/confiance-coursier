@@ -77,6 +77,9 @@ public class AuthService {
                 .fullName(request.getFullName())
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .phone(request.getPhone())
+                .city(blankToNull(request.getCity()))
+                .country(blankToNull(request.getCity()) == null ? null : "Cameroun")
+                .vehicle("COURIER".equals(role) ? blankToNull(request.getVehicle()) : null)
                 .role(role)
                 .status("ACTIVE")
                 .build();
@@ -85,6 +88,10 @@ public class AuthService {
 
         // Envoie l'OTP (quota par email et par IP — TICK-066)
         otpService.generateOtp(user.getEmail(), ip);
+    }
+
+    private static String blankToNull(String v) {
+        return v == null || v.isBlank() ? null : v.trim();
     }
 
     public AuthResponse login(LoginRequest request) {

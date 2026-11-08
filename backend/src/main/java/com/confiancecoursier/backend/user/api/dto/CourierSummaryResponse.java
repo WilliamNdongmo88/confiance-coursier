@@ -15,22 +15,28 @@ public class CourierSummaryResponse {
     private String initials;
     private BigDecimal averageRating;
     private int completedCourses;
+    /** Ville du coursier (sa zone d'intervention), null si non renseignée. */
     private String zone;
     private boolean kycVerified;
+    /** TICK-089 : moyen de déplacement (A_PIED | VELO | MOTO | VOITURE | TRICYCLE), null si non renseigné. */
+    private String vehicle;
+    /** TICK-089 : même ville que la course consultée (« proche »). */
+    private boolean sameCity;
 
-    public static CourierSummaryResponse fromUser(User user) {
+    /** Note affichée seulement si des avis existent (trustScore > 0) ; nombre réel de courses terminées. */
+    public static CourierSummaryResponse fromUser(User user, int completedCourses, boolean sameCity) {
         String name = user.getFullName() != null ? user.getFullName() : user.getEmail();
-        String initials = computeInitials(name);
-        String zone = user.getCity() != null ? user.getCity() : "Non précisée";
-
+        BigDecimal score = user.getTrustScore();
         return CourierSummaryResponse.builder()
                 .id(user.getId())
                 .fullName(name)
-                .initials(initials)
-                .averageRating(user.getTrustScore())
-                .completedCourses(0) // sera calculé via le module review (Sprint 5)
-                .zone(zone)
-                .kycVerified(false)  // sera alimenté via le module KYC (Sprint 3)
+                .initials(computeInitials(name))
+                .averageRating(score != null && score.signum() > 0 ? score : null)
+                .completedCourses(completedCourses)
+                .zone(user.getCity() == null || user.getCity().isBlank() ? null : user.getCity().trim())
+                .kycVerified("APPROVED".equals(user.getKycStatus()))
+                .vehicle(user.getVehicle())
+                .sameCity(sameCity)
                 .build();
     }
 

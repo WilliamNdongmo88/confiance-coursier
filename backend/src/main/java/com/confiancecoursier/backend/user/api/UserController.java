@@ -29,11 +29,14 @@ public class UserController {
 
     private final UserRepository userRepository;
     private final com.confiancecoursier.backend.review.repository.ReviewRepository reviewRepository;
+    private final com.confiancecoursier.backend.course.repository.CourseRepository courseRepository;
 
     public UserController(UserRepository userRepository,
-                          com.confiancecoursier.backend.review.repository.ReviewRepository reviewRepository) {
+                          com.confiancecoursier.backend.review.repository.ReviewRepository reviewRepository,
+                          com.confiancecoursier.backend.course.repository.CourseRepository courseRepository) {
         this.userRepository = userRepository;
         this.reviewRepository = reviewRepository;
+        this.courseRepository = courseRepository;
     }
 
     /** Profil + nombre d'avis reçus (TICK-078 : la note n'est affichée que s'il existe des avis). */
@@ -89,6 +92,9 @@ public class UserController {
         if (request.getCity() != null) {
             user.setCity(request.getCity().trim());
         }
+        if (request.getVehicle() != null && "COURIER".equals(user.getRole())) {
+            user.setVehicle(request.getVehicle().isBlank() ? null : request.getVehicle());
+        }
 
         userRepository.save(user);
         return ResponseEntity.ok(profileOf(user));
@@ -107,15 +113,28 @@ public class UserController {
      * Pour l'instant on retourne tous les COURIER ACTIVE.
      */
     @GetMapping("/couriers")
-    public ResponseEntity<List<CourierSummaryResponse>> getAvailableCouriers() {
+    public ResponseEntity<List<CourierSummaryResponse>> getAvailableCouriers(
+            @RequestParam(required = false) String city) {
+        String wanted = city == null ? "" : normalizeCity(city);
         List<CourierSummaryResponse> couriers = userRepository
                 // Seuls les coursiers KYC APPROVED peuvent être contactés (POST /conversations le refuse sinon)
                 .findByRoleAndStatusAndKycStatusOrderByTrustScoreDesc("COURIER", "ACTIVE", "APPROVED")
                 .stream()
-                .map(CourierSummaryResponse::fromUser)
+                .map(u -> CourierSummaryResponse.fromUser(u,
+                        (int) courseRepository.countByCourierIdAndStatus(u.getId(), "COMPLETED"),
+                        !wanted.isEmpty() && wanted.equals(normalizeCity(u.getCity()))))
+                // TICK-089 : coursiers de la ville de la course d'abord (le tri par note est conservé à l'intérieur)
+                .sorted(java.util.Comparator.comparing(CourierSummaryResponse::isSameCity).reversed())
                 .toList();
 
         return ResponseEntity.ok(couriers);
+    }
+
+    /** Ville comparable : minuscules, sans accents ni espaces superflus (« Yaoundé » = « yaounde »). */
+    static String normalizeCity(String city) {
+        if (city == null) return "";
+        return java.text.Normalizer.normalize(city.trim().toLowerCase(java.util.Locale.ROOT), java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "");
     }
 
     // ─── Utilitaires ──────────────────────────────────────────────────────────
