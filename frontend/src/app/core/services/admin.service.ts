@@ -121,6 +121,16 @@ export interface UserProfileResponse {
   suspendedAt?: string | null;
 }
 
+/** Page de comptes renvoyée par {@code GET /api/admin/users/search} (TICK-094). */
+export interface AdminUserPage {
+  items: UserProfileResponse[];
+  total: number;
+  page: number;
+  size: number;
+  totalPages: number;
+  counts: { ALL: number; CLIENT: number; COURIER: number; SUSPENDED: number };
+}
+
 /** Activité réelle d'un compte ({@code GET /api/admin/users/{id}/summary}). */
 export interface UserActivitySummary {
   coursesAsClient: number;
@@ -279,6 +289,13 @@ export class AdminService {
 
   getUserSummary(id: number): Observable<UserActivitySummary> {
     return this.http.get<UserActivitySummary>(`/api/admin/users/${id}/summary`);
+  }
+
+  /** TICK-094 : page de comptes (onglet, recherche nom / email / téléphone) et compteurs de chaque onglet. */
+  searchUsers(tab: string, q: string, page: number, size: number): Observable<AdminUserPage> {
+    const params: Record<string, string> = { tab, page: String(page), size: String(size) };
+    if (q.trim()) params['q'] = q.trim();
+    return this.http.get<AdminUserPage>('/api/admin/users/search', { params });
   }
 
   getUsers(role?: string, status?: string): Observable<UserProfileResponse[]> {

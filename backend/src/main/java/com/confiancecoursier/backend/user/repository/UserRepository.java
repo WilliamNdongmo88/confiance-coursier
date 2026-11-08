@@ -2,13 +2,14 @@ package com.confiancecoursier.backend.user.repository;
 
 import com.confiancecoursier.backend.user.domain.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface UserRepository extends JpaRepository<User, Long> {
+public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificationExecutor<User> {
     Optional<User> findByEmail(String email);
     boolean existsByEmail(String email);
 
@@ -26,4 +27,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     /** Utilisateurs par rôle et statut (admin). */
     List<User> findByRoleAndStatus(String role, String status);
+
+    /** Compteurs des onglets de la liste admin (TICK-094). */
+    long countByRole(String role);
+
+    long countByStatusNot(String status);
 }

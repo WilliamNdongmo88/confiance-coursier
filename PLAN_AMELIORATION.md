@@ -1008,8 +1008,8 @@ Contrôles :
 - Historique des changements (qui, quand).
 **Validation :** modifier le taux → une nouvelle course utilise le nouveau taux, une course payée garde l'ancien.
 
-#### TICK-094 ⚙️ [FULL] Utilisateurs, KYC et signalements : efficacité et sûreté — 6 h
-**Statut :** ⚙️ (2026-11-08, bilan `docs/bilan-tickets-080-105.md`) — motif obligatoire pour une suspension fait (2026-11-08, V26, envoyé par email) ; reste : pagination.
+#### TICK-094 ✅ [FULL] Utilisateurs, KYC et signalements : efficacité et sûreté — 6 h
+**Statut :** ✅ (2026-11-08, bilan `docs/bilan-tickets-080-105.md`) — motif obligatoire pour une suspension (V26, envoyé par email) ; pagination côté serveur `GET /api/admin/users/search?tab=&q=&page=&size=` (20 par page, recherche nom / email sans accents et téléphone sans espaces, compteurs des onglets sur tous les comptes).
 **Anomalies :** AD-11, AD-12, AD-13, UI-08, UI-09
 **Critères d'acceptation :**
 - Pagination et recherche (nom, email, téléphone) ; noms affichés à la place des IDs.

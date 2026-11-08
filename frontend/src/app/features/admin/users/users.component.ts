@@ -1,4 +1,4 @@
-import { Component, HostListener, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, HostListener, OnInit, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -6,6 +6,7 @@ import { AdminService, UserActivitySummary, UserProfileResponse } from '../../..
 import { ToastService } from '../../../core/services/toast.service';
 import { LucideChevronRight, LucideScale, LucideSearch, LucideStar, LucideX } from '@lucide/angular';
 import { DISPUTE_DONE, DISPUTE_MOTIFS } from '../disputes/dispute-labels';
+import { vehicleLabel } from '../../../shared/data/courier-profile';
 
 type Tab = 'ALL' | 'CLIENT' | 'COURIER' | 'SUSPENDED';
 
@@ -13,9 +14,8 @@ type Tab = 'ALL' | 'CLIENT' | 'COURIER' | 'SUSPENDED';
  * Utilisateurs (admin, Impeccable, mode Operate).
  * Liste lisible à toutes les largeurs (sans tableau qui défile), fiche latérale avec l'activité réelle du compte,
  * suspension confirmée et jamais proposée sur un compte administrateur (refusée aussi par le serveur).
+ * TICK-094 : liste paginée par le serveur (20 comptes par page), recherche et onglets traités côté serveur.
  */
-import { vehicleLabel } from '../../../shared/data/courier-profile';
-
 @Component({
   selector: 'app-admin-users',
   standalone: true,
@@ -56,6 +56,13 @@ import { vehicleLabel } from '../../../shared/data/courier-profile';
     .chip.bad { background: var(--cc-danger-bg); color: var(--cc-danger); }
     .end { display: flex; align-items: center; gap: 8px; justify-content: flex-end; color: var(--um); }
     .empty { padding: 30px 16px; text-align: center; color: var(--um); font-size: 14px; }
+    .pager { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; font-size: 13.5px; color: var(--um); }
+    .pager span { text-align: center; }
+    .pager button { min-height: 42px; padding: 0 16px; border-radius: 10px; border: 1px solid var(--cc-line); background: var(--cc-white); color: var(--cc-ink); font: inherit; font-weight: 700; cursor: pointer; transition: border-color .15s; }
+    .pager button:hover:not(:disabled) { border-color: var(--primary); }
+    .pager button:disabled { opacity: .45; cursor: default; }
+    :host-context([data-theme="dark"]) .pager button { background: transparent; color: #F3F7F5; }
+    :host-context([data-theme="dark"]) .pager { color: #B0C0B7; }
     .sk { height: 62px; border-top: 1px solid var(--cc-line); background: linear-gradient(90deg, var(--cc-paper-2), var(--cc-white), var(--cc-paper-2)); background-size: 200% 100%; animation: u-sk 1.2s linear infinite; }
     /* ── Fiche ── */
     .ov { position: fixed; inset: 0; z-index: 9100; background: rgba(16,38,29,.45); animation: u-fade .2s ease; }
@@ -143,24 +150,24 @@ import { vehicleLabel } from '../../../shared/data/courier-profile';
     <div class="u">
       <section class="u-head">
         <h1>Utilisateurs</h1>
-        <p>{{ all().length }} compte{{ all().length > 1 ? 's' : '' }} : {{ count('CLIENT') }} client{{ count('CLIENT') > 1 ? 's' : '' }}, {{ count('COURIER') }} coursier{{ count('COURIER') > 1 ? 's' : '' }}{{ count('SUSPENDED') ? ', dont ' + count('SUSPENDED') + (count('SUSPENDED') > 1 ? ' suspendus' : ' suspendu') : '' }}.</p>
+        <p>{{ count('ALL') }} compte{{ count('ALL') > 1 ? 's' : '' }} : {{ count('CLIENT') }} client{{ count('CLIENT') > 1 ? 's' : '' }}, {{ count('COURIER') }} coursier{{ count('COURIER') > 1 ? 's' : '' }}{{ count('SUSPENDED') ? ', dont ' + count('SUSPENDED') + (count('SUSPENDED') > 1 ? ' suspendus' : ' suspendu') : '' }}.</p>
       </section>
 
       <div class="tools">
         <div class="tabs" role="tablist" aria-label="Filtrer les comptes">
           @for (t of tabs; track t.key) {
-            <button type="button" role="tab" [attr.aria-selected]="tab() === t.key" [class.on]="tab() === t.key" (click)="tab.set(t.key)">{{ t.label }} <b>{{ count(t.key) }}</b></button>
+            <button type="button" role="tab" [attr.aria-selected]="tab() === t.key" [class.on]="tab() === t.key" (click)="setTab(t.key)">{{ t.label }} <b>{{ count(t.key) }}</b></button>
           }
         </div>
         <label class="search"><svg lucideSearch size="16"></svg>
-          <input class="form-input" type="search" placeholder="Nom, e-mail ou téléphone" aria-label="Rechercher un utilisateur" [ngModel]="q()" (ngModelChange)="q.set($event)"></label>
+          <input class="form-input" type="search" placeholder="Nom, e-mail ou téléphone" aria-label="Rechercher un utilisateur" [ngModel]="q()" (ngModelChange)="onSearch($event)"></label>
       </div>
 
       <div class="list" role="list">
         @if (loading()) {
           <div class="sk"></div><div class="sk"></div><div class="sk"></div>
         } @else {
-          @for (u of filtered(); track u.id; let i = $index) {
+          @for (u of items(); track u.id; let i = $index) {
             <button type="button" role="listitem" class="row" [class.off]="u.status !== 'ACTIVE'" [class.sel]="selected()?.id === u.id"
                     [style.animation-delay.ms]="i < 12 ? i * 25 : 0" (click)="open(u)" [attr.aria-label]="'Ouvrir la fiche de ' + (u.fullName || u.email)">
               <span class="who"><span class="av" aria-hidden="true">{{ u.initials }}</span>
@@ -175,10 +182,18 @@ import { vehicleLabel } from '../../../shared/data/courier-profile';
               </span>
             </button>
           } @empty {
-            <div class="empty" role="status">Aucun compte ne correspond.</div>
+            <div class="empty" role="status">{{ q().trim() ? 'Aucun compte ne correspond à « ' + q().trim() + ' ».' : 'Aucun compte dans cette catégorie.' }}</div>
           }
         }
       </div>
+
+      @if (!loading() && total() > size) {
+        <nav class="pager" aria-label="Pages de la liste des comptes">
+          <button type="button" [disabled]="page() === 0" (click)="go(page() - 1)">Précédents</button>
+          <span>{{ rangeLabel() }}</span>
+          <button type="button" [disabled]="page() + 1 >= pages()" (click)="go(page() + 1)">Suivants</button>
+        </nav>
+      }
     </div>
 
     @if (selected(); as s) {
@@ -276,34 +291,79 @@ export class AdminUsersComponent implements OnInit {
   readonly tabs: { key: Tab; label: string }[] = [
     { key: 'ALL', label: 'Tous' }, { key: 'CLIENT', label: 'Clients' }, { key: 'COURIER', label: 'Coursiers' }, { key: 'SUSPENDED', label: 'Suspendus' },
   ];
+  readonly size = 20;
   readonly tab = signal<Tab>('ALL');
   readonly q = signal('');
-  readonly all = signal<UserProfileResponse[]>([]);
+  readonly page = signal(0);
+  readonly items = signal<UserProfileResponse[]>([]);
+  readonly total = signal(0);
+  readonly counts = signal<Record<Tab, number>>({ ALL: 0, CLIENT: 0, COURIER: 0, SUSPENDED: 0 });
   readonly loading = signal(true);
+  private destroyRef = inject(DestroyRef);
+  private timer: ReturnType<typeof setTimeout> | null = null;
+  private seq = 0;
   readonly selected = signal<UserProfileResponse | null>(null);
   readonly summary = signal<UserActivitySummary | null>(null);
   readonly summaryFailed = signal(false);
   readonly confirming = signal(false);
   readonly acting = signal(false);
 
-  readonly filtered = computed(() => {
-    const t = this.tab();
-    const q = this.norm(this.q());
-    return this.all()
-      .filter((u) => (t === 'ALL' ? true : t === 'SUSPENDED' ? u.status !== 'ACTIVE' : u.role === t))
-      .filter((u) => !q || this.norm(`${u.fullName ?? ''} ${u.email} ${u.phone ?? ''}`).includes(q))
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  });
-
   ngOnInit(): void {
-    this.adminService.getUsers().subscribe({
-      next: (data) => { this.all.set(data); this.loading.set(false); },
-      error: () => { this.toast.error('Erreur lors du chargement des utilisateurs.'); this.loading.set(false); },
-    });
+    this.load();
+    this.destroyRef.onDestroy(() => { if (this.timer) clearTimeout(this.timer); });
   }
 
-  count(t: Tab): number {
-    return t === 'ALL' ? this.all().length : this.all().filter((u) => (t === 'SUSPENDED' ? u.status !== 'ACTIVE' : u.role === t)).length;
+  /** Compteurs de chaque onglet, sur l'ensemble des comptes (pas seulement la page affichée). */
+  count(t: Tab): number { return this.counts()[t] ?? 0; }
+
+  pages(): number { return Math.max(1, Math.ceil(this.total() / this.size)); }
+
+  /** « 21–40 sur 57 comptes » */
+  rangeLabel(): string {
+    const from = this.page() * this.size + 1;
+    const to = Math.min(this.total(), from + this.items().length - 1);
+    return `${from}–${to} sur ${this.total()} compte${this.total() > 1 ? 's' : ''}`;
+  }
+
+  setTab(t: Tab): void {
+    if (this.tab() === t) return;
+    this.tab.set(t);
+    this.page.set(0);
+    this.load();
+  }
+
+  onSearch(v: string): void {
+    this.q.set(v);
+    if (this.timer) clearTimeout(this.timer);
+    this.timer = setTimeout(() => { this.page.set(0); this.load(); }, 300);
+  }
+
+  go(p: number): void {
+    this.page.set(p);
+    this.load();
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  /** @param silent rafraîchit sans squelette (après une suspension ou une réactivation : compteurs à jour). */
+  private load(silent = false): void {
+    const mine = ++this.seq;
+    if (!silent) this.loading.set(true);
+    this.adminService.searchUsers(this.tab(), this.q(), this.page(), this.size).subscribe({
+      next: (r) => {
+        if (mine !== this.seq) return; // une réponse plus ancienne ne remplace pas la dernière recherche
+        // Page devenue vide (ex. dernier compte suspendu retiré de l'onglet) : on revient à la précédente
+        if (!r.items.length && this.page() > 0) { this.page.set(this.page() - 1); this.load(silent); return; }
+        this.items.set(r.items);
+        this.total.set(r.total);
+        this.counts.set(r.counts);
+        this.loading.set(false);
+      },
+      error: () => {
+        if (mine !== this.seq) return;
+        this.loading.set(false);
+        if (!silent) this.toast.error('Erreur lors du chargement des utilisateurs.');
+      },
+    });
   }
 
   readonly reason = signal('');
@@ -325,9 +385,9 @@ export class AdminUsersComponent implements OnInit {
   close(): void { this.selected.set(null); this.confirming.set(false); }
 
   suspend(u: UserProfileResponse): void {
-    this.acting.set(true);
     const r = this.reason().trim();
     if (r.length < 10) return;
+    this.acting.set(true);
     this.adminService.suspendUser(u.id, r).subscribe({
       next: (x) => { this.replace(x); this.acting.set(false); this.confirming.set(false); this.reason.set(''); this.toast.success(`Compte suspendu : ${x.fullName || x.email} a été déconnecté.`); },
       error: (err) => { this.acting.set(false); this.toast.error(err?.error?.message ?? 'Erreur lors de la suspension.'); },
@@ -343,8 +403,9 @@ export class AdminUsersComponent implements OnInit {
   }
 
   private replace(x: UserProfileResponse): void {
-    this.all.update((l) => l.map((u) => (u.id === x.id ? x : u)));
+    this.items.update((l) => l.map((u) => (u.id === x.id ? x : u)));
     if (this.selected()?.id === x.id) this.selected.set(x);
+    this.load(true);
   }
 
   roleLabel(r: string): string { return r === 'CLIENT' ? 'Client' : r === 'COURIER' ? 'Coursier' : r === 'ADMIN' ? 'Administrateur' : r; }
@@ -358,5 +419,4 @@ export class AdminUsersComponent implements OnInit {
   vehicleLabel(v: string | null | undefined): string { return vehicleLabel(v); }
   place(u: UserProfileResponse): string { return [u.city, u.country].filter(Boolean).join(', ') || '—'; }
   rating(v: number): string { return new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(v); }
-  private norm(s: string): string { return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim(); }
 }
