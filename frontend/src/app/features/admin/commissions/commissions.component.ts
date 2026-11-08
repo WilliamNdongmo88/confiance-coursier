@@ -107,7 +107,7 @@ const LIMITS = { client: 10, courier: 40 };
             <div class="card-h">
               <span class="ic" aria-hidden="true"><svg lucideUser size="19"></svg></span>
               <div><h2 id="c-client">Frais de service client</h2>
-                <p>Ajoutés au prix payé par le client. Ils ne réduisent jamais ce que reçoit le coursier.</p></div>
+                <p>Calculés sur le tarif du coursier et les achats avancés, puis ajoutés au prix payé par le client. Ils ne réduisent jamais ce que reçoit le coursier.</p></div>
             </div>
             <div class="rate">
               <input type="range" min="0" [max]="limits.client" step="0.5" [ngModel]="rates().client" (ngModelChange)="set('client', $event)" aria-label="Frais de service client, en pourcentage">
