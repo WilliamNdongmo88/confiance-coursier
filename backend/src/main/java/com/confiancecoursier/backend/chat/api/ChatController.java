@@ -140,21 +140,26 @@ public class ChatController {
         String destination = "/topic/chat/" + room.getId();
         afterCommit(() -> messagingTemplate.convertAndSend(destination, (Object) payload));
 
-        notifyClientOnFirstReply(room, sender);
+        notifyClientOnFirstReply(room, sender, offerAmount);
     }
 
     /**
-     * Premier message d'un coursier sur l'ensemble des salons d'une course : le client est prévenu par email.
-     * Envoi après validation de la transaction et hors du fil du chat (l'email ne doit ni bloquer ni annuler le message).
+     * Premier message d'un coursier dans son salon (donc un nouveau coursier intéressé) : le client est prévenu
+     * par email, une fois par coursier. Si ce premier message est une offre, son montant figure dans l'email.
+     * Seulement tant que la course est ouverte (PUBLISHED). Envoi après validation de la transaction et hors du
+     * fil du chat (l'email ne doit ni bloquer ni annuler le message).
      */
-    private void notifyClientOnFirstReply(ChatRoom room, User sender) {
+    private void notifyClientOnFirstReply(ChatRoom room, User sender, BigDecimal offerAmount) {
         if (!sender.getId().equals(room.getCourierId())) return;
-        var roomIds = chatRoomRepository.findByCourseId(room.getCourseId()).stream().map(ChatRoom::getId).toList();
-        if (chatMessageRepository.countByRoomIdInAndSenderIdNot(roomIds, room.getClientId()) != 1) return;
-        String description = courseRepository.findById(room.getCourseId()).map(c -> c.getDescription()).orElse("");
+        if (chatMessageRepository.countByRoomIdAndSenderId(room.getId(), sender.getId()) != 1) return;
+        var course = courseRepository.findById(room.getCourseId()).orElse(null);
+        if (course == null || !"PUBLISHED".equals(course.getStatus())) return;
+        String description = course.getDescription() == null ? "" : course.getDescription();
         String courierName = sender.getFullName() == null || sender.getFullName().isBlank() ? "Un coursier" : sender.getFullName();
+        Long roomId = room.getId();
         afterCommit(() -> java.util.concurrent.CompletableFuture.runAsync(() ->
-                notificationService.notifyFirstReply(room.getClientId(), courierName, description, room.getCourseId())));
+                notificationService.notifyFirstReply(room.getClientId(), courierName, description,
+                        room.getCourseId(), roomId, offerAmount)));
     }
 
     /** Exécute l'action après validation de la transaction courante (immédiatement s'il n'y en a pas). */

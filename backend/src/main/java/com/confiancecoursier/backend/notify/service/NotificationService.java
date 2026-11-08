@@ -157,21 +157,42 @@ public class NotificationService {
                         "Rendez-vous dans votre espace pour discuter des détails et commencer la mission."));
     }
 
-    /** Premier message reçu sur une course publiée (envoyé une seule fois par course). */
-    public void notifyFirstReply(Long clientId, String courierName, String courseDescription, Long courseId) {
+    /**
+     * Un nouveau coursier a écrit au client sur sa course publiée (un email par coursier). Si son premier message
+     * est une offre, le tarif proposé est indiqué et le bouton ouvre directement sa discussion.
+     */
+    public void notifyFirstReply(Long clientId, String courierName, String courseDescription, Long courseId,
+                                 Long roomId, java.math.BigDecimal offerAmount) {
         String email = resolveEmail(clientId);
         if (email == null) return;
         String desc = courseDescription == null ? "" : courseDescription.strip();
         if (desc.length() > 90) desc = desc.substring(0, 87) + "…";
         desc = org.springframework.web.util.HtmlUtils.htmlEscape(desc);
         String name = org.springframework.web.util.HtmlUtils.htmlEscape(courierName);
-        sendEmail(email,
-                "Un coursier vous a répondu — " + EmailLayout.BRAND,
-                buildTemplate("Un coursier vous a répondu",
-                        "<strong>" + name + "</strong> vous a écrit au sujet de votre course « " + desc + " ».",
-                        "Lisez son message, discutez du tarif et choisissez votre coursier. "
-                                + "Votre paiement restera bloqué jusqu’à ce que vous validiez les preuves.",
-                        "Lire son message", "/client/select-courier/" + courseId));
+        boolean offer = offerAmount != null && offerAmount.signum() > 0;
+        String amount = offer ? xafFr(offerAmount) : null;
+        String subject = offer
+                ? courierName + " vous propose " + amount + " — " + EmailLayout.BRAND
+                : "Un nouveau coursier vous a écrit — " + EmailLayout.BRAND;
+        String lead = offer
+                ? "<strong>" + name + "</strong> propose de faire votre course « " + desc + " » pour <strong>" + amount + "</strong>."
+                : "<strong>" + name + "</strong> vous a écrit au sujet de votre course « " + desc + " ».";
+        String detail = offer
+                ? "Vous pouvez accepter son offre dans la discussion, lui poser vos questions ou comparer avec les autres coursiers. "
+                  + "Votre paiement restera bloqué jusqu’à ce que vous validiez les preuves."
+                : "Lisez son message, discutez du tarif et comparez avec les autres coursiers. "
+                  + "Votre paiement restera bloqué jusqu’à ce que vous validiez les preuves.";
+        sendEmail(email, subject,
+                buildTemplate(offer ? "Nouvelle offre pour votre course" : "Un nouveau coursier vous a écrit", lead, detail,
+                        offer ? "Voir son offre" : "Lire son message",
+                        roomId != null ? "/chat/" + roomId : "/client/select-courier/" + courseId));
+    }
+
+    /** Montant XAF au format français (espaces fines), sans décimales. */
+    private static String xafFr(java.math.BigDecimal v) {
+        java.text.DecimalFormatSymbols sym = new java.text.DecimalFormatSymbols(java.util.Locale.FRANCE);
+        sym.setGroupingSeparator(' ');
+        return new java.text.DecimalFormat("#,##0", sym).format(v.setScale(0, java.math.RoundingMode.HALF_UP)) + " XAF";
     }
 
     public void notifyCourierNotRetained(Long courierId, Long courseId) {

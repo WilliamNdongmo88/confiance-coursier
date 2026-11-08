@@ -155,6 +155,24 @@ class OfferServiceTest {
     }
 
     @Test
+    void acceptClosesTheOtherCouriersConversations() {
+        var rooms = mock(com.confiancecoursier.backend.chat.repository.ChatRoomRepository.class);
+        var mine = com.confiancecoursier.backend.chat.domain.ChatRoom.builder().id(20L).courseId(100L).clientId(1L).courierId(2L).isArchived(false).build();
+        var other = com.confiancecoursier.backend.chat.domain.ChatRoom.builder().id(21L).courseId(100L).clientId(1L).courierId(5L).isArchived(false).build();
+        when(rooms.findByCourseId(100L)).thenReturn(List.of(mine, other));
+        OfferService svc = new OfferService(offers, courses, users, notifications, mock(CommissionService.class), reviewGate, rooms);
+        activeOffer(10L, 2L, "6000");
+        when(offers.findByCourseIdAndStatus(100L, "ACTIVE")).thenReturn(List.of());
+
+        svc.acceptOffer(100L, 10L, 1L);
+
+        assertThat(mine.getIsArchived()).isFalse();   // discussion du coursier retenu : ouverte
+        assertThat(other.getIsArchived()).isTrue();   // coursier non retenu : lecture seule
+        verify(rooms).save(other);
+        verify(rooms, never()).save(mine);
+    }
+
+    @Test
     void secondAcceptanceIsRefused() {
         activeOffer(10L, 2L, "6000");
         when(offers.findByCourseIdAndStatus(100L, "ACTIVE")).thenReturn(List.of());

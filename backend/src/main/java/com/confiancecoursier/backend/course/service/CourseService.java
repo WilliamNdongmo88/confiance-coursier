@@ -123,8 +123,10 @@ public class CourseService {
 
         Map<Long, String> names = namesOf(courses);
         return withReviewDue(courses.stream()
-                .map(course -> toResponse(course,
-                        pickRoom(course, roomsByCourse.getOrDefault(course.getId(), List.of())), clientId, names))
+                .map(course -> {
+                    List<ChatRoom> rooms = roomsByCourse.getOrDefault(course.getId(), List.of());
+                    return withConversations(toResponse(course, pickRoom(course, rooms), clientId, names), course, rooms, clientId);
+                })
                 .collect(Collectors.toList()), clientId);
     }
 
@@ -227,7 +229,8 @@ public class CourseService {
         }
 
         return withReviewDue(new java.util.ArrayList<>(List.of(
-                toResponse(course, resolveChatRoomId(course), requesterId, namesOf(List.of(course))))), requesterId).get(0);
+                withConversations(toResponse(course, resolveChatRoomId(course), requesterId, namesOf(List.of(course))),
+                        course, chatRoomRepository.findByCourseId(course.getId()), requesterId))), requesterId).get(0);
     }
 
     public List<CourseResponse> getMyMissions(Long courierId) {
@@ -256,7 +259,15 @@ public class CourseService {
 
         Map<Long, String> names = namesOf(all);
         return withReviewDue(all.stream()
-                .map(course -> toResponse(course, roomIdByCourse.get(course.getId()), courierId, names))
+                .map(course -> {
+                    CourseResponse dto = toResponse(course, roomIdByCourse.get(course.getId()), courierId, names);
+                    // Le client a retenu un autre coursier : offre déclinée, et le nom du coursier choisi n'est pas exposé
+                    if (course.getCourierId() != null && !course.getCourierId().equals(courierId)) {
+                        dto.setNotRetained(true);
+                        dto.setCourierName(null);
+                    }
+                    return dto;
+                })
                 .collect(Collectors.toList()), courierId);
     }
 
@@ -269,12 +280,62 @@ public class CourseService {
         return pickRoom(course, chatRoomRepository.findByCourseId(course.getId()));
     }
 
-    /** Salon à afficher : celui du coursier assigné, sinon le premier ouvert (règle inchangée). */
+    /**
+     * Salon « de la course » : celui du coursier retenu. Tant qu'aucun coursier n'est choisi, plusieurs coursiers
+     * peuvent avoir écrit : aucun salon n'est privilégié, le client passe par « Voir les coursiers ».
+     */
     private static Long pickRoom(Course course, List<ChatRoom> rooms) {
-        if (course.getCourierId() != null) {
-            return rooms.stream().filter(r -> course.getCourierId().equals(r.getCourierId()))
-                    .findFirst().map(ChatRoom::getId).orElse(null);
+        if (course.getCourierId() == null) return null;
+        return rooms.stream().filter(r -> course.getCourierId().equals(r.getCourierId()))
+                .findFirst().map(ChatRoom::getId).orElse(null);
+    }
+
+    /** Client propriétaire : tous les salons ouverts sur la course (pour compter les messages non lus). */
+    private static CourseResponse withConversations(CourseResponse dto, Course course, List<ChatRoom> rooms, Long viewerId) {
+        if (viewerId != null && viewerId.equals(course.getClientId())) {
+            dto.setConversationRoomIds(rooms.stream().map(ChatRoom::getId).toList());
         }
-        return rooms.stream().findFirst().map(ChatRoom::getId).orElse(null);
+        return dto;
+    }
+
+    /**
+     * Conversations ouvertes sur une course, pour son client : coursier, offre en cours (montant et statut),
+     * note et identité vérifiée. Celles avec une offre active d'abord, puis les plus récentes.
+     */
+    public List<java.util.Map<String, Object>> listConversations(Long courseId, Long clientId) {
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new NotFoundException("Course introuvable."));
+        if (!course.getClientId().equals(clientId)) {
+            throw new ForbiddenException("Vous n'êtes pas le propriétaire de cette course.");
+        }
+        List<ChatRoom> rooms = chatRoomRepository.findByCourseId(courseId);
+        Map<Long, com.confiancecoursier.backend.user.domain.User> couriers = userRepository
+                .findAllById(rooms.stream().map(ChatRoom::getCourierId).toList()).stream()
+                .collect(Collectors.toMap(com.confiancecoursier.backend.user.domain.User::getId, u -> u));
+        // Dernière offre de chaque coursier (la plus récente l'emporte : ACTIVE, ACCEPTED ou REJECTED)
+        Map<Long, com.confiancecoursier.backend.course.domain.CourseOffer> lastOffer = new java.util.HashMap<>();
+        for (var o : offerRepository.findByCourseId(courseId)) {
+            if ("SUPERSEDED".equals(o.getStatus())) continue;
+            lastOffer.merge(o.getCourierId(), o, (a, b) -> b.getId() > a.getId() ? b : a);
+        }
+        return rooms.stream()
+                .sorted(java.util.Comparator
+                        .comparing((ChatRoom r) -> lastOffer.containsKey(r.getCourierId())
+                                && "ACTIVE".equals(lastOffer.get(r.getCourierId()).getStatus()) ? 0 : 1)
+                        .thenComparing(ChatRoom::getId, java.util.Comparator.reverseOrder()))
+                .map(r -> {
+                    var u = couriers.get(r.getCourierId());
+                    var o = lastOffer.get(r.getCourierId());
+                    java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+                    m.put("chatRoomId", r.getId());
+                    m.put("courierId", r.getCourierId());
+                    m.put("courierName", u == null || u.getFullName() == null || u.getFullName().isBlank() ? "Coursier" : u.getFullName());
+                    m.put("verified", u != null && "APPROVED".equals(u.getKycStatus()));
+                    m.put("trustScore", u == null ? null : u.getTrustScore());
+                    m.put("offerAmount", o == null ? null : o.getAmount());
+                    m.put("offerStatus", o == null ? null : o.getStatus());
+                    return m;
+                })
+                .toList();
     }
 }

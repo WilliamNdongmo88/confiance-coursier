@@ -52,6 +52,14 @@ import {
     .metric-unit { font-size: 13px; color: var(--dash-muted); font-weight: 600; }
     .metric-none { font-size: 15px; font-weight: 700; letter-spacing: -.02em; }
     .text-link { white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; min-height: 44px; }
+    /* Course ouverte : des coursiers ont écrit (indice à côté de « Voir les coursiers ») */
+    .row-wrote { display: inline-flex; align-items: center; gap: 5px; margin-top: 6px; padding: 3px 9px; border-radius: 99px;
+      font-size: 12px; font-weight: 700; background: var(--cc-success-bg); color: var(--cc-success); animation: wrote-in .35s cubic-bezier(.16,1,.3,1) both; }
+    .row-wrote.hot { background: var(--cc-danger-bg); color: var(--cc-danger); }
+    :host-context([data-theme="dark"]) .row-wrote { background: rgba(159,221,180,.1); color: #9FDDB4; }
+    :host-context([data-theme="dark"]) .row-wrote.hot { background: rgba(240,163,156,.12); color: #F0A39C; }
+    @keyframes wrote-in { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+    @media (prefers-reduced-motion: reduce) { .row-wrote { animation: none; } }
 
     /* Une course attend le client : l'action principale de l'écran */
     .dash-alert {
@@ -208,13 +216,24 @@ import {
                   <span class="row-meta-dot"></span>
                   <span>{{ course.scheduledAt | date:'dd/MM/yyyy HH:mm' }}</span>
                 </div>
+                @if (course.status === 'PUBLISHED' && course.conversationRoomIds?.length) {
+                  <div class="row-wrote" [class.hot]="unread.sum(course.conversationRoomIds)">
+                    <svg lucideMessageCircle size="13"></svg>
+                    {{ course.conversationRoomIds.length }} coursier{{ course.conversationRoomIds.length > 1 ? 's vous ont' : ' vous a' }} écrit@if (unread.sum(course.conversationRoomIds); as n) { · {{ n }} message{{ n > 1 ? 's' : '' }} non lu{{ n > 1 ? 's' : '' }} }
+                  </div>
+                }
               </div>
               <div class="row-right">
                 <!-- TICK-077 : badge et action suivante issus de courseStatus() -->
                 <app-status-badge [status]="course.status" role="CLIENT" />
                 <div class="row-actions">
                   @if (nextAction(course); as action) {
-                    <a [routerLink]="action.link" class="btn-row btn-row--green">{{ action.label }}</a>
+                    @if (course.status === 'PUBLISHED' && unread.sum(course.conversationRoomIds); as n) {
+                      <a [routerLink]="action.link" class="btn-row btn-row--green has-dot" [attr.aria-label]="action.label + ' : ' + n + ' message(s) non lu(s) de coursiers'">
+                        {{ action.label }} <span class="chat-dot" aria-hidden="true">{{ n > 9 ? '9+' : n }}</span></a>
+                    } @else {
+                      <a [routerLink]="action.link" class="btn-row btn-row--green">{{ action.label }}</a>
+                    }
                   }
                   <a [routerLink]="['/client/course-detail', course.id]" class="btn-row btn-row--ghost">Détails</a>
                   @if (course.chatRoomId) {
@@ -253,7 +272,7 @@ export class ClientDashboardComponent implements OnInit {
   readonly unread = inject(ChatUnreadService);
   /** Pastilles de messages non lus : rafraîchies toutes les 30 s tant que l'écran est ouvert. */
   private readonly unreadTimer = (() => {
-    const id = setInterval(() => this.unread.refresh(), 30_000);
+    const id = setInterval(() => this.unread.refresh(), 15_000);
     inject(DestroyRef).onDestroy(() => clearInterval(id));
     return id;
   })();

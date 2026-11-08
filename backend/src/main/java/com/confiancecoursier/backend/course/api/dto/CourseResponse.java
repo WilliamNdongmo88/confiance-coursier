@@ -30,8 +30,12 @@ public class CourseResponse {
     private LocalDateTime autoValidateAt;
     private String currency;
     private Long acceptedOfferId;
-    /** Identifiant du salon de chat associé à cette course (nullable si aucune offre encore) */
+    /** Salon du coursier retenu ; null tant qu'aucun coursier n'est choisi (voir conversationRoomIds). */
     private Long chatRoomId;
+    /** Client propriétaire uniquement : salons ouverts par les coursiers sur la course (pastille « Voir les coursiers »). */
+    private java.util.List<Long> conversationRoomIds;
+    /** Coursier qui consulte ses missions : true si le client a retenu un autre coursier (offre déclinée). */
+    private Boolean notRetained;
 
     // ── TICK-070 : suivi ────────────────────────────────────────────────────
     private LocalDateTime paidAt;

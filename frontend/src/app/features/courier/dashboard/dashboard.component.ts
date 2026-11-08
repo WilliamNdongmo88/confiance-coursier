@@ -28,6 +28,8 @@ import {
     LucideShieldAlert, LucideShieldCheck, LucideShoppingBag, LucideStar, LucideTruck, LucideWallet, LucideX,
   ],
   styles: [`
+    .m.declined { opacity: .78; }
+    .m-note { margin-top: 6px; font-size: 12.5px; color: var(--cm); }
     :host { display: block; --cm: #56635c; }
     :host-context([data-theme="dark"]) { --cm: #B0C0B7; }
     .head p { color: var(--cm); }
@@ -202,7 +204,7 @@ import {
               <app-empty-state title="Aucune mission en cours" message="Choisissez une demande ci-dessous et proposez votre tarif au client." />
             }
             @for (mission of myMissions; track mission.id; let i = $index) {
-              <article class="m" [style.animation-delay.ms]="i * 40">
+              <article class="m" [class.declined]="mission.notRetained" [style.animation-delay.ms]="i * 40">
                 <div class="m-top">
                   <span class="m-ic" aria-hidden="true">
                     @switch (kind(mission.description)) {
@@ -213,7 +215,7 @@ import {
                     }
                   </span>
                   <div class="m-b">
-                    <div class="m-t"><span class="m-title">{{ mission.description }}</span><app-status-badge [status]="mission.status" role="COURIER" /></div>
+                    <div class="m-t"><span class="m-title">{{ mission.description }}</span><app-status-badge [status]="mission.status" role="COURIER" [notRetained]="mission.notRetained" /></div>
                     <div class="m-meta">
                       <span><svg lucideMapPin size="13"></svg> {{ zone(mission.zone) }}</span>
                       @if (mission.scheduledAt) { <span><svg lucideClock size="13"></svg> {{ mission.scheduledAt | date:'d MMM, HH:mm' }}</span> }
@@ -223,10 +225,11 @@ import {
                       }
                     </div>
                     <!-- TICK-065b : échéance de dépôt des preuves -->
-                    @if (mission.status === 'IN_PROGRESS' && mission.proofDeadline) {
+                    @if (!mission.notRetained && mission.status === 'IN_PROGRESS' && mission.proofDeadline) {
                       <div class="m-due"><svg lucideClock size="13"></svg> Preuves avant le {{ mission.proofDeadline | date:'d MMM à HH:mm' }}</div>
                     }
-                    @if (mission.status === 'OVERDUE') { <div class="m-due late"><svg lucideAlertTriangle size="13"></svg> En retard : envoyez vos preuves au plus vite</div> }
+                    @if (mission.notRetained) { <div class="m-note">Le client a choisi un autre coursier pour cette course.</div> }
+                    @if (!mission.notRetained && mission.status === 'OVERDUE') { <div class="m-due late"><svg lucideAlertTriangle size="13"></svg> En retard : envoyez vos preuves au plus vite</div> }
                   </div>
                 </div>
                 <div class="m-act">
@@ -339,7 +342,7 @@ export class CourierDashboardComponent implements OnInit {
   readonly unread = inject(ChatUnreadService);
   /** Pastilles de messages non lus : rafraîchies toutes les 30 s tant que l'écran est ouvert. */
   private readonly unreadTimer = (() => {
-    const id = setInterval(() => this.unread.refresh(), 30_000);
+    const id = setInterval(() => this.unread.refresh(), 15_000);
     inject(DestroyRef).onDestroy(() => clearInterval(id));
     return id;
   })();
@@ -400,11 +403,15 @@ export class CourierDashboardComponent implements OnInit {
     this.missionsError.set(false);
     this.courseService.getMyMissions().subscribe({
       next: (list: any[]) => {
-        this.myMissions    = list.filter(c => c.status !== 'COMPLETED' || c.reviewDue);
-        this.completedCount = list.filter(c => c.status === 'COMPLETED').length;
+        // Offres déclinées (un autre coursier a été retenu) : affichées en dernier tant que la course n'est pas
+        // terminée, et jamais comptées comme ses missions (terminées, urgences, gains)
+        const mine = list.filter(c => !c.notRetained);
+        const declined = list.filter(c => c.notRetained && !['COMPLETED', 'REFUNDED', 'CANCELLED'].includes(c.status));
+        this.myMissions    = [...mine.filter(c => c.status !== 'COMPLETED' || c.reviewDue), ...declined];
+        this.completedCount = mine.filter(c => c.status === 'COMPLETED').length;
         // Net réellement versé ce mois-ci (montants figés au paiement — TICK-070), hors remboursement d'achats
         const now = new Date();
-        this.monthEarnings.set(list
+        this.monthEarnings.set(mine
           .filter(c => c.status === 'COMPLETED' && c.courierAmount != null && c.completedAt)
           .filter(c => { const d = new Date(c.completedAt); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(); })
           .reduce((sum, c) => sum + Number(c.courierAmount) - Number(c.realCosts ?? 0), 0));
@@ -426,9 +433,10 @@ export class CourierDashboardComponent implements OnInit {
 
   /** Mission la plus urgente : en retard, sinon en cours avec l'échéance de preuves la plus proche. */
   urgent(): any | null {
-    const late = this.myMissions.find((m) => m.status === 'OVERDUE');
+    const mine = this.myMissions.filter((m) => !m.notRetained);
+    const late = mine.find((m) => m.status === 'OVERDUE');
     if (late) return late;
-    return this.myMissions.filter((m) => m.status === 'IN_PROGRESS' && m.proofDeadline)
+    return mine.filter((m) => m.status === 'IN_PROGRESS' && m.proofDeadline)
       .sort((a, b) => new Date(a.proofDeadline).getTime() - new Date(b.proofDeadline).getTime())[0] ?? null;
   }
 

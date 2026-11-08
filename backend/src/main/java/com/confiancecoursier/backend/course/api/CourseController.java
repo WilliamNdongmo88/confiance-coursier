@@ -158,24 +158,12 @@ public class CourseController {
 
     /**
      * GET /api/courses/{courseId}/conversations — conversations ouvertes sur la course (client propriétaire) :
-     * [{ chatRoomId, courierId, courierName }]. Permet d'afficher en premier les coursiers qui ont déjà écrit.
+     * [{ chatRoomId, courierId, courierName, verified, trustScore, offerAmount, offerStatus }].
+     * Permet au client de comparer les coursiers qui lui ont écrit et leurs tarifs.
      */
     @GetMapping("/{courseId}/conversations")
     public ResponseEntity<java.util.List<Map<String, Object>>> listConversations(@PathVariable Long courseId) {
-        User caller = resolveUser();
-        Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new NotFoundException("Course introuvable."));
-        if (!course.getClientId().equals(caller.getId())) {
-            throw new ForbiddenException("Vous n'êtes pas le propriétaire de cette course.");
-        }
-        var rooms = chatRoomRepository.findByCourseId(courseId);
-        Map<Long, String> names = userRepository.findAllById(rooms.stream().map(ChatRoom::getCourierId).toList()).stream()
-                .collect(java.util.stream.Collectors.toMap(User::getId,
-                        u -> u.getFullName() == null || u.getFullName().isBlank() ? "Coursier" : u.getFullName()));
-        return ResponseEntity.ok(rooms.stream()
-                .map(r -> Map.<String, Object>of("chatRoomId", r.getId(), "courierId", r.getCourierId(),
-                        "courierName", names.getOrDefault(r.getCourierId(), "Coursier")))
-                .toList());
+        return ResponseEntity.ok(courseService.listConversations(courseId, resolveUser().getId()));
     }
 
     @PostMapping

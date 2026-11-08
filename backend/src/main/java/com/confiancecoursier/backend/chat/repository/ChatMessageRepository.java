@@ -26,6 +26,6 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
     int markRead(@org.springframework.data.repository.query.Param("roomId") Long roomId,
                  @org.springframework.data.repository.query.Param("userId") Long userId);
 
-    /** Messages envoyés par d'autres que le client dans les salons d'une course (premier message ?). */
-    long countByRoomIdInAndSenderIdNot(java.util.Collection<Long> roomIds, Long senderId);
+    /** Messages envoyés par une personne dans un salon (premier message du coursier ?). */
+    long countByRoomIdAndSenderId(Long roomId, Long senderId);
 }

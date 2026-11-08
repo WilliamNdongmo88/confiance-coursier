@@ -25,6 +25,8 @@ export interface CourseLike {
   status: string;
   chatRoomId?: number | null;
   reviewDue?: boolean | null;
+  /** Coursier : le client a retenu un autre coursier (offre déclinée). */
+  notRetained?: boolean | null;
 }
 
 const LABELS: Record<string, { CLIENT: string; COURIER: string; tone: StatusTone }> = {
@@ -44,6 +46,8 @@ export const FINAL_STATUSES = ['COMPLETED', 'REFUNDED', 'CANCELLED'];
 
 export function courseStatus(course: CourseLike, role: CourseRole | string): CourseStatusView {
   const r: 'CLIENT' | 'COURIER' = role === 'COURIER' ? 'COURIER' : 'CLIENT';
+  // Un autre coursier a été choisi : la suite de la course ne le concerne plus
+  if (r === 'COURIER' && course.notRetained) return { label: 'Offre déclinée', tone: 'neutral', action: null };
   const entry = LABELS[course.status];
   return {
     label: entry ? entry[r] : course.status,

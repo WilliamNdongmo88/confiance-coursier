@@ -10,12 +10,14 @@ import { courseStatus, statusBadgeClass } from './course-status';
 export class StatusBadgeComponent {
   @Input({ required: true }) status = '';
   @Input() role: string = 'CLIENT';
+  /** Coursier non retenu sur cette course (affiche « Offre déclinée »). */
+  @Input() notRetained: boolean | null | undefined = false;
 
   get label(): string {
-    return courseStatus({ id: 0, status: this.status }, this.role).label;
+    return courseStatus({ id: 0, status: this.status, notRetained: this.notRetained }, this.role).label;
   }
 
   get cls(): string {
-    return statusBadgeClass(courseStatus({ id: 0, status: this.status }, this.role).tone);
+    return statusBadgeClass(courseStatus({ id: 0, status: this.status, notRetained: this.notRetained }, this.role).tone);
   }
 }

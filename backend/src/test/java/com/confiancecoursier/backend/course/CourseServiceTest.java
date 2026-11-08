@@ -120,7 +120,10 @@ class CourseServiceTest {
 
         List<CourseResponse> list = service.getMyCourses(1L);
 
-        assertThat(list).extracting(CourseResponse::getChatRoomId).containsExactly(10L, 20L);
+        // Course ouverte : plusieurs coursiers ont écrit, aucun salon n'est privilégié ; course attribuée : salon du coursier
+        assertThat(list).extracting(CourseResponse::getChatRoomId).containsExactly(null, 20L);
+        assertThat(list.get(0).getConversationRoomIds()).containsExactly(10L, 11L);
+        assertThat(list.get(1).getConversationRoomIds()).containsExactlyInAnyOrder(21L, 20L);
         verify(rooms, times(1)).findByCourseIdIn(anyCollection());
         verify(rooms, never()).findByCourseId(anyLong());
         verify(rooms, never()).findByCourseIdAndCourierId(anyLong(), anyLong());
@@ -170,5 +173,60 @@ class CourseServiceTest {
 
         assertThat(list).extracting(CourseResponse::getReviewDue).containsExactly(false, true, false);
         verify(reviews, times(1)).findReviewedCourseIds(eq(1L), anyCollection()); // une requête pour la liste
+    }
+
+    // ── Conversations d'une course ouverte (plusieurs coursiers) ────────────
+
+    @Test
+    void conversationsShowEachCourierWithHisCurrentOffer() {
+        var users = mock(com.confiancecoursier.backend.user.repository.UserRepository.class);
+        when(users.findAllById(anyCollection())).thenReturn(List.of(
+                com.confiancecoursier.backend.user.domain.User.builder().id(2L).fullName("Tchinda Bertholt").kycStatus("APPROVED")
+                        .trustScore(new BigDecimal("4.5")).build(),
+                com.confiancecoursier.backend.user.domain.User.builder().id(3L).fullName("Mba Kevin").kycStatus("APPROVED").build()));
+        when(courses.findById(100L)).thenReturn(Optional.of(course));
+        CourseService svc = new CourseService(courses, rooms, offers, users, reviews, reviewGate);
+
+        var list = svc.listConversations(100L, 1L);
+
+        assertThat(list).hasSize(2);
+        assertThat(list.get(0).get("chatRoomId")).isEqualTo(10L);            // offre active d'abord
+        assertThat((BigDecimal) list.get(0).get("offerAmount")).isEqualByComparingTo("6000"); // pas l'offre remplacée
+        assertThat(list.get(0).get("offerStatus")).isEqualTo("ACTIVE");
+        assertThat(list.get(0).get("verified")).isEqualTo(true);
+        assertThat(list.get(1).get("courierName")).isEqualTo("Mba Kevin");
+        assertThat(list.get(1).get("offerAmount")).isNull();                 // a écrit sans proposer de tarif
+    }
+
+    @Test
+    void onlyTheOwnerCanListConversations() {
+        when(courses.findById(100L)).thenReturn(Optional.of(course));
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.listConversations(100L, 99L))
+                .isInstanceOf(ForbiddenException.class);
+    }
+
+    @Test
+    void courierNotRetainedSeesHisOfferDeclinedWithoutTheWinnerName() {
+        // Coursier 2 a discuté sur la course 100, mais le client a retenu le coursier 3
+        Course taken = Course.builder().id(100L).clientId(1L).courierId(3L).description("Pharmacie").status("ASSIGNED")
+                .createdAt(LocalDateTime.now()).build();
+        when(courses.findByCourierIdOrderByCreatedAtDesc(2L)).thenReturn(List.of());
+        when(rooms.findByCourierId(2L)).thenReturn(List.of(room1));
+        when(courses.findAllById(List.of(100L))).thenReturn(List.of(taken));
+
+        CourseResponse r = service.getMyMissions(2L).get(0);
+
+        assertThat(r.getNotRetained()).isTrue();
+        assertThat(r.getCourierName()).isNull();
+        assertThat(r.getContactPhone()).isNull();
+    }
+
+    @Test
+    void retainedCourierIsNotMarkedDeclined() {
+        Course mine = Course.builder().id(300L).clientId(1L).courierId(2L).description("a").status("ASSIGNED").build();
+        when(courses.findByCourierIdOrderByCreatedAtDesc(2L)).thenReturn(List.of(mine));
+        when(rooms.findByCourierId(2L)).thenReturn(List.of());
+
+        assertThat(service.getMyMissions(2L).get(0).getNotRetained()).isNull();
     }
 }

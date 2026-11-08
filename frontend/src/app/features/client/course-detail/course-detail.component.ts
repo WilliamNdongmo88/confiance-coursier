@@ -83,6 +83,8 @@ function buildSteps(c: any): Step[] {
     .next .when { display: inline-flex; align-items: center; gap: 6px; margin: 0 0 16px; padding: 7px 11px; border-radius: 99px;
       background: rgba(255,255,255,.1); font-size: 13.5px; font-weight: 650; color: #fff; }
     .next.calm .when { background: var(--cc-paper-2); color: var(--cc-ink); }
+    .next.calm .when.hot { background: var(--cc-danger-bg); color: var(--cc-danger); font-weight: 700; }
+    :host-context([data-theme="dark"]) .next.calm .when.hot { background: rgba(240,163,156,.12); color: #F0A39C; }
     .acts { display: flex; flex-wrap: wrap; gap: 10px; }
     .acts .primary-action { min-height: 46px; font-size: 14px; }
     .ghost-w { min-height: 46px; padding: 0 16px; border-radius: 10px; border: 1px solid rgba(255,255,255,.28); background: transparent;
@@ -175,7 +177,14 @@ function buildSteps(c: any): Step[] {
                   <small>Prochaine étape</small>
                   <h3>Choisissez votre coursier</h3>
                   <p>Les coursiers vérifiés vous écrivent et proposent leur tarif. Acceptez l’offre qui vous convient dans le chat.</p>
-                  <div class="acts"><a class="primary-action" [routerLink]="['/client/select-courier', courseId]"><svg lucideUsers size="16"></svg> Voir les coursiers</a></div>
+                  @if (course.conversationRoomIds?.length) {
+                    <div class="when" [class.hot]="unread.sum(course.conversationRoomIds)"><svg lucideMessageCircle size="15"></svg>
+                      {{ course.conversationRoomIds.length }} coursier{{ course.conversationRoomIds.length > 1 ? 's vous ont' : ' vous a' }} écrit@if (unread.sum(course.conversationRoomIds); as n) { · {{ n }} message{{ n > 1 ? 's' : '' }} non lu{{ n > 1 ? 's' : '' }} }</div>
+                  }
+                  <div class="acts"><a class="primary-action has-dot" [routerLink]="['/client/select-courier', courseId]"
+                       [attr.aria-label]="unread.sum(course.conversationRoomIds) ? 'Voir les coursiers : ' + unread.sum(course.conversationRoomIds) + ' message(s) non lu(s)' : 'Voir les coursiers'">
+                    <svg lucideUsers size="16"></svg> Voir les coursiers
+                    @if (unread.sum(course.conversationRoomIds); as n) { <span class="chat-dot" aria-hidden="true">{{ n > 9 ? '9+' : n }}</span> }</a></div>
                 </section>
               }
               @case ('ASSIGNED') {
@@ -356,7 +365,8 @@ export class CourseDetailComponent implements OnInit {
   private http = inject(HttpClient);
 
   constructor() {
-    const id = setInterval(() => this.now.set(Date.now()), 60_000);
+    // Comptes à rebours (minute) et messages non lus des coursiers (au plus toutes les 10 s, côté service)
+    const id = setInterval(() => { this.now.set(Date.now()); this.unread.refresh(); }, 15_000);
     inject(DestroyRef).onDestroy(() => clearInterval(id));
   }
 

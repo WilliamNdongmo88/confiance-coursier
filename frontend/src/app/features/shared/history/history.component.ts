@@ -170,7 +170,7 @@ import {
                       {{ course.status === 'COMPLETED' ? netPercu(course) : '—' }}
                     </td>
                     <td>
-                      <app-status-badge [status]="course.status" role="COURIER" />
+                      <app-status-badge [status]="course.status" role="COURIER" [notRetained]="course.notRetained" />
                     </td>
                     <td>
                       @if (nextAction(course, 'COURIER'); as action) {
@@ -194,7 +194,7 @@ import {
               <div class="hist-card-item">
                 <div class="hist-card-top">
                   <span class="hist-card-title">{{ course.description }} — {{ course.zone }}</span>
-                  <app-status-badge [status]="course.status" role="COURIER" />
+                  <app-status-badge [status]="course.status" role="COURIER" [notRetained]="course.notRetained" />
                 </div>
                 <div class="hist-card-meta">{{ course.scheduledAt | date:'dd/MM/yyyy' }}</div>
                 <div class="hist-card-stats">
@@ -206,7 +206,7 @@ import {
                   </div>
                   <div>
                     <span class="hist-card-label">Statut</span>
-                    <strong>{{ statusLabel(course.status) }}</strong>
+                    <strong>{{ isCourier && course.notRetained ? 'Offre déclinée' : statusLabel(course.status) }}</strong>
                   </div>
                 </div>
               </div>

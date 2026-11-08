@@ -346,6 +346,14 @@ interface ChatMsg {
       line-height: 1.4;
     }
 
+    /* ── Discussion fermée ── */
+    .chat-closed { display: flex; align-items: center; gap: 10px; padding: 14px 18px; border-top: 1px solid var(--cc-line);
+      background: var(--cc-paper-2); color: var(--cc-ink); font-size: 13.5px; line-height: 1.45; animation: closed-in .3s ease both; }
+    .chat-closed svg { flex: none; color: var(--cc-muted); }
+    :host-context([data-theme="dark"]) .chat-closed { background: rgba(255,255,255,.05); color: #F3F7F5; }
+    @keyframes closed-in { from { opacity: 0; } to { opacity: 1; } }
+    @media (prefers-reduced-motion: reduce) { .chat-closed { animation: none; } }
+
     /* ── Barre de saisie ── */
     .chat-input-bar {
       background: var(--cc-white);
@@ -782,11 +790,18 @@ interface ChatMsg {
           }
         </div>
 
-        @if (!connected()) {
+        @if (!connected() && !archived()) {
           <!-- TICK-071 : connexion coupée — le texte saisi est conservé -->
           <div class="chat-offline" role="status">Reconnexion au chat… vos messages non envoyés partiront automatiquement.</div>
         }
 
+        <!-- Discussion fermée : lecture seule -->
+        @if (archived()) {
+          <div class="chat-closed" role="status">
+            <svg lucideLockKeyhole size="16"></svg>
+            <span>{{ closedReason() }}</span>
+          </div>
+        } @else {
         <!-- Barre de saisie -->
         <div class="chat-input-bar">
           @if (isCOURIER && courseStatus === 'PUBLISHED') {
@@ -803,6 +818,7 @@ interface ChatMsg {
             <svg class="st-marg-1px" lucideSend size="20"></svg>
           </button>
         </div>
+        }
 
       </main>
     </div>
@@ -898,6 +914,8 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   correspondentName     = 'Correspondant';
   correspondentInitials = 'C';
   courseStatus = ''; // chargé depuis getRoomInfo, pilote la visibilité des boutons (vide = inconnu)
+  /** Discussion fermée (coursier non retenu ou course annulée) : lecture seule. */
+  readonly archived = signal(false);
 
   /** Autre participant du salon (cible d'un signalement) — TICK-071. */
   otherUserId: number | null = null;
@@ -955,6 +973,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         this.courseId = room.courseId ?? 0;
         // Stocker le statut de la course (pilote la visibilité des boutons TICK-059)
         this.courseStatus = room.courseStatus ?? '';
+        this.archived.set(!!room.archived);
         if (this.courseId) {
           this.courseService.getCourseById(this.courseId).subscribe({
             next: (c: any) => this.courseTitle.set((c?.description ?? '').trim()),
@@ -990,7 +1009,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       next: (history: any[]) => {
         this.mergeHistory(history);
         this.shouldScrollToBottom = true;
-        this.unread.markRead(this.roomId); // conversation ouverte : messages reçus lus
+        this.markReadIfStillMe(); // conversation ouverte : messages reçus lus
       },
       error: () => this.toast.error('Impossible de charger l\'historique du chat.')
     });
@@ -1027,7 +1046,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         } else if (!this.messages.find(m => m.id === chatMsg.id)) {
           this.messages = [...this.messages, chatMsg];
           this.shouldScrollToBottom = true;
-          if (chatMsg.senderId !== this.currentUserId) this.unread.markRead(this.roomId);
+          if (chatMsg.senderId !== this.currentUserId) this.markReadIfStillMe();
         }
       }
     });
@@ -1129,12 +1148,21 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.messages = this.messages.map(m => (m.clientRef === clientRef && !m.id ? { ...m, ...changes } : m));
   }
 
+  /**
+   * Marque la conversation lue seulement si le compte connecté est toujours celui qui a ouvert le chat.
+   * La session est partagée entre les onglets : un onglet resté ouvert après un changement de compte
+   * marquerait sinon comme lus les messages destinés à l'autre personne.
+   */
+  private markReadIfStillMe(): void {
+    if (this.authService.getCurrentUserId() === this.currentUserId) this.unread.markRead(this.roomId);
+  }
+
   private reloadHistory(then?: () => void): void {
     this.chatService.getMessages(this.roomId).subscribe({
       next: (history) => {
         this.mergeHistory(history); // retire les provisoires déjà enregistrés (pas de doublon au renvoi)
         this.shouldScrollToBottom = true;
-        this.unread.markRead(this.roomId);
+        this.markReadIfStillMe();
         then?.();
       },
       error: () => {},
@@ -1194,10 +1222,18 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.toast.success('Offre envoyée ! En attente du paiement du client.');
   }
 
+  /** Pourquoi la discussion est fermée, selon le rôle et l'état de la course. */
+  closedReason(): string {
+    if (this.courseStatus === 'CANCELLED') return 'Course annulée : cette discussion est fermée, vous pouvez seulement relire les messages.';
+    return this.isCOURIER
+      ? 'Le client a choisi un autre coursier : cette discussion est fermée, vous pouvez seulement relire les messages.'
+      : 'Cette discussion est fermée : vous pouvez seulement relire les messages.';
+  }
+
   // ── Accepter l'offre (client) ──────────────────────────────────────────────
   /** « Accepter » : client, offre ACTIVE, course encore PUBLISHED (TICK-059). */
   canAccept(msg: ChatMsg): boolean {
-    return this.isCLIENT && this.courseStatus === 'PUBLISHED'
+    return this.isCLIENT && !this.archived() && this.courseStatus === 'PUBLISHED'
         && !!msg.offerId && msg.offerStatus === 'ACTIVE';
   }
 

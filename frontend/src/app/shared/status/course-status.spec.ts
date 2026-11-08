@@ -43,4 +43,11 @@ describe('courseStatus', () => {
     expect(courseStatus({ id: 1, status: 'CANCELLED' }, 'COURIER').action).toBeNull();
     expect(courseStatus({ id: 1, status: 'ASSIGNED' }, 'ADMIN').action).toBeNull();
   });
+
+  it('coursier non retenu : « Offre déclinée », sans action', () => {
+    const v = courseStatus({ id: 9, status: 'ASSIGNED', chatRoomId: 4, notRetained: true }, 'COURIER');
+    expect(v.label).toBe('Offre déclinée');
+    expect(v.action).toBeNull();
+    expect(courseStatus({ id: 9, status: 'ASSIGNED', notRetained: true }, 'CLIENT').label).toBe('Paiement à faire');
+  });
 });

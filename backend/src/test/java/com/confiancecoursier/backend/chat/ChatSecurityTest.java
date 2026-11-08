@@ -215,6 +215,7 @@ class ChatSecurityTest {
     private SimpMessagingTemplate template;
     private OfferService offers;
     private com.confiancecoursier.backend.notify.service.NotificationService notifications;
+    private CourseRepository courses;
 
     private ChatController controller() {
         messages = mock(ChatMessageRepository.class);
@@ -222,8 +223,10 @@ class ChatSecurityTest {
         template = mock(SimpMessagingTemplate.class);
         offers = mock(OfferService.class);
         notifications = mock(com.confiancecoursier.backend.notify.service.NotificationService.class);
-        return new ChatController(messages, template, access, offers, rooms,
-                mock(CourseRepository.class), notifications);
+        courses = mock(CourseRepository.class);
+        when(courses.findById(100L)).thenReturn(java.util.Optional.of(com.confiancecoursier.backend.course.domain.Course.builder()
+                .id(100L).clientId(1L).description("Riz").status("PUBLISHED").build()));
+        return new ChatController(messages, template, access, offers, rooms, courses, notifications);
     }
 
     @Test
@@ -236,27 +239,50 @@ class ChatSecurityTest {
         org.assertj.core.api.Assertions.assertThat(captor.getValue().getIsRead()).isFalse();
     }
 
-    // ── Email au client au premier message d'un coursier sur sa course ──────
+    // ── Email au client à chaque nouveau coursier qui lui écrit ──────────────
 
     @Test
-    void firstCourierMessageOnCourseEmailsTheClientOnce() {
+    void firstMessageOfACourierEmailsTheClient() {
         ChatController c = controller();
-        when(rooms.findByCourseId(100L)).thenReturn(List.of(room));
-        when(messages.countByRoomIdInAndSenderIdNot(List.of(10L), 1L)).thenReturn(1L);
+        when(messages.countByRoomIdAndSenderId(10L, 2L)).thenReturn(1L);
         c.sendMessage(dto(null, "TEXT", "Bonjour, je peux m'en charger", null), principal("courier@test.com"));
-        org.mockito.Mockito.verify(notifications, org.mockito.Mockito.timeout(2000))
-                .notifyFirstReply(org.mockito.ArgumentMatchers.eq(1L), any(), any(), org.mockito.ArgumentMatchers.eq(100L));
+        verify(notifications, timeout(2000)).notifyFirstReply(
+                org.mockito.ArgumentMatchers.eq(1L), any(), any(), org.mockito.ArgumentMatchers.eq(100L),
+                org.mockito.ArgumentMatchers.eq(10L), org.mockito.ArgumentMatchers.isNull());
+    }
+
+    @Test
+    void firstMessageThatIsAnOfferPutsTheAmountInTheEmail() {
+        ChatController c = controller();
+        when(messages.countByRoomIdAndSenderId(10L, 2L)).thenReturn(1L);
+        when(offers.submitOffer(100L, 2L, new BigDecimal("6000"), "Je propose 6000")).thenReturn(
+                com.confiancecoursier.backend.course.domain.CourseOffer.builder().id(77L).courseId(100L).courierId(2L)
+                        .amount(new BigDecimal("6000")).status("ACTIVE").build());
+        c.sendMessage(dto(null, "OFFER", "Je propose 6000", new BigDecimal("6000")), principal("courier@test.com"));
+        verify(notifications, timeout(2000)).notifyFirstReply(
+                org.mockito.ArgumentMatchers.eq(1L), any(), any(), org.mockito.ArgumentMatchers.eq(100L),
+                org.mockito.ArgumentMatchers.eq(10L), org.mockito.ArgumentMatchers.argThat(a -> a != null && a.compareTo(new BigDecimal("6000")) == 0));
     }
 
     @Test
     void laterMessagesAndClientMessagesSendNoEmail() throws Exception {
         ChatController c = controller();
-        when(rooms.findByCourseId(100L)).thenReturn(List.of(room));
-        when(messages.countByRoomIdInAndSenderIdNot(List.of(10L), 1L)).thenReturn(2L);
+        when(messages.countByRoomIdAndSenderId(10L, 2L)).thenReturn(2L);
         c.sendMessage(dto(null, "TEXT", "Deuxième message", null), principal("courier@test.com"));
         c.sendMessage(dto(null, "TEXT", "Réponse du client", null), principal("client@test.com"));
         Thread.sleep(300);
-        org.mockito.Mockito.verifyNoInteractions(notifications);
+        verifyNoInteractions(notifications);
+    }
+
+    @Test
+    void noEmailOnceTheCourseIsNoLongerOpen() throws Exception {
+        ChatController c = controller();
+        when(messages.countByRoomIdAndSenderId(10L, 2L)).thenReturn(1L);
+        when(courses.findById(100L)).thenReturn(java.util.Optional.of(com.confiancecoursier.backend.course.domain.Course.builder()
+                .id(100L).clientId(1L).status("ASSIGNED").build()));
+        c.sendMessage(dto(null, "TEXT", "Je suis en route", null), principal("courier@test.com"));
+        Thread.sleep(300);
+        verifyNoInteractions(notifications);
     }
 
     private static ChatMessageDto dto(Long senderId, String type, String content, BigDecimal amount) {

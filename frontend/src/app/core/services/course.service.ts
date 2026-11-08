@@ -23,6 +23,18 @@ export interface CourierSummary {
   kycVerified: boolean;
 }
 
+/** Conversation d'un coursier sur une course ouverte (GET /api/courses/{id}/conversations). */
+export interface CourseConversation {
+  chatRoomId: number;
+  courierId: number;
+  courierName: string;
+  verified: boolean;
+  trustScore: number | null;
+  /** Offre en cours du coursier (null s'il n'a pas encore proposé de tarif). */
+  offerAmount: number | null;
+  offerStatus: 'ACTIVE' | 'ACCEPTED' | 'REJECTED' | null;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -74,9 +86,9 @@ export class CourseService {
    * Appelé par le client avec courierId, ou par le coursier sans body.
    * Retourne { chatRoomId: number }.
    */
-  /** Conversations ouvertes sur une course (client propriétaire). */
-  listConversations(courseId: number): Observable<{ chatRoomId: number; courierId: number; courierName: string }[]> {
-    return this.http.get<{ chatRoomId: number; courierId: number; courierName: string }[]>(`${this.apiUrl}/${courseId}/conversations`);
+  /** Conversations ouvertes sur une course (client propriétaire), avec l'offre en cours de chaque coursier. */
+  listConversations(courseId: number): Observable<CourseConversation[]> {
+    return this.http.get<CourseConversation[]>(`${this.apiUrl}/${courseId}/conversations`);
   }
 
   openConversation(courseId: number, courierId?: number): Observable<{ chatRoomId: number }> {

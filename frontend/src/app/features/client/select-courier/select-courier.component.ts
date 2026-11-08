@@ -1,7 +1,7 @@
 import { warnLoadFailed } from '../../../shared/state/load-error';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { CourseService, CourierSummary } from '../../../core/services/course.service';
+import { CourseConversation, CourseService, CourierSummary } from '../../../core/services/course.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { ChatUnreadService } from '../../../core/services/chat-unread.service';
 import {
@@ -9,7 +9,7 @@ import {
   LucideMessageCircle, LucideRefreshCw, LucideStar, LucideUsers,
 } from '@lucide/angular';
 
-interface Conversation { chatRoomId: number; courierId: number; courierName: string; }
+type Conversation = CourseConversation;
 
 /**
  * Choix du coursier (base maquette-v2/client/select-courier.html).
@@ -53,6 +53,13 @@ interface Conversation { chatRoomId: number; courierId: number; courierName: str
     .stats span { display: inline-flex; align-items: center; gap: 4px; }
     .stats .star { color: #a2671b; font-weight: 700; }
     .go { flex: none; min-height: 44px; }
+    .offer { flex: none; display: grid; justify-items: end; gap: 1px; padding: 6px 12px; border-radius: 12px; background: var(--cc-success-bg); text-align: right; animation: sc-pop .35s cubic-bezier(.16,1,.3,1) both; }
+    .offer small { font-size: 11.5px; font-weight: 700; color: var(--sc-muted); }
+    .offer b { font-size: 17px; font-weight: 800; letter-spacing: -.02em; color: var(--cc-success); font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .offer.none { background: var(--cc-paper-2); }
+    .offer.none span { font-size: 12.5px; font-weight: 650; color: var(--sc-muted); white-space: nowrap; }
+    .stats .new { color: var(--cc-danger); font-weight: 700; }
+    @keyframes sc-pop { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: none; } }
     .sk { height: 82px; border-radius: 14px; background: linear-gradient(90deg, var(--cc-paper-2), var(--cc-white), var(--cc-paper-2));
       background-size: 200% 100%; animation: sc-sk 1.2s linear infinite; }
     .empty { text-align: center; padding: 30px 18px; border-radius: 14px; border: 1px dashed var(--cc-line); color: var(--sc-muted); }
@@ -68,12 +75,18 @@ interface Conversation { chatRoomId: number; courierId: number; courierName: str
     :host-context([data-theme="dark"]) .av { background: rgba(215,237,154,.12); color: var(--cc-lime); }
     :host-context([data-theme="dark"]) .sc-steps li::before { background: var(--cc-lime); color: #123b32; }
     :host-context([data-theme="dark"]) .stats .star { color: #E3A857; }
+    :host-context([data-theme="dark"]) .offer { background: rgba(159,221,180,.1); }
+    :host-context([data-theme="dark"]) .offer b { color: #9FDDB4; }
+    :host-context([data-theme="dark"]) .offer.none { background: rgba(255,255,255,.05); }
+    :host-context([data-theme="dark"]) .stats .new { color: #F0A39C; }
     @media (max-width: 640px) {
       .sc-steps { grid-template-columns: 1fr; }
       .card-c { flex-wrap: wrap; }
       .go { width: 100%; justify-content: center; }
+      .offer { order: 3; flex: 1 1 100%; grid-auto-flow: column; justify-content: space-between; align-items: center; text-align: left; }
+      .card-c .go { order: 4; }
     }
-    @media (prefers-reduced-motion: reduce) { .card-c, .sk { animation: none; } }
+    @media (prefers-reduced-motion: reduce) { .card-c, .sk, .offer { animation: none; } }
   `],
   template: `
     <div class="sc">
@@ -94,14 +107,23 @@ interface Conversation { chatRoomId: number; courierId: number; courierName: str
       </ol>
 
       @if (conversations().length > 0) {
-        <div class="sc-h2"><h2>Ils vous ont écrit</h2><small>{{ conversations().length }} conversation{{ conversations().length > 1 ? 's' : '' }}</small></div>
+        <div class="sc-h2"><h2>Ils vous ont écrit</h2><small>{{ conversations().length }} coursier{{ conversations().length > 1 ? 's' : '' }}@if (offerCount()) { · {{ offerCount() }} offre{{ offerCount() > 1 ? 's' : '' }} }</small></div>
         <div class="sc-list">
           @for (cv of conversations(); track cv.chatRoomId; let i = $index) {
             <article class="card-c wrote" [style.animation-delay.ms]="i * 50">
               <span class="av" aria-hidden="true">{{ initialsOf(cv.courierName) }}</span>
               <div class="who">
-                <h3>{{ cv.courierName }}</h3>
-                <div class="stats"><span>{{ unread.count(cv.chatRoomId) ? 'Nouveau message' : 'Conversation en cours' }}</span></div>
+                <h3>{{ cv.courierName }}
+                  @if (cv.verified) { <span class="ok"><svg lucideBadgeCheck size="12"></svg> Vérifié</span> }
+                </h3>
+                <div class="stats">
+                  @if (cv.trustScore && cv.trustScore > 0) { <span class="star"><svg lucideStar size="13"></svg> {{ rating(+cv.trustScore) }}</span> }
+                  <span [class.new]="unread.count(cv.chatRoomId)">{{ unread.count(cv.chatRoomId) ? 'Nouveau message' : 'Conversation en cours' }}</span>
+                </div>
+              </div>
+              <div class="offer" [class.none]="!hasOffer(cv)">
+                @if (hasOffer(cv)) { <small>Propose</small><b>{{ xaf(cv.offerAmount!) }}</b> }
+                @else { <small>Tarif</small><span>Pas encore proposé</span> }
               </div>
               <a class="primary-action go has-dot" [routerLink]="['/chat', cv.chatRoomId]"
                  [attr.aria-label]="'Ouvrir la discussion avec ' + cv.courierName + (unread.count(cv.chatRoomId) ? ', ' + unread.count(cv.chatRoomId) + ' message(s) non lu(s)' : '')">
@@ -124,7 +146,7 @@ interface Conversation { chatRoomId: number; courierId: number; courierName: str
           <svg lucideUsers size="34"></svg>
           <p>{{ conversations().length ? 'Aucun autre coursier disponible pour le moment.' : 'Aucun coursier disponible pour le moment.' }}</p>
           <p>Votre course reste publiée : les coursiers de la zone peuvent vous écrire.</p>
-          <span class="mail"><svg lucideMail size="15"></svg> Vous recevrez un email au premier message.</span><br>
+          <span class="mail"><svg lucideMail size="15"></svg> Vous recevrez un email à chaque nouveau coursier qui vous écrit.</span><br>
           <button type="button" class="btn-soft" (click)="loadCouriers()"><svg lucideRefreshCw size="15"></svg> Actualiser</button>
         </div>
       } @else {
@@ -158,6 +180,7 @@ export class SelectCourierComponent implements OnInit {
   readonly course = signal<{ zone: string; scheduledAt?: string } | null>(null);
   readonly couriers = signal<CourierSummary[]>([]);
   readonly conversations = signal<Conversation[]>([]);
+  readonly offerCount = computed(() => this.conversations().filter((c) => this.hasOffer(c)).length);
   isLoading = false;
   choosingCourierId: number | null = null;
 
@@ -201,6 +224,9 @@ export class SelectCourierComponent implements OnInit {
   }
 
   rating(v: number): string { return v.toFixed(1).replace('.', ','); }
+  /** Offre en cours (montant positif, encore active). */
+  hasOffer(c: Conversation): boolean { return c.offerAmount != null && Number(c.offerAmount) > 0 && c.offerStatus === 'ACTIVE'; }
+  xaf(v: number): string { return `${new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(Math.round(Number(v) || 0)).replace(/ /g, ' ')} XAF`; }
 
   initialsOf(name: string): string {
     return name.trim().split(/\s+/).slice(0, 2).map((w) => w.charAt(0).toUpperCase()).join('') || 'C';

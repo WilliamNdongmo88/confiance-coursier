@@ -12,11 +12,26 @@ export class ChatUnreadService {
   private readonly counts = signal<Record<number, number>>({});
   private lastFetch = 0;
 
+  constructor() {
+    // Retour sur l'onglet ou la fenêtre : les pastilles se mettent à jour tout de suite (sans attendre l'intervalle)
+    if (typeof window !== 'undefined') {
+      window.addEventListener('focus', () => this.refresh(true));
+      document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') this.refresh(true); });
+    }
+  }
+
   /** Total des messages non lus (toutes conversations). */
   readonly total = computed(() => Object.values(this.counts()).reduce((a, b) => a + b, 0));
 
   count(roomId: number | null | undefined): number {
     return roomId ? this.counts()[roomId] ?? 0 : 0;
+  }
+
+  /** Total non lu sur plusieurs conversations (ex. tous les coursiers qui ont écrit sur une course). */
+  sum(roomIds: readonly number[] | null | undefined): number {
+    if (!roomIds?.length) return 0;
+    const c = this.counts();
+    return roomIds.reduce((t, id) => t + (c[id] ?? 0), 0);
   }
 
   /** Recharge les compteurs (au plus toutes les 10 s sauf `force`). */

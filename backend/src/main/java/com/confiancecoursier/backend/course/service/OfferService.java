@@ -35,6 +35,8 @@ public class OfferService {
     private final NotificationService notificationService;
     private final CommissionService commissionService;
     private final com.confiancecoursier.backend.review.service.ReviewGate reviewGate;
+    /** Fermeture des discussions des coursiers non retenus (null dans les tests unitaires qui ne s'en servent pas). */
+    private final com.confiancecoursier.backend.chat.repository.ChatRoomRepository chatRoomRepository;
 
     public OfferService(CourseOfferRepository offerRepository,
                         CourseRepository courseRepository,
@@ -42,6 +44,18 @@ public class OfferService {
                         NotificationService notificationService,
                         CommissionService commissionService,
                         com.confiancecoursier.backend.review.service.ReviewGate reviewGate) {
+        this(offerRepository, courseRepository, userRepository, notificationService, commissionService, reviewGate, null);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public OfferService(CourseOfferRepository offerRepository,
+                        CourseRepository courseRepository,
+                        UserRepository userRepository,
+                        NotificationService notificationService,
+                        CommissionService commissionService,
+                        com.confiancecoursier.backend.review.service.ReviewGate reviewGate,
+                        com.confiancecoursier.backend.chat.repository.ChatRoomRepository chatRoomRepository) {
+        this.chatRoomRepository = chatRoomRepository;
         this.reviewGate = reviewGate;
         this.offerRepository = offerRepository;
         this.courseRepository = courseRepository;
@@ -111,7 +125,7 @@ public class OfferService {
 
     /**
      * Le client propriétaire accepte une offre ACTIVE : course ASSIGNED, coursier et montant fixés,
-     * autres offres ACTIVE rejetées. Sous verrou de ligne : un double clic ne produit qu'une acceptation.
+     * autres offres ACTIVE rejetées et discussions des autres coursiers fermées (lecture seule). Sous verrou de ligne : un double clic ne produit qu'une acceptation.
      */
     @Transactional
     public void acceptOffer(Long courseId, Long offerId, Long clientId) {
@@ -155,6 +169,16 @@ public class OfferService {
         course.setCourseAmount(offerToAccept.getAmount().setScale(0, RoundingMode.HALF_UP));
         course.setStatus("ASSIGNED");
         courseRepository.save(course);
+
+        // Les autres coursiers ne sont pas retenus : leurs discussions passent en lecture seule
+        if (chatRoomRepository != null) {
+            for (var room : chatRoomRepository.findByCourseId(courseId)) {
+                if (!offerToAccept.getCourierId().equals(room.getCourierId()) && !Boolean.TRUE.equals(room.getIsArchived())) {
+                    room.setIsArchived(true);
+                    chatRoomRepository.save(room);
+                }
+            }
+        }
 
         notificationService.notifyCourseAssigned(offerToAccept.getCourierId(), courseId);
     }
