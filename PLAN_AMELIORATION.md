@@ -914,7 +914,7 @@ Contrôles :
 ### SPRINT 10 — PARCOURS COURSIER SIMPLIFIÉ
 
 #### TICK-085 ⚙️ [FULL] Accueil coursier « Nouvelles demandes » en premier — 5 h
-**Statut :** ⚙️ (2026-11-08, bilan `docs/bilan-tickets-080-105.md`) — reste : demandes avant les missions, rafraîchissement automatique des demandes, filtre par zone (TICK-089).
+**Statut :** ⚙️ (2026-11-08, bilan `docs/bilan-tickets-080-105.md`) — demandes avant les missions et rafraîchissement automatique (20 s, retour sur l’onglet, bouton, repère « Nouvelle ») faits le 2026-11-08 ; reste : filtre par zone (TICK-089).
 **Anomalies :** A-23, CO-09, CO-13
 **Critères d'acceptation :**
 - Demandes visibles sans scroll sur 390×844.

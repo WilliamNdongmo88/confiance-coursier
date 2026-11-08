@@ -15,7 +15,7 @@ import { warnLoadFailed } from '../../../shared/state/load-error';
 import {
   LucideAlertTriangle, LucideArrowRight, LucideArrowUpRight, LucideCamera, LucideCheck, LucideClock, LucideLockKeyhole,
   LucideMapPin, LucideMessageCircle, LucideMoreHorizontal, LucidePackage, LucidePackageCheck, LucidePhone,
-  LucideShieldAlert, LucideShieldCheck, LucideShoppingBag, LucideStar, LucideTruck, LucideWallet, LucideX,
+  LucideShieldAlert, LucideShieldCheck, LucideShoppingBag, LucideStar, LucideTruck, LucideWallet, LucideX, LucideRefreshCw,
 } from '@lucide/angular';
 
 @Component({
@@ -25,10 +25,23 @@ import {
     RouterLink, DatePipe, DecimalPipe, SlicePipe, StatusBadgeComponent, EmptyStateComponent, ErrorStateComponent, SkeletonComponent,
     LucideAlertTriangle, LucideArrowRight, LucideArrowUpRight, LucideCamera, LucideCheck, LucideClock, LucideLockKeyhole,
     LucideMapPin, LucideMessageCircle, LucideMoreHorizontal, LucidePackage, LucidePackageCheck, LucidePhone,
-    LucideShieldAlert, LucideShieldCheck, LucideShoppingBag, LucideStar, LucideTruck, LucideWallet, LucideX,
+    LucideShieldAlert, LucideShieldCheck, LucideShoppingBag, LucideStar, LucideTruck, LucideWallet, LucideX, LucideRefreshCw,
   ],
   styles: [`
     .m.declined { opacity: .78; }
+    .rq-count { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 6px; margin-left: 4px; border-radius: 11px;
+      vertical-align: 2px; font-size: 12px; font-weight: 800; background: var(--cc-success-bg); color: var(--cc-success); }
+    .refresh { flex: none; width: 40px; height: 40px; border-radius: 11px; border: 1px solid var(--cc-line); background: var(--cc-white); color: var(--cc-ink);
+      display: grid; place-items: center; cursor: pointer; }
+    .refresh.spin svg { animation: rq-spin .8s linear infinite; }
+    .m.fresh { animation: rq-fresh 1.6s ease both; }
+    .new-tag { display: inline-block; margin-bottom: 4px; padding: 1px 8px; border-radius: 99px; font-size: 11.5px; font-weight: 800;
+      background: var(--cc-lime); color: #123b32; }
+    @keyframes rq-spin { to { transform: rotate(360deg); } }
+    @keyframes rq-fresh { 0% { background: color-mix(in oklab, var(--cc-lime) 35%, transparent); } 100% { background: transparent; } }
+    :host-context([data-theme="dark"]) .refresh { background: transparent; color: #F3F7F5; }
+    :host-context([data-theme="dark"]) .rq-count { background: rgba(159,221,180,.12); color: #9FDDB4; }
+    @media (prefers-reduced-motion: reduce) { .m.fresh, .refresh.spin svg { animation: none; } }
     .m-note { margin-top: 6px; font-size: 12.5px; color: var(--cm); }
     :host { display: block; --cm: #56635c; }
     :host-context([data-theme="dark"]) { --cm: #B0C0B7; }
@@ -195,6 +208,51 @@ import {
         <div class="col-main">
           <section class="panel">
             <div class="panel-head">
+              <!-- TICK-078 : pas encore de filtrage par zone — libellé fidèle -->
+              <div><h2>Nouvelles demandes @if (publishedCourses.length > 0) { <span class="rq-count">{{ publishedCourses.length }}</span> }</h2>
+                <p>Courses publiées par les clients, ouvertes à vos propositions@if (refreshedAt()) { · à jour à {{ refreshedAt() | date:'HH:mm' }} }</p></div>
+              <button type="button" class="refresh" [class.spin]="refreshing()" (click)="loadPublished(true)" aria-label="Actualiser les demandes">
+                <svg lucideRefreshCw size="16"></svg></button>
+            </div>
+            @if (kycStatus() !== 'APPROVED' && publishedCourses.length) {
+              <p class="kyc-note">Vous pourrez proposer un tarif une fois votre identité vérifiée.</p>
+            }
+            @if (publishedLoading()) {
+              <app-skeleton [lines]="2" />
+            } @else if (publishedError()) {
+              <app-error-state message="Impossible de charger les nouvelles demandes." (retry)="loadPublished()" />
+            } @else if (publishedCourses.length === 0) {
+              <app-empty-state title="Aucune demande pour le moment" message="Les courses publiées par les clients apparaîtront ici." />
+            }
+            @for (course of publishedCourses; track course.id; let i = $index) {
+              <article class="m" [class.fresh]="freshIds().has(course.id)" [style.animation-delay.ms]="i * 40">
+                <div class="m-top">
+                  <span class="m-ic" aria-hidden="true">
+                    @switch (kind(course.description)) {
+                      @case ('ACHAT') { <svg lucideShoppingBag size="17"></svg> }
+                      @case ('LIVRAISON') { <svg lucideTruck size="17"></svg> }
+                      @case ('RETRAIT') { <svg lucidePackage size="17"></svg> }
+                      @default { <svg lucideMoreHorizontal size="17"></svg> }
+                    }
+                  </span>
+                  <div class="m-b">
+                    @if (freshIds().has(course.id)) { <span class="new-tag">Nouvelle</span> }
+                    <span class="m-title">{{ course.description }}</span>
+                    <div class="m-meta">
+                      @if (course.zone) { <span><svg lucideMapPin size="13"></svg> {{ zone(course.zone) }}</span> }
+                      @if (course.scheduledAt) { <span><svg lucideClock size="13"></svg> {{ course.scheduledAt | date:'d MMM, HH:mm' }}</span> }
+                    </div>
+                  </div>
+                </div>
+                <div class="m-act">
+                  <button type="button" class="a-sec" (click)="openModal(course)">Voir la demande <svg lucideArrowUpRight size="14"></svg></button>
+                </div>
+              </article>
+            }
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
               <div><h2>Mes missions</h2><p>Les courses que vous réalisez ou négociez</p></div>
               <a class="text-link" routerLink="/courier/history">Historique <svg lucideArrowUpRight size="13"></svg></a>
             </div>
@@ -252,48 +310,6 @@ import {
                       @if (unread.count(mission.chatRoomId); as n) { <span class="chat-dot" aria-hidden="true">{{ n > 9 ? '9+' : n }}</span> }
                     </a>
                   }
-                </div>
-              </article>
-            }
-          </section>
-
-          <section class="panel">
-            <div class="panel-head">
-              <!-- TICK-078 : pas encore de filtrage par zone — libellé fidèle -->
-              <div><h2>Nouvelles demandes</h2><p>Courses publiées par les clients, ouvertes à vos propositions</p></div>
-              @if (publishedCourses.length > 0) { <span class="status-badge status-badge--success">{{ publishedCourses.length }}</span> }
-            </div>
-            @if (kycStatus() !== 'APPROVED' && publishedCourses.length) {
-              <p class="kyc-note">Vous pourrez proposer un tarif une fois votre identité vérifiée.</p>
-            }
-            @if (publishedLoading()) {
-              <app-skeleton [lines]="2" />
-            } @else if (publishedError()) {
-              <app-error-state message="Impossible de charger les nouvelles demandes." (retry)="loadPublished()" />
-            } @else if (publishedCourses.length === 0) {
-              <app-empty-state title="Aucune demande pour le moment" message="Les courses publiées par les clients apparaîtront ici." />
-            }
-            @for (course of publishedCourses; track course.id; let i = $index) {
-              <article class="m" [style.animation-delay.ms]="i * 40">
-                <div class="m-top">
-                  <span class="m-ic" aria-hidden="true">
-                    @switch (kind(course.description)) {
-                      @case ('ACHAT') { <svg lucideShoppingBag size="17"></svg> }
-                      @case ('LIVRAISON') { <svg lucideTruck size="17"></svg> }
-                      @case ('RETRAIT') { <svg lucidePackage size="17"></svg> }
-                      @default { <svg lucideMoreHorizontal size="17"></svg> }
-                    }
-                  </span>
-                  <div class="m-b">
-                    <span class="m-title">{{ course.description }}</span>
-                    <div class="m-meta">
-                      @if (course.zone) { <span><svg lucideMapPin size="13"></svg> {{ zone(course.zone) }}</span> }
-                      @if (course.scheduledAt) { <span><svg lucideClock size="13"></svg> {{ course.scheduledAt | date:'d MMM, HH:mm' }}</span> }
-                    </div>
-                  </div>
-                </div>
-                <div class="m-act">
-                  <button type="button" class="a-sec" (click)="openModal(course)">Voir la demande <svg lucideArrowUpRight size="14"></svg></button>
                 </div>
               </article>
             }
@@ -429,15 +445,57 @@ export class CourierDashboardComponent implements OnInit {
     });
   }
 
-  /** 3. Courses publiées disponibles (principal). */
-  loadPublished(): void {
-    this.publishedLoading.set(true);
-    this.publishedError.set(false);
+  /**
+   * 3. Courses publiées disponibles (principal). {@code silent} : rafraîchissement sans squelette ni message
+   * d'erreur (minuterie, retour sur l'onglet) ; les demandes apparues depuis le dernier chargement sont signalées.
+   */
+  readonly refreshedAt = signal<Date | null>(null);
+  readonly refreshing = signal(false);
+  readonly freshIds = signal<Set<number>>(new Set());
+  private knownIds: Set<number> | null = null;
+  private readonly seenAt = new Map<number, number>();
+
+  loadPublished(silent = false): void {
+    if (silent) {
+      if (this.refreshing()) return;
+      this.refreshing.set(true);
+    } else {
+      this.publishedLoading.set(true);
+      this.publishedError.set(false);
+    }
     this.courseService.getPublishedCourses().subscribe({
-      next: (list: any[]) => { this.publishedCourses = list; this.publishedLoading.set(false); },
-      error: () => { this.publishedLoading.set(false); this.publishedError.set(true); },
+      next: (list: any[]) => {
+        const ids = new Set<number>(list.map((c) => c.id));
+        const now = Date.now();
+        // Apparues depuis le premier affichage : repère « Nouvelle » gardé 2 minutes (rien n'est nouveau au premier chargement)
+        if (this.knownIds) for (const id of ids) if (!this.knownIds.has(id) && !this.seenAt.has(id)) this.seenAt.set(id, now);
+        this.knownIds = new Set([...(this.knownIds ?? []), ...ids]);
+        this.freshIds.set(new Set([...ids].filter((id) => now - (this.seenAt.get(id) ?? 0) < 120_000)));
+        this.publishedCourses = list;
+        this.publishedLoading.set(false);
+        this.publishedError.set(false);
+        this.refreshing.set(false);
+        this.refreshedAt.set(new Date());
+      },
+      error: () => {
+        this.refreshing.set(false);
+        if (!silent) { this.publishedLoading.set(false); this.publishedError.set(true); }
+      },
     });
   }
+
+  /** Demandes rafraîchies toutes les 20 s quand l'onglet est visible, et dès le retour sur l'onglet. */
+  private readonly requestsTimer = (() => {
+    const tick = () => { if (typeof document === 'undefined' || document.visibilityState === 'visible') this.loadPublished(true); };
+    const id = setInterval(tick, 20_000);
+    const onVisible = () => { if (document.visibilityState === 'visible') this.loadPublished(true); };
+    if (typeof document !== 'undefined') document.addEventListener('visibilitychange', onVisible);
+    inject(DestroyRef).onDestroy(() => {
+      clearInterval(id);
+      if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', onVisible);
+    });
+    return id;
+  })();
 
   /** Démarrage de la course : le client ne peut plus l'annuler librement ensuite. */
   readonly startingId = signal<number | null>(null);
