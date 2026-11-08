@@ -10,7 +10,7 @@ import { ToastService } from '../../../core/services/toast.service';
 import {
   LucideAlertTriangle, LucideArrowRight, LucideCalendarDays, LucideCamera, LucideCheckCircle, LucideClock,
   LucideLockKeyhole, LucideMapPin, LucideMessageCircle, LucidePhone, LucideScale, LucideStar, LucideUserRound, LucideUsers,
-  LucideWallet,
+  LucideWallet, LucidePencil,
 } from '@lucide/angular';
 
 interface Step { label: string; when?: string; state: 'done' | 'active' | 'todo'; }
@@ -52,7 +52,7 @@ function buildSteps(c: any): Step[] {
     StatusBadgeComponent, RouterLink, DatePipe,
     LucideAlertTriangle, LucideArrowRight, LucideCalendarDays, LucideCamera, LucideCheckCircle, LucideClock,
     LucideLockKeyhole, LucideMapPin, LucideMessageCircle, LucidePhone, LucideScale, LucideStar, LucideUserRound, LucideUsers,
-    LucideWallet,
+    LucideWallet, LucidePencil,
   ],
   styles: [`
     :host { display: block; --cd-m: #56635c; }
@@ -92,6 +92,10 @@ function buildSteps(c: any): Step[] {
     .next.calm .ghost-w { border-color: var(--cc-line); color: var(--cc-ink); }
     .ghost-w:disabled { opacity: .5; cursor: default; }
     .cancel-hint { margin: 12px 0 0; font-size: 13px; opacity: .85; }
+    .sec-acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .sec-acts .ghost-w { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
+    .next.calm .cancel-box { background: var(--cc-paper-2); border-color: var(--cc-line); color: var(--cc-ink); }
+    .link-btn { padding: 0; border: 0; background: none; color: inherit; font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
     .cancel-box { margin-top: 14px; padding: 14px; border-radius: 12px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.22); animation: cb-in .25s ease both; }
     .cancel-box b { display: block; font-size: 15px; }
     .cancel-box p { margin: 6px 0 12px; font-size: 13.5px; line-height: 1.45; opacity: .9; }
@@ -195,6 +199,20 @@ function buildSteps(c: any): Step[] {
                        [attr.aria-label]="unread.sum(course.conversationRoomIds) ? 'Voir les coursiers : ' + unread.sum(course.conversationRoomIds) + ' message(s) non lu(s)' : 'Voir les coursiers'">
                     <svg lucideUsers size="16"></svg> Voir les coursiers
                     @if (unread.sum(course.conversationRoomIds); as n) { <span class="chat-dot" aria-hidden="true">{{ n > 9 ? '9+' : n }}</span> }</a></div>
+                  <div class="sec-acts">
+                    <a class="ghost-w" [routerLink]="['/client/edit-course', courseId]"><svg lucidePencil size="15"></svg> Modifier</a>
+                    @if (!confirmUnpaid) { <button type="button" class="ghost-w" [disabled]="acting" (click)="confirmUnpaid = true">Annuler la course</button> }
+                  </div>
+                  @if (confirmUnpaid) {
+                    <div class="cancel-box" role="group" aria-label="Annuler la course">
+                      <b>Annuler cette course ?</b>
+                      <p>Vous n’avez rien payé. La course est retirée, les coursiers qui vous ont écrit sont prévenus et leurs discussions sont fermées. Cette action est définitive.</p>
+                      <div class="cancel-acts">
+                        <button type="button" class="ghost-w" [disabled]="acting" (click)="confirmUnpaid = false">Garder la course</button>
+                        <button type="button" class="danger-w" [disabled]="acting" (click)="cancelUnpaid()">{{ acting ? 'Annulation…' : 'Oui, annuler' }}</button>
+                      </div>
+                    </div>
+                  }
                 </section>
               }
               @case ('ASSIGNED') {
@@ -207,6 +225,18 @@ function buildSteps(c: any): Step[] {
                     @if (course.chatRoomId) { <a class="ghost-w has-dot" [routerLink]="['/chat', course.chatRoomId]"><svg lucideMessageCircle size="16"></svg> Discuter
                       @if (unread.count(course.chatRoomId); as n) { <span class="chat-dot" aria-hidden="true">{{ n > 9 ? '9+' : n }}</span> }</a> }
                   </div>
+                  @if (!confirmUnpaid) {
+                    <p class="cancel-hint">Vous n’avez encore rien payé : vous pouvez <button type="button" class="link-btn" (click)="confirmUnpaid = true">annuler la course</button>.</p>
+                  } @else {
+                    <div class="cancel-box" role="group" aria-label="Annuler la course">
+                      <b>Annuler cette course ?</b>
+                      <p>Vous n’avez rien payé. {{ course.courierName || 'Le coursier' }} est prévenu et la discussion est fermée. Cette action est définitive.</p>
+                      <div class="cancel-acts">
+                        <button type="button" class="ghost-w" [disabled]="acting" (click)="confirmUnpaid = false">Garder la course</button>
+                        <button type="button" class="danger-w" [disabled]="acting" (click)="cancelUnpaid()">{{ acting ? 'Annulation…' : 'Oui, annuler' }}</button>
+                      </div>
+                    </div>
+                  }
                 </section>
               }
               @case ('IN_PROGRESS') {
@@ -477,6 +507,26 @@ export class CourseDetailComponent implements OnInit {
       error: (err) => {
         this.acting = false;
         this.toast.error(err?.error?.message ?? 'Impossible de prolonger le délai.');
+      },
+    });
+  }
+
+  /** Annulation avant paiement (course publiée ou offre acceptée mais non payée) : rien à rembourser. */
+  confirmUnpaid = false;
+  cancelUnpaid(): void {
+    this.acting = true;
+    this.courseService.deleteCourse(this.courseId).subscribe({
+      next: () => {
+        this.acting = false;
+        this.confirmUnpaid = false;
+        this.toast.success('Course annulée. Les coursiers concernés ont été prévenus.');
+        this.loadCourse();
+      },
+      error: (err) => {
+        this.acting = false;
+        this.confirmUnpaid = false;
+        this.toast.error(err?.error?.message ?? 'Impossible d’annuler la course.');
+        this.loadCourse();
       },
     });
   }

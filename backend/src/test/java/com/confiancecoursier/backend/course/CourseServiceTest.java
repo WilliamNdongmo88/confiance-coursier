@@ -229,4 +229,17 @@ class CourseServiceTest {
 
         assertThat(service.getMyMissions(2L).get(0).getNotRetained()).isNull();
     }
+
+    @Test
+    void cancellingNotifiesEveryCourierInvolved() {
+        var notifications = mock(com.confiancecoursier.backend.notify.service.NotificationService.class);
+        CourseService svc = new CourseService(courses, rooms, offers,
+                mock(com.confiancecoursier.backend.user.repository.UserRepository.class), reviews, reviewGate, notifications);
+
+        svc.deleteCourse(100L, 1L);
+
+        verify(notifications).notifyCourseCancelledByClient(2L, 100L, "Pharmacie");
+        verify(notifications).notifyCourseCancelledByClient(3L, 100L, "Pharmacie");
+        verifyNoMoreInteractions(notifications);
+    }
 }

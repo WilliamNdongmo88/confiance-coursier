@@ -314,6 +314,21 @@ public class NotificationService {
                         "Voir les demandes", "/courier/dashboard"));
     }
 
+    /** Le client a annulé une course non payée sur laquelle ce coursier discutait (ou avait été retenu). */
+    public void notifyCourseCancelledByClient(Long courierId, Long courseId, String courseDescription) {
+        String email = resolveEmail(courierId);
+        if (email == null) return;
+        String desc = courseDescription == null ? "" : courseDescription.strip();
+        if (desc.length() > 90) desc = desc.substring(0, 87) + "…";
+        desc = org.springframework.web.util.HtmlUtils.htmlEscape(desc);
+        sendEmail(email,
+                "Course annulée par le client — " + EmailLayout.BRAND,
+                buildTemplate("Le client a annulé sa course",
+                        "La course « " + desc + " » (#" + courseId + ") a été annulée par le client avant tout paiement.",
+                        "Aucune pénalité pour vous. D’autres demandes vous attendent dans votre espace.",
+                        "Voir les demandes", "/courier/dashboard"));
+    }
+
     /** Le coursier a démarré la course (le client ne peut plus l'annuler librement). */
     public void notifyCourseStarted(Long clientId, Long courseId) {
         String email = resolveEmail(clientId);

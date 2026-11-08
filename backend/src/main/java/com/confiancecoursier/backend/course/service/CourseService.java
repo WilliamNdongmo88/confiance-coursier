@@ -32,10 +32,21 @@ public class CourseService {
     private final UserRepository userRepository;
     private final ReviewRepository reviewRepository;
     private final ReviewGate reviewGate;
+    /** Emails d'annulation aux coursiers concernés (null dans les tests unitaires qui ne s'en servent pas). */
+    private final com.confiancecoursier.backend.notify.service.NotificationService notificationService;
 
     public CourseService(CourseRepository courseRepository, ChatRoomRepository chatRoomRepository,
                          CourseOfferRepository offerRepository, UserRepository userRepository,
                          ReviewRepository reviewRepository, ReviewGate reviewGate) {
+        this(courseRepository, chatRoomRepository, offerRepository, userRepository, reviewRepository, reviewGate, null);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public CourseService(CourseRepository courseRepository, ChatRoomRepository chatRoomRepository,
+                         CourseOfferRepository offerRepository, UserRepository userRepository,
+                         ReviewRepository reviewRepository, ReviewGate reviewGate,
+                         com.confiancecoursier.backend.notify.service.NotificationService notificationService) {
+        this.notificationService = notificationService;
         this.reviewRepository = reviewRepository;
         this.reviewGate = reviewGate;
         this.courseRepository = courseRepository;
@@ -200,12 +211,29 @@ public class CourseService {
                 offerRepository.save(offer);
             }
         }
+        java.util.Set<Long> couriers = new java.util.LinkedHashSet<>();
         for (ChatRoom room : chatRoomRepository.findByCourseId(courseId)) {
             room.setIsArchived(true);
             chatRoomRepository.save(room);
+            if (room.getCourierId() != null) couriers.add(room.getCourierId());
         }
+        if (course.getCourierId() != null) couriers.add(course.getCourierId());
         course.setStatus("CANCELLED");
         courseRepository.save(course);
+
+        // Les coursiers en discussion (et le coursier retenu) sont prévenus, après validation de l'annulation
+        if (notificationService != null && !couriers.isEmpty()) {
+            String description = course.getDescription();
+            Runnable notify = () -> couriers.forEach(id -> notificationService.notifyCourseCancelledByClient(id, courseId, description));
+            if (org.springframework.transaction.support.TransactionSynchronizationManager.isSynchronizationActive()) {
+                org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+                        new org.springframework.transaction.support.TransactionSynchronization() {
+                            @Override public void afterCommit() { notify.run(); }
+                        });
+            } else {
+                notify.run();
+            }
+        }
     }
 
     static final java.util.Set<String> CANCELLABLE_STATUSES = java.util.Set.of("PUBLISHED", "ASSIGNED");

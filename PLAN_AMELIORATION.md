@@ -877,7 +877,7 @@ Contrôles :
 **Validation :** création en moins de 30 s sur mobile (chronométré).
 
 #### TICK-082 ⚙️ [FULL] Écran « Coursiers » : offres reçues + coursiers proches — 5 h
-**Statut :** ⚙️ (2026-11-08, bilan `docs/bilan-tickets-080-105.md`) — reste : bouton « Annuler » sur une course publiée côté client ; coursiers proches (dépend de TICK-089).
+**Statut :** ⚙️ (2026-11-08, bilan `docs/bilan-tickets-080-105.md`) — « Annuler » et « Modifier » ajoutés dans le détail client (2026-11-08) ; reste : coursiers proches (dépend de TICK-089).
 **Anomalies :** A-22, CL-11, CL-12, CL-20 · **Fichiers :** `select-courier`, `course-detail`, `GET /courses/{id}/offers` (avec nom, note, KYC), `GET /users/couriers?zone=`
 **Critères d'acceptation :**
 - Onglet « Offres reçues » (montant, coursier, Discuter / Accepter) et onglet « Proches » (Discuter).
