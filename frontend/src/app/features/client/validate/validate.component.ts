@@ -8,7 +8,7 @@ import { ToastService } from '../../../core/services/toast.service';
 import { CourseService } from '../../../core/services/course.service';
 import {
   LucideCamera, LucideCheckCircle, LucideClock, LucideFileText, LucideLockKeyhole, LucideMapPin,
-  LucidePlay, LucideReceipt, LucideScale, LucideShieldCheck, LucideVideo,
+  LucidePlay, LucideReceipt, LucideScale, LucideVideo,
 } from '@lucide/angular';
 
 interface ProofItem {
@@ -36,7 +36,7 @@ interface ProofItem {
   imports: [
     RouterLink, DatePipe, MediaViewerComponent,
     LucideCamera, LucideCheckCircle, LucideClock, LucideFileText, LucideLockKeyhole, LucideMapPin,
-    LucidePlay, LucideReceipt, LucideScale, LucideShieldCheck, LucideVideo,
+    LucidePlay, LucideReceipt, LucideScale, LucideVideo,
   ],
   styles: [`
     :host { display: block; --vm: #56635c; }

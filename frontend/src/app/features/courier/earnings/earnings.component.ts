@@ -5,7 +5,7 @@ import { HttpClient } from '@angular/common/http';
 import { CourseService } from '../../../core/services/course.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { warnLoadFailed } from '../../../shared/state/load-error';
-import { LucideArrowRight, LucideClock, LucideLockKeyhole, LucidePercent, LucideSmartphone, LucideTrendingUp, LucideWallet } from '@lucide/angular';
+import { LucideArrowRight, LucideLockKeyhole, LucideSmartphone, LucideTrendingUp, LucideWallet } from '@lucide/angular';
 
 /**
  * Gains du coursier (Impeccable, mode Operate).
@@ -16,7 +16,7 @@ import { LucideArrowRight, LucideClock, LucideLockKeyhole, LucidePercent, Lucide
 @Component({
   selector: 'app-earnings',
   standalone: true,
-  imports: [RouterLink, DatePipe, LucideArrowRight, LucideClock, LucideLockKeyhole, LucidePercent, LucideSmartphone, LucideTrendingUp, LucideWallet],
+  imports: [RouterLink, DatePipe, LucideArrowRight, LucideLockKeyhole, LucideSmartphone, LucideTrendingUp, LucideWallet],
   styles: [`
     :host { display: block; --em: #56635c; }
     :host-context([data-theme="dark"]) { --em: #B0C0B7; }

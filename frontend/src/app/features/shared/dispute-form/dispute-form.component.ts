@@ -5,7 +5,7 @@ import { HttpClient } from '@angular/common/http';
 import { ToastService } from '../../../core/services/toast.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { homeForRole } from '../../../core/auth/session';
-import { LucideCheck, LucideLockKeyhole, LucideMessageCircle, LucideScale, LucideShieldCheck } from '@lucide/angular';
+import { LucideLockKeyhole, LucideMessageCircle, LucideScale, LucideShieldCheck } from '@lucide/angular';
 
 interface MotifOption { code: string; title: string; hint: string; }
 
@@ -36,7 +36,7 @@ const MAX = 2000;
 @Component({
   selector: 'app-dispute-form',
   standalone: true,
-  imports: [RouterLink, FormsModule, LucideCheck, LucideLockKeyhole, LucideMessageCircle, LucideScale, LucideShieldCheck],
+  imports: [RouterLink, FormsModule, LucideLockKeyhole, LucideMessageCircle, LucideScale, LucideShieldCheck],
   styles: [`
     :host { display: block; --dm: #56635c; }
     :host-context([data-theme="dark"]) { --dm: #B0C0B7; }

@@ -8,7 +8,7 @@ import { CourseService } from '../../../core/services/course.service';
 import { StatusBadgeComponent } from '../../../shared/status/status-badge.component';
 import { ToastService } from '../../../core/services/toast.service';
 import {
-  LucideAlertTriangle, LucideArrowRight, LucideCalendarDays, LucideCamera, LucideCheckCircle, LucideClock,
+  LucideCalendarDays, LucideCamera, LucideCheckCircle, LucideClock,
   LucideLockKeyhole, LucideMapPin, LucideMessageCircle, LucidePhone, LucideScale, LucideStar, LucideUserRound, LucideUsers,
   LucideWallet, LucidePencil,
 } from '@lucide/angular';
@@ -50,7 +50,7 @@ function buildSteps(c: any): Step[] {
   standalone: true,
   imports: [
     StatusBadgeComponent, RouterLink, DatePipe,
-    LucideAlertTriangle, LucideArrowRight, LucideCalendarDays, LucideCamera, LucideCheckCircle, LucideClock,
+    LucideCalendarDays, LucideCamera, LucideCheckCircle, LucideClock,
     LucideLockKeyhole, LucideMapPin, LucideMessageCircle, LucidePhone, LucideScale, LucideStar, LucideUserRound, LucideUsers,
     LucideWallet, LucidePencil,
   ],

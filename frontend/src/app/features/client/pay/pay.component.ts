@@ -5,7 +5,7 @@ import { HttpClient } from '@angular/common/http';
 import { PaymentService } from '../../../core/services/payment.service';
 import { ToastService } from '../../../core/services/toast.service';
 import {
-  LucideArrowRight, LucideBadgeCheck, LucideCreditCard, LucideFlaskConical, LucideInfo, LucideLockKeyhole,
+  LucideBadgeCheck, LucideCreditCard, LucideFlaskConical, LucideInfo, LucideLockKeyhole,
   LucideReceipt, LucideShieldCheck,
 } from '@lucide/angular';
 
@@ -31,7 +31,7 @@ const METHODS: Method[] = [
   standalone: true,
   imports: [
     FormsModule, RouterLink,
-    LucideArrowRight, LucideBadgeCheck, LucideCreditCard, LucideFlaskConical, LucideInfo, LucideLockKeyhole,
+    LucideBadgeCheck, LucideCreditCard, LucideFlaskConical, LucideInfo, LucideLockKeyhole,
     LucideReceipt, LucideShieldCheck,
   ],
   styles: [`

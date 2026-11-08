@@ -26,7 +26,6 @@ import {
   LucideBike,
   LucideLayoutDashboard,
   LucidePlus,
-  LucideClock,
   LucideUser,
   LucideLifeBuoy,
   LucideLogOut,
@@ -35,8 +34,7 @@ import {
   LucideX,
   LucideHistory,
   LucideWallet,
-  LucidePlusCircle,
-} from '@lucide/angular';
+  } from '@lucide/angular';
 import { CourseService } from '../../core/services/course.service';
 import { HttpClient } from '@angular/common/http';
 import { Subscription } from 'rxjs';
@@ -81,7 +79,6 @@ interface ChatMsg {
     LucideBike,
     LucideLayoutDashboard,
     LucidePlus,
-    LucideClock,
     LucideUser,
     LucideLifeBuoy,
     LucideLogOut,
@@ -90,8 +87,7 @@ interface ChatMsg {
     LucideX,
     LucideHistory,
     LucideWallet,
-    LucidePlusCircle,
-  ],
+    ],
   styles: [`
     /* ── Hôte : pleine hauteur ── */
     :host {

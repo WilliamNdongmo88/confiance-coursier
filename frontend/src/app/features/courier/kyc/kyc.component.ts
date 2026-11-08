@@ -7,7 +7,7 @@ import { ToastService } from '../../../core/services/toast.service';
 import { AuthService } from '../../../core/services/auth.service';
 import {
   LucideArrowLeft, LucideArrowRight, LucideCamera, LucideCheck, LucideClock, LucideIdCard, LucideLockKeyhole,
-  LucidePencil, LucideRefreshCw, LucideScanFace, LucideSend, LucideShieldCheck, LucideSmartphone, LucideUser, LucideXCircle,
+  LucidePencil, LucideRefreshCw, LucideScanFace, LucideSend, LucideShieldCheck, LucideXCircle,
 } from '@lucide/angular';
 
 interface KycStatus {
@@ -44,7 +44,7 @@ const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
   imports: [
     RouterLink, FormsModule, DatePipe,
     LucideArrowLeft, LucideArrowRight, LucideCamera, LucideCheck, LucideClock, LucideIdCard, LucideLockKeyhole,
-    LucidePencil, LucideRefreshCw, LucideScanFace, LucideSend, LucideShieldCheck, LucideSmartphone, LucideUser, LucideXCircle,
+    LucidePencil, LucideRefreshCw, LucideScanFace, LucideSend, LucideShieldCheck, LucideXCircle,
   ],
   styles: [`
     :host { display: block; --km: #56635c; }

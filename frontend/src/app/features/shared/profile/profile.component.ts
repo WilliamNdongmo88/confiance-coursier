@@ -13,8 +13,7 @@ import {
   LucideShieldAlert,
   LucideClock,
   LucideXCircle,
-  LucideCheckCircle2,
-} from '@lucide/angular';
+  } from '@lucide/angular';
 
 interface UserProfile {
   id: number;
@@ -47,8 +46,7 @@ interface UserProfile {
     LucideShieldAlert,
     LucideClock,
     LucideXCircle,
-    LucideCheckCircle2,
-  ],
+    ],
   styles: [`
     .avatar-section {
       display: flex;

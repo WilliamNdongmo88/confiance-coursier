@@ -5,7 +5,7 @@ import { HttpClient } from '@angular/common/http';
 import { ToastService } from '../../../core/services/toast.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { homeForRole } from '../../../core/auth/session';
-import { LucideEyeOff, LucideFlag, LucideScale, LucideShieldCheck, LucideUserRound } from '@lucide/angular';
+import { LucideEyeOff, LucideFlag, LucideShieldCheck } from '@lucide/angular';
 
 interface Motif { value: string; title: string; hint: string; }
 
@@ -28,7 +28,7 @@ const MAX = 2000;
 @Component({
   selector: 'app-report-user',
   standalone: true,
-  imports: [RouterLink, FormsModule, LucideEyeOff, LucideFlag, LucideScale, LucideShieldCheck, LucideUserRound],
+  imports: [RouterLink, FormsModule, LucideEyeOff, LucideFlag, LucideShieldCheck],
   styles: [`
     :host { display: block; --rm: #56635c; }
     :host-context([data-theme="dark"]) { --rm: #B0C0B7; }
