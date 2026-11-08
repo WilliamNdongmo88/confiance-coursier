@@ -1,7 +1,7 @@
 import { ChatUnreadService } from '../../../core/services/chat-unread.service';
-import { Component, OnInit, signal, inject, DestroyRef } from '@angular/core';
+import { Component, OnInit, signal, inject, DestroyRef, HostListener } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { DatePipe, DecimalPipe, SlicePipe } from '@angular/common';
+import { DatePipe, SlicePipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { CourseService } from '../../../core/services/course.service';
 import { AuthService } from '../../../core/services/auth.service';
@@ -13,19 +13,17 @@ import { ErrorStateComponent } from '../../../shared/state/error-state.component
 import { SkeletonComponent } from '../../../shared/state/skeleton.component';
 import { warnLoadFailed } from '../../../shared/state/load-error';
 import {
-  LucideAlertTriangle, LucideArrowRight, LucideArrowUpRight, LucideCamera, LucideCheck, LucideClock, LucideLockKeyhole,
-  LucideMapPin, LucideMessageCircle, LucideMoreHorizontal, LucidePackage, LucidePackageCheck, LucidePhone,
-  LucideShieldAlert, LucideShieldCheck, LucideShoppingBag, LucideStar, LucideTruck, LucideWallet, LucideX, LucideRefreshCw,
+  LucideAlertTriangle, LucideArrowRight, LucideArrowUpRight, LucideCamera, LucideClock, LucideMapPin, LucideMessageCircle, LucideMoreHorizontal, LucidePackage, LucidePackageCheck, LucidePhone,
+  LucideShieldAlert, LucideShieldCheck, LucideShoppingBag, LucideStar, LucideTruck, LucideWallet, LucideX, LucideRefreshCw, LucideFlag,
 } from '@lucide/angular';
 
 @Component({
   selector: 'app-courier-dashboard',
   standalone: true,
   imports: [
-    RouterLink, DatePipe, DecimalPipe, SlicePipe, StatusBadgeComponent, EmptyStateComponent, ErrorStateComponent, SkeletonComponent,
-    LucideAlertTriangle, LucideArrowRight, LucideArrowUpRight, LucideCamera, LucideCheck, LucideClock, LucideLockKeyhole,
-    LucideMapPin, LucideMessageCircle, LucideMoreHorizontal, LucidePackage, LucidePackageCheck, LucidePhone,
-    LucideShieldAlert, LucideShieldCheck, LucideShoppingBag, LucideStar, LucideTruck, LucideWallet, LucideX, LucideRefreshCw,
+    RouterLink, DatePipe, SlicePipe, StatusBadgeComponent, EmptyStateComponent, ErrorStateComponent, SkeletonComponent,
+    LucideAlertTriangle, LucideArrowRight, LucideArrowUpRight, LucideCamera, LucideClock, LucideMapPin, LucideMessageCircle, LucideMoreHorizontal, LucidePackage, LucidePackageCheck, LucidePhone,
+    LucideShieldAlert, LucideShieldCheck, LucideShoppingBag, LucideStar, LucideTruck, LucideWallet, LucideX, LucideRefreshCw, LucideFlag,
   ],
   styles: [`
     .m.declined { opacity: .78; }
@@ -85,6 +83,20 @@ import {
     .m-act a, .m-act button { min-height: 40px; padding: 0 14px; border-radius: 10px; display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: 13.5px; font-weight: 700; text-decoration: none; cursor: pointer; }
     .a-main { background: var(--primary); color: #fff; border: 0; }
     .a-sec { background: var(--cc-white); color: var(--cc-ink); border: 1px solid var(--cc-line); }
+    .more { position: relative; display: inline-flex; }
+    .more-btn { width: 44px; padding: 0 !important; justify-content: center; }
+    .menu { position: absolute; right: 0; bottom: calc(100% + 6px); z-index: 20; min-width: 220px; padding: 6px; border-radius: 12px;
+      background: var(--cc-white); border: 1px solid var(--cc-line); box-shadow: 0 14px 34px rgba(18,59,50,.16); animation: menu-in .18s ease both; }
+    .menu a { display: flex; align-items: center; gap: 8px; min-height: 42px; padding: 0 10px; border-radius: 8px; font-size: 14px; font-weight: 650;
+      color: var(--cc-ink); text-decoration: none; white-space: nowrap; }
+    .menu a:hover { background: var(--cc-paper-2); }
+    .menu a.danger { color: var(--cc-danger); }
+    @keyframes menu-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+    :host-context([data-theme="dark"]) .menu { background: #1c2a24; }
+    :host-context([data-theme="dark"]) .menu a { color: #F3F7F5; }
+    :host-context([data-theme="dark"]) .menu a.danger { color: #F0A39C; }
+    :host-context([data-theme="dark"]) .menu a:hover { background: rgba(255,255,255,.06); }
+    @media (prefers-reduced-motion: reduce) { .menu { animation: none; } }
     .a-off { opacity: .5; }
     .kyc-note { margin: 0; padding: 10px 19px; border-top: 1px solid var(--cc-line); font-size: 13px; color: var(--cm); }
     .pay-steps { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 11px; counter-reset: st; }
@@ -310,6 +322,24 @@ import {
                       @if (unread.count(mission.chatRoomId); as n) { <span class="chat-dot" aria-hidden="true">{{ n > 9 ? '9+' : n }}</span> }
                     </a>
                   }
+                  @if (!mission.notRetained && (canDispute(mission) || mission.clientId)) {
+                    <span class="more">
+                      <button type="button" class="a-sec more-btn" aria-haspopup="menu" [attr.aria-expanded]="menuFor() === mission.id"
+                              aria-label="Plus d’actions" (click)="toggleMenu(mission.id, $event)"><svg lucideMoreHorizontal size="16"></svg></button>
+                      @if (menuFor() === mission.id) {
+                        <span class="menu" role="menu" (click)="$event.stopPropagation()">
+                          @if (canDispute(mission)) {
+                            <a role="menuitem" [routerLink]="['/courier/dispute-form', mission.id]"><svg lucideAlertTriangle size="15"></svg> Ouvrir un litige</a>
+                          }
+                          @if (mission.clientId) {
+                            <a role="menuitem" class="danger" [routerLink]="['/report-user', mission.clientId]"
+                               [queryParams]="{ name: mission.clientName || null, room: mission.chatRoomId || null }">
+                              <svg lucideFlag size="15"></svg> Signaler {{ mission.clientName || 'le client' }}</a>
+                          }
+                        </span>
+                      }
+                    </span>
+                  }
                 </div>
               </article>
             }
@@ -496,6 +526,16 @@ export class CourierDashboardComponent implements OnInit {
     });
     return id;
   })();
+
+  /** Menu « ⋯ » d'une mission : litige (course en cours, en retard ou preuves envoyées) et signalement du client. */
+  readonly menuFor = signal<number | null>(null);
+  toggleMenu(id: number, e: Event): void {
+    e.stopPropagation();
+    this.menuFor.update((cur) => (cur === id ? null : id));
+  }
+  canDispute(m: any): boolean { return ['IN_PROGRESS', 'OVERDUE', 'PROOFS_SUBMITTED'].includes(m.status); }
+  @HostListener('document:click') closeMenu(): void { this.menuFor.set(null); }
+  @HostListener('document:keydown.escape') closeMenuOnEscape(): void { this.menuFor.set(null); }
 
   /** Démarrage de la course : le client ne peut plus l'annuler librement ensuite. */
   readonly startingId = signal<number | null>(null);

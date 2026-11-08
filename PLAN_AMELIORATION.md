@@ -932,8 +932,8 @@ Contrôles :
 - Offre modifiable tant que la course est PUBLISHED.
 **Validation :** de l'accueil à l'offre envoyée en 3 taps au maximum.
 
-#### TICK-087 ⚙️ [FULL] Missions : statut clair et action suivante — 3 h
-**Statut :** ⚙️ (2026-11-08, bilan `docs/bilan-tickets-080-105.md`) — reste : litige et signalement depuis la carte de mission.
+#### TICK-087 ✅ [FULL] Missions : statut clair et action suivante — 3 h
+**Statut :** ✅ (2026-11-08) — menu « ⋯ » sur la carte de mission : « Ouvrir un litige » (course en cours, en retard ou preuves envoyées) et « Signaler le client ».
 **Anomalies :** CO-04, CO-15 · **Fichiers :** `CourseService.getMyMissions`, dashboard et missions du coursier
 **Critères d'acceptation :**
 - Sections « En négociation », « À réaliser (payées) », « Terminées ».
