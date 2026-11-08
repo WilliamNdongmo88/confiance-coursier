@@ -8,6 +8,12 @@ import {
 } from '../../../core/services/admin.service';
 import { LucideArrowRight, LucideCircleCheck, LucideFlag, LucideFlaskConical, LucideScale, LucideShieldCheck, LucideTrendingUp, LucideUsers } from '@lucide/angular';
 
+/** Motifs de signalement en clair (mêmes valeurs que le formulaire de signalement). */
+const REPORT_MOTIFS: Record<string, string> = {
+  harcelement: 'Harcèlement ou menaces', injures: 'Propos injurieux', fraude: 'Tentative de fraude',
+  faux: 'Faux profil', autre: 'Autre comportement',
+};
+
 interface Task { id: number; title: string; meta: string; since: string; link: string; old: boolean; }
 
 /**
@@ -39,7 +45,7 @@ interface Task { id: number; title: string; meta: string; since: string; link: s
     .t .go { margin-left: auto; flex: none; color: var(--dm); }
     h2 { margin: 0 0 10px; font-size: 17px; font-weight: 750; letter-spacing: -.02em; color: var(--cc-ink); }
     .cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-bottom: 24px; align-items: start; }
-    .box { background: var(--cc-white); border: 1px solid var(--cc-line); border-radius: 16px; padding: 16px 18px; animation: d-in .45s cubic-bezier(.16,1,.3,1) .12s both; }
+    .box { min-width: 0; background: var(--cc-white); border: 1px solid var(--cc-line); border-radius: 16px; padding: 16px 18px; animation: d-in .45s cubic-bezier(.16,1,.3,1) .12s both; }
     .box-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
     .box-h h3 { margin: 0; display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 750; color: var(--cc-ink); }
     .box-h a { display: inline-flex; align-items: center; min-height: 40px; padding: 0 4px; font-size: 13.5px; font-weight: 700; color: var(--primary); text-decoration: none; }
@@ -70,9 +76,9 @@ interface Task { id: number; title: string; meta: string; since: string; link: s
     :host-context([data-theme="dark"]) .t:hover { border-color: var(--cc-lime); }
     :host-context([data-theme="dark"]) .t.hot .t-ic { color: #F0A39C; }
     :host-context([data-theme="dark"]) .since.old { background: rgba(227,168,87,.14); color: #E3A857; }
-    @media (max-width: 960px) { .cols { grid-template-columns: 1fr; } .stats { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 960px) { .cols { grid-template-columns: minmax(0, 1fr); } .stats { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
     @media (max-width: 640px) {
-      .todo { grid-template-columns: 1fr; gap: 8px; }
+      .todo { grid-template-columns: minmax(0, 1fr); gap: 8px; }
       .t { padding: 12px 14px; } .t b { font-size: 22px; }
       .s { padding: 14px; } .s strong { font-size: 19px; }
     }
@@ -186,7 +192,7 @@ export class AdminDashboardComponent implements OnInit {
     { key: 'disp', title: 'Litiges', link: '/admin/disputes', empty: 'Aucun litige ouvert',
       items: this.sorted(this.disputes().map((d) => this.task(d.id, this.motif(d.motifCode), `Course n° ${d.courseId}`, d.createdAt, '/admin/disputes'))) },
     { key: 'rep', title: 'Signalements', link: '/admin/reports', empty: 'Aucun signalement ouvert',
-      items: this.sorted(this.reports().map((r) => this.task(r.id, r.motif, r.description || `Signalement n° ${r.id}`, r.createdAt, '/admin/reports'))) },
+      items: this.sorted(this.reports().map((r) => this.task(r.id, REPORT_MOTIFS[r.motif] ?? r.motif, r.description || `Signalement n° ${r.id}`, r.createdAt, '/admin/reports'))) },
   ]);
 
   /** Seules les files non vides sont détaillées : les tuiles du haut disent déjà « 0 ». */
@@ -231,6 +237,7 @@ export class AdminDashboardComponent implements OnInit {
     return `${p >= 0 ? '+' : ''}${p} % par rapport au mois dernier`;
   }
 
-  nf(n: number): string { return new Intl.NumberFormat('fr-FR').format(n || 0); }
-  xaf(n: number): string { return `${new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(Math.round(n || 0))} XAF`; }
+  /** Espace insécable classique au lieu de l'espace fine (absente de certaines polices : « 9570 » au lieu de « 9 570 »). */
+  nf(n: number): string { return new Intl.NumberFormat('fr-FR').format(Number(n) || 0).replace(/ /g, ' '); }
+  xaf(n: number): string { return `${this.nf(Math.round(Number(n) || 0))} XAF`; }
 }
