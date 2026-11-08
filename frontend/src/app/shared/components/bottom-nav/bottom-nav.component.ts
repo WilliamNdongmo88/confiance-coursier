@@ -12,7 +12,8 @@ import {
 } from '@lucide/angular';
 
 type Icon = 'home' | 'plus' | 'clock' | 'user' | 'inbox' | 'wallet' | 'scale' | 'users' | 'settings';
-interface Tab { label: string; link: string; icon: Icon; badge?: boolean; }
+/** {@code also} : autres adresses qui allument l'onglet (ex. les quatre écrans de réglages admin). */
+interface Tab { label: string; link: string; icon: Icon; badge?: boolean; also?: string[]; }
 
 /** Statuts qui attendent une action du client (preuves à valider, paiement, retard). */
 const CLIENT_ACTION_STATUSES = ['PROOFS_SUBMITTED', 'ASSIGNED', 'OVERDUE'];
@@ -50,8 +51,8 @@ const BADGE_REFRESH_MS = 30_000;
       align-items: center; justify-content: center; gap: 2px;
       font-size: .7rem; font-weight: 600; color: var(--text-muted); text-decoration: none;
     }
-    a.active { color: var(--primary); }
-    a.active::before {
+    a.active, a.also-on { color: var(--primary); }
+    a.active::before, a.also-on::before {
       content: ''; position: absolute; top: 0; left: 25%; right: 25%; height: 3px;
       border-radius: 0 0 3px 3px; background: var(--primary);
     }
@@ -64,7 +65,8 @@ const BADGE_REFRESH_MS = 30_000;
   template: `
     <nav [attr.aria-label]="'Navigation ' + roleLabel">
       @for (tab of tabs; track tab.link) {
-        <a [routerLink]="tab.link" routerLinkActive="active" ariaCurrentWhenActive="page">
+        <a [routerLink]="tab.link" routerLinkActive="active" ariaCurrentWhenActive="page" [class.also-on]="isAlso(tab)"
+           [attr.aria-current]="isAlso(tab) ? 'page' : null">
           @switch (tab.icon) {
             @case ('home')     { <svg lucideLayoutDashboard size="20"></svg> }
             @case ('plus')     { <svg lucidePlus size="20"></svg> }
@@ -93,6 +95,7 @@ export class BottomNavComponent {
 
   readonly role = this.auth.getCurrentUserRole();
   readonly badge = signal(0);
+  private readonly url = signal(this.router.url);
   private lastRefresh = 0;
 
   readonly tabs: Tab[] = TABS[this.role] ?? TABS['CLIENT'];
@@ -103,7 +106,12 @@ export class BottomNavComponent {
     this.router.events.pipe(
       filter(e => e instanceof NavigationEnd),
       takeUntilDestroyed(inject(DestroyRef)),
-    ).subscribe(() => this.refreshBadge(false));
+    ).subscribe(() => { this.url.set(this.router.url); this.refreshBadge(false); });
+  }
+
+  isAlso(tab: Tab): boolean {
+    const u = this.url();
+    return !!tab.also?.some((p) => u === p || u.startsWith(p + '/') || u.startsWith(p + '?'));
   }
 
   private refreshBadge(force: boolean): void {
@@ -146,6 +154,6 @@ const TABS: Record<string, Tab[]> = {
     { label: 'Accueil',      link: '/admin/dashboard',   icon: 'home' },
     { label: 'Litiges',      link: '/admin/disputes',    icon: 'scale', badge: true },
     { label: 'Utilisateurs', link: '/admin/users',       icon: 'users' },
-    { label: 'Paramètres',   link: '/admin/commissions', icon: 'settings' },
+    { label: 'Paramètres',   link: '/admin/commissions', icon: 'settings', also: ['/admin/rules', '/admin/payout-settings', '/admin/settings-history'] },
   ],
 };

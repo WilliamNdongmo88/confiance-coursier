@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { AdminService, PayoutSettingsResponse } from '../../../core/services/admin.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { LucideBuilding2, LucideCheck, LucideInfo } from '@lucide/angular';
+import { SettingsTabsComponent } from '../settings-tabs/settings-tabs.component';
 
 type Method = 'MTN' | 'ORANGE' | 'BANK';
 interface Form {
@@ -22,7 +23,7 @@ const IBAN = /^[A-Za-z0-9 ]{10,50}$/;
 @Component({
   selector: 'app-admin-payout-settings',
   standalone: true,
-  imports: [FormsModule, LucideBuilding2, LucideCheck, LucideInfo],
+  imports: [FormsModule, SettingsTabsComponent, LucideBuilding2, LucideCheck, LucideInfo],
   styles: [`
     :host { display: block; min-width: 0; --pm: #56635c; }
     :host-context([data-theme="dark"]) { --pm: #B0C0B7; }
@@ -79,6 +80,7 @@ const IBAN = /^[A-Za-z0-9 ]{10,50}$/;
   `],
   template: `
     <div class="p">
+      <app-settings-tabs />
       <section class="p-head">
         <h1>Comptes de reversement</h1>
         <p>Les comptes sur lesquels vous envoyez les gains de la plateforme.</p>

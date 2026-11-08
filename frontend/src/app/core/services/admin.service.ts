@@ -121,6 +121,27 @@ export interface UserProfileResponse {
   suspendedAt?: string | null;
 }
 
+/** Règles de remboursement et délais ({@code GET/PUT /api/admin/platform-rules}, TICK-093). */
+export interface PlatformRules {
+  refundFeesOnFullRefund: boolean;
+  refundFeesOnNoShow: boolean;
+  proofDeadlineHours: number;
+  reminderHoursBefore: number;
+  overdueGraceHours: number;
+  maxExtensions: number;
+}
+
+/** Une modification de réglage ({@code GET /api/admin/settings-history}, TICK-093). */
+export interface SettingChange {
+  id: number;
+  settingKey: string;
+  oldValue: string | null;
+  newValue: string | null;
+  changedAt: string;
+  changedBy: number | null;
+  changedByName: string | null;
+}
+
 /** Page de comptes renvoyée par {@code GET /api/admin/users/search} (TICK-094). */
 export interface AdminUserPage {
   items: UserProfileResponse[];
@@ -331,6 +352,19 @@ export class AdminService {
   }
 
   // ─── Payout Settings ──────────────────────────────────────────────────────
+
+  getPlatformRules(): Observable<PlatformRules> {
+    return this.http.get<PlatformRules>('/api/admin/platform-rules');
+  }
+
+  updatePlatformRules(rules: PlatformRules): Observable<PlatformRules> {
+    return this.http.put<PlatformRules>('/api/admin/platform-rules', rules);
+  }
+
+  getSettingsHistory(page: number, size: number): Observable<{ items: SettingChange[]; total: number; page: number; size: number }> {
+    return this.http.get<{ items: SettingChange[]; total: number; page: number; size: number }>('/api/admin/settings-history',
+      { params: { page: String(page), size: String(size) } });
+  }
 
   getPayoutSettings(): Observable<PayoutSettingsResponse> {
     return this.http.get<PayoutSettingsResponse>('/api/admin/payout-settings');

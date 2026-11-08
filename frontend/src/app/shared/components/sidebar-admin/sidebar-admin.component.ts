@@ -7,6 +7,7 @@ import {
   LucideScale,
   LucideFlag,
   LucidePercent,
+  LucideTimer,
   LucideUsers,
   LucideTrendingUp,
   LucideCreditCard,
@@ -33,6 +34,7 @@ import {
     LucideScale,
     LucideFlag,
     LucidePercent,
+  LucideTimer,
     LucideUsers,
     LucideTrendingUp,
     LucideCreditCard,
@@ -66,6 +68,9 @@ import {
         </a>
         <a routerLink="/admin/commissions" routerLinkActive="active" ariaCurrentWhenActive="page">
           <svg lucidePercent size="16"></svg> Commissions
+        </a>
+        <a routerLink="/admin/rules" routerLinkActive="active" ariaCurrentWhenActive="page">
+          <svg lucideTimer size="16"></svg> Règles et délais
         </a>
         <a routerLink="/admin/users" routerLinkActive="active" ariaCurrentWhenActive="page">
           <svg lucideUsers size="16"></svg> Utilisateurs

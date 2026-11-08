@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { AdminService } from '../../../core/services/admin.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { LucideBike, LucideInfo, LucideUser } from '@lucide/angular';
+import { SettingsTabsComponent } from '../settings-tabs/settings-tabs.component';
 
 interface Rates { client: number; courier: number; min: number; }
 
@@ -18,7 +19,7 @@ const LIMITS = { client: 10, courier: 40 };
 @Component({
   selector: 'app-admin-commissions',
   standalone: true,
-  imports: [FormsModule, LucideBike, LucideInfo, LucideUser],
+  imports: [FormsModule, SettingsTabsComponent, LucideBike, LucideInfo, LucideUser],
   styles: [`
     :host { display: block; min-width: 0; --cm: #56635c; }
     :host-context([data-theme="dark"]) { --cm: #B0C0B7; }
@@ -91,6 +92,7 @@ const LIMITS = { client: 10, courier: 40 };
   `],
   template: `
     <div class="c">
+      <app-settings-tabs />
       <section class="c-head">
         <h1>Commissions</h1>
         <p>Ce que la plateforme gagne sur chaque course payée.</p>
@@ -234,7 +236,7 @@ export class AdminCommissionsComponent implements OnInit {
       next: (s) => {
         this.apply({ client: Number(s.commissionRateClient), courier: Number(s.commissionRateCourier), min: Number(s.tarifMinimumCoursier) });
         this.saving.set(false);
-        this.toast.success('Commissions enregistrées : elles s’appliquent aux prochaines courses payées.');
+        this.toast.success('Commissions enregistrées : elles s’appliquent aux prochaines courses payées. Le changement est noté dans l’historique.');
       },
       error: (err) => { this.saving.set(false); this.toast.error(err?.error?.message ?? 'Erreur lors de l’enregistrement.'); },
     });

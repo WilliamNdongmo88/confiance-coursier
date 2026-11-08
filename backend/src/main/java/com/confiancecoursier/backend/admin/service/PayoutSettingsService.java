@@ -34,9 +34,17 @@ public class PayoutSettingsService {
     public static final String KEY_PREFERRED_METHOD    = "payout_preferred_method";
 
     private final PlatformSettingRepository settingRepository;
+    /** TICK-093 : historique des changements (null dans les tests unitaires qui ne s'en servent pas). */
+    private final SettingsHistoryService history;
 
     public PayoutSettingsService(PlatformSettingRepository settingRepository) {
+        this(settingRepository, null);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public PayoutSettingsService(PlatformSettingRepository settingRepository, SettingsHistoryService history) {
         this.settingRepository = settingRepository;
+        this.history = history;
     }
 
     // ─── Lecture ──────────────────────────────────────────────────────────────
@@ -97,11 +105,14 @@ public class PayoutSettingsService {
     private void upsertIfPresent(String key, String value, Long adminId) {
         if (value == null) return;
         Optional<PlatformSetting> existing = settingRepository.findBySettingKey(key);
+        String before = existing.map(PlatformSetting::getSettingValue).orElse(null);
         if (value.isBlank()) {
+            if (history != null) history.record(key, before, null, adminId);
             existing.ifPresent(settingRepository::delete);
             return;
         }
         value = value.trim();
+        if (history != null) history.record(key, before, value, adminId);
         if (existing.isPresent()) {
             PlatformSetting s = existing.get();
             s.setSettingValue(value);

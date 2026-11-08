@@ -39,9 +39,17 @@ public class CommissionService {
     private static final BigDecimal DEFAULT_TARIF_MIN    = new BigDecimal("5000");
 
     private final PlatformSettingRepository settingRepository;
+    /** TICK-093 : historique des changements (null dans les tests unitaires qui ne s'en servent pas). */
+    private final SettingsHistoryService history;
 
     public CommissionService(PlatformSettingRepository settingRepository) {
+        this(settingRepository, null);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public CommissionService(PlatformSettingRepository settingRepository, SettingsHistoryService history) {
         this.settingRepository = settingRepository;
+        this.history = history;
     }
 
     // ─── Lecture ──────────────────────────────────────────────────────────
@@ -112,8 +120,11 @@ public class CommissionService {
                 .orElse(defaultValue);
     }
 
-    private void upsertSetting(String key, String value, Long adminId) {
+    /** Écrit un réglage et note le changement dans l'historique (TICK-093). Utilisé aussi par les règles et délais. */
+    @Transactional
+    public void upsertSetting(String key, String value, Long adminId) {
         Optional<PlatformSetting> existing = settingRepository.findBySettingKey(key);
+        if (history != null) history.record(key, existing.map(PlatformSetting::getSettingValue).orElse(null), value, adminId);
         if (existing.isPresent()) {
             PlatformSetting setting = existing.get();
             setting.setSettingValue(value);

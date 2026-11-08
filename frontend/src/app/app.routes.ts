@@ -72,6 +72,8 @@ export const routes: Routes = [
       { path: 'disputes',        loadComponent: () => import('./features/admin/disputes/disputes.component').then(m => m.AdminDisputesComponent),       data: { title: 'Litiges' } },
       { path: 'reports',         loadComponent: () => import('./features/admin/reports/reports.component').then(m => m.AdminReportsComponent),        data: { title: 'Signalements' } },
       { path: 'commissions',     loadComponent: () => import('./features/admin/commissions/commissions.component').then(m => m.AdminCommissionsComponent),    data: { title: 'Commissions', narrow: true } },
+      { path: 'rules',           loadComponent: () => import('./features/admin/rules/rules.component').then(m => m.AdminRulesComponent), data: { title: 'Règles et délais', narrow: true } },
+      { path: 'settings-history', loadComponent: () => import('./features/admin/settings-history/settings-history.component').then(m => m.AdminSettingsHistoryComponent), data: { title: 'Historique des réglages', narrow: true } },
       { path: 'users',           loadComponent: () => import('./features/admin/users/users.component').then(m => m.AdminUsersComponent),          data: { title: 'Utilisateurs' } },
       { path: 'gains',           loadComponent: () => import('./features/admin/gains/gains.component').then(m => m.AdminGainsComponent),          data: { title: 'Gains' } },
       { path: 'payout-settings', loadComponent: () => import('./features/admin/payout-settings/payout-settings.component').then(m => m.AdminPayoutSettingsComponent), data: { title: 'Reversements', narrow: true } },
