@@ -18,6 +18,7 @@ const SETTINGS: Record<string, { label: string; group: string; fmt: Fmt }> = {
   proof_reminder_hours_before: { label: 'Rappel avant l’échéance', group: 'Règles et délais', fmt: 'hours' },
   overdue_grace_hours: { label: 'Délai de grâce', group: 'Règles et délais', fmt: 'hours' },
   max_extensions: { label: 'Prolongations par le client', group: 'Règles et délais', fmt: 'count' },
+  auto_validate_hours: { label: 'Validation automatique', group: 'Règles et délais', fmt: 'hours' },
   payout_mtn_number: { label: 'Numéro MTN Mobile Money', group: 'Reversements', fmt: 'text' },
   payout_mtn_name: { label: 'Titulaire MTN', group: 'Reversements', fmt: 'text' },
   payout_orange_number: { label: 'Numéro Orange Money', group: 'Reversements', fmt: 'text' },

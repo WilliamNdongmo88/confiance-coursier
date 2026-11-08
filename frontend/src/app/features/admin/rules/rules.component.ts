@@ -2,11 +2,11 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AdminService, PlatformRules } from '../../../core/services/admin.service';
 import { ToastService } from '../../../core/services/toast.service';
-import { LucideBellRing, LucideHourglass, LucideInfo, LucideTimer, LucideUndo2 } from '@lucide/angular';
+import { LucideBadgeCheck, LucideBellRing, LucideHourglass, LucideInfo, LucideTimer, LucideUndo2 } from '@lucide/angular';
 import { SettingsTabsComponent } from '../settings-tabs/settings-tabs.component';
 
 /** Bornes identiques à PlatformRulesService (serveur). */
-export const RULE_LIMITS = { deadline: 168, reminder: 48, grace: 168, extensions: 5 };
+export const RULE_LIMITS = { deadline: 168, reminder: 48, grace: 168, extensions: 5, autoMin: 24, autoMax: 168 };
 
 /**
  * TICK-093 — Règles et délais (admin, Impeccable, mode Operate).
@@ -16,7 +16,7 @@ export const RULE_LIMITS = { deadline: 168, reminder: 48, grace: 168, extensions
 @Component({
   selector: 'app-admin-rules',
   standalone: true,
-  imports: [FormsModule, SettingsTabsComponent, LucideBellRing, LucideHourglass, LucideInfo, LucideTimer, LucideUndo2],
+  imports: [FormsModule, SettingsTabsComponent, LucideBadgeCheck, LucideBellRing, LucideHourglass, LucideInfo, LucideTimer, LucideUndo2],
   styles: [`
     :host { display: block; min-width: 0; --rm: #56635c; }
     :host-context([data-theme="dark"]) { --rm: #B0C0B7; }
@@ -128,7 +128,7 @@ export const RULE_LIMITS = { deadline: 168, reminder: 48, grace: 168, extensions
         <h2 class="sec">Délais des preuves</h2>
         <p class="sec">Le coursier envoie ses preuves (vidéo, photos, reçus) avant une échéance fixée au paiement.</p>
         <div class="note" role="note"><svg lucideInfo size="16"></svg>
-          <span>Une nouvelle échéance ne vaut que pour les courses payées après l’enregistrement. Le rappel, le délai de grâce et les prolongations s’appliquent aussi aux courses en cours.</span></div>
+          <span>Une nouvelle échéance ne vaut que pour les courses payées après l’enregistrement, et un nouveau délai de validation pour les preuves envoyées après l’enregistrement. Le rappel, le délai de grâce et les prolongations s’appliquent aussi aux courses en cours.</span></div>
         <section class="rc" aria-label="Délais des preuves">
           <div class="item">
             <span class="ic" aria-hidden="true"><svg lucideTimer size="18"></svg></span>
@@ -178,6 +178,18 @@ export const RULE_LIMITS = { deadline: 168, reminder: 48, grace: 168, extensions
                    [ngModel]="form().maxExtensions" (ngModelChange)="set('maxExtensions', $event)"
                    [attr.aria-invalid]="!!errors().extensions" [attr.aria-describedby]="errors().extensions ? 'r-ext-err' : null"><span>fois</span></label>
           </div>
+          <div class="item">
+            <span class="ic" aria-hidden="true"><svg lucideBadgeCheck size="18"></svg></span>
+            <div class="txt">
+              <h3><label for="r-auto">Validation automatique</label></h3>
+              <p>Après l’envoi des preuves, le client peut valider ou ouvrir un litige. Sans réponse dans ce délai, la course est validée et le coursier payé. Entre {{ limits.autoMin }} et {{ limits.autoMax }} heures.</p>
+              @if (errors().auto) { <p class="err" id="r-auto-err">{{ errors().auto }}</p> }
+              @else if (saved() && saved()!.autoValidateHours !== form().autoValidateHours) { <p class="was">Enregistré : <b>{{ hours(saved()!.autoValidateHours) }}</b></p> }
+            </div>
+            <label class="ctl"><input id="r-auto" type="number" [min]="limits.autoMin" [max]="limits.autoMax" step="1" inputmode="numeric"
+                   [ngModel]="form().autoValidateHours" (ngModelChange)="set('autoValidateHours', $event)"
+                   [attr.aria-invalid]="!!errors().auto" [attr.aria-describedby]="errors().auto ? 'r-auto-err' : null"><span>heures</span></label>
+          </div>
         </section>
 
         @if (dirty()) {
@@ -201,18 +213,20 @@ export class AdminRulesComponent implements OnInit {
   readonly saved = signal<PlatformRules | null>(null);
   readonly form = signal<PlatformRules>({
     refundFeesOnFullRefund: false, refundFeesOnNoShow: true, proofDeadlineHours: 24, reminderHoursBefore: 6, overdueGraceHours: 48, maxExtensions: 2,
+    autoValidateHours: 72,
   });
 
   /** Mêmes règles que PlatformRulesService.update. */
   readonly errors = computed(() => {
     const f = this.form();
-    const e: { deadline?: string; reminder?: string; grace?: string; extensions?: string } = {};
+    const e: { deadline?: string; reminder?: string; grace?: string; extensions?: string; auto?: string } = {};
     const int = (v: number) => Number.isInteger(v);
     if (!int(f.proofDeadlineHours) || f.proofDeadlineHours < 1 || f.proofDeadlineHours > RULE_LIMITS.deadline) e.deadline = `Entre 1 et ${RULE_LIMITS.deadline} heures.`;
     if (!int(f.reminderHoursBefore) || f.reminderHoursBefore < 1 || f.reminderHoursBefore > RULE_LIMITS.reminder) e.reminder = `Entre 1 et ${RULE_LIMITS.reminder} heures.`;
     else if (!e.deadline && f.reminderHoursBefore >= f.proofDeadlineHours) e.reminder = 'Le rappel doit partir avant l’échéance : choisissez une durée plus courte.';
     if (!int(f.overdueGraceHours) || f.overdueGraceHours < 1 || f.overdueGraceHours > RULE_LIMITS.grace) e.grace = `Entre 1 et ${RULE_LIMITS.grace} heures.`;
     if (!int(f.maxExtensions) || f.maxExtensions < 0 || f.maxExtensions > RULE_LIMITS.extensions) e.extensions = `Entre 0 et ${RULE_LIMITS.extensions}.`;
+    if (!int(f.autoValidateHours) || f.autoValidateHours < RULE_LIMITS.autoMin || f.autoValidateHours > RULE_LIMITS.autoMax) e.auto = `Entre ${RULE_LIMITS.autoMin} et ${RULE_LIMITS.autoMax} heures.`;
     return e;
   });
   readonly hasErrors = computed(() => Object.keys(this.errors()).length > 0);
@@ -230,7 +244,7 @@ export class AdminRulesComponent implements OnInit {
 
   toggle(k: 'refundFeesOnFullRefund' | 'refundFeesOnNoShow'): void { this.form.update((f) => ({ ...f, [k]: !f[k] })); }
 
-  set(k: 'proofDeadlineHours' | 'reminderHoursBefore' | 'overdueGraceHours' | 'maxExtensions', v: unknown): void {
+  set(k: 'proofDeadlineHours' | 'reminderHoursBefore' | 'overdueGraceHours' | 'maxExtensions' | 'autoValidateHours', v: unknown): void {
     const x = typeof v === 'number' ? v : parseFloat(String(v ?? '').replace(',', '.'));
     this.form.update((f) => ({ ...f, [k]: Number.isFinite(x) ? x : NaN }));
   }

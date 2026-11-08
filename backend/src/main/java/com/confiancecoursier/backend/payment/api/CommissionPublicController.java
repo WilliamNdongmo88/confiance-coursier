@@ -51,7 +51,7 @@ public class CommissionPublicController {
                 "overdueGraceHours",     deadlinePolicy.graceHours(),
                 // Écran de paiement : délais réels (envoi des preuves, validation automatique)
                 "proofDeadlineHours",    deadlinePolicy.deadlineHours(),
-                "autoValidateHours",     com.confiancecoursier.backend.proof.service.ProofService.AUTO_VALIDATE_HOURS,
+                "autoValidateHours",     deadlinePolicy.autoValidateHours(),
                 "paymentMode",           paymentMode
         ));
     }

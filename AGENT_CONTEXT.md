@@ -1674,13 +1674,15 @@ Choix utilisateur : deux variantes sur deux branches, comparées visuellement av
 ### Session 93 — Anciennes discussions fermées, explication de l'auto-validation (2026-11-08)
 
 - V29 `archive_not_retained_chat_rooms` : rattrapage des discussions « Offre déclinée » ouvertes avant la session 86. Quand une course a un coursier retenu, les discussions des autres coursiers passent en lecture seule (messages conservés).
-- `docs/auto-validation-72h.md` : explication simple du réglage possible de l'auto-validation (aujourd'hui `ProofService.AUTO_VALIDATE_HOURS = 72`, fixé dans le code), en attente de la décision de l'utilisateur.
-- État : **315 tests backend verts** (`AuthControllerTest` exclu) ; build front OK, sans avertissement NG8113.
+- `docs/auto-validation-72h.md` : explication simple de l'auto-validation, puis **réglage ajouté** à la demande de l'utilisateur :
+  - réglage `auto_validate_hours` (24 à 168 h, 72 par défaut), lu par `ProofDeadlinePolicy.autoValidateHours()` ;
+  - `ProofService` fixe `autoValidateAt` avec ce délai à l'envoi des preuves (les courses déjà en attente gardent leur date) ; `AUTO_VALIDATE_HOURS` n'est plus que la valeur par défaut ;
+  - champ « Validation automatique » dans `/admin/rules`, noté dans l'historique ; `GET /api/commissions/public` renvoie la valeur réelle (écrans paiement et preuves).
+- État : **316 tests backend verts** (`AuthControllerTest` exclu) ; build front OK, sans avertissement NG8113.
 
 **Encore ouvert (à l'utilisateur) :**
 1. Vrais paiements, TICK-103, 104 et 105 : en attente du choix d'un prestataire (Mobile Money, carte). Le paiement reste en simulation.
 2. Mentions légales : RCCM, NIU, hébergeur, à fournir (jamais inventés).
-3. Auto-validation à 72 h : la rendre réglable ou la garder fixe (voir `docs/auto-validation-72h.md`).
 
 ## 9. DOMAINES À IMPLÉMENTER (par ordre de priorité métier)
 
@@ -1793,7 +1795,7 @@ cd backend
     - aucune donnée factice (avis, étoiles, compteurs, badges, mentions légales) sans source réelle ;
     - vérifier par captures Playwright mobile, tablette et bureau.
 16. **Commits** : seulement après « Valide, commite » de l'utilisateur, avec `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>` ; ne jamais inclure `maquette-v2` ni `.env`.
-17. **Tests backend** : `./mvnw -q -o test "-Dtest=!AuthControllerTest" "-Dsurefire.failIfNoSpecifiedTests=false"` (315 verts au 2026-11-08).
+17. **Tests backend** : `./mvnw -q -o test "-Dtest=!AuthControllerTest" "-Dsurefire.failIfNoSpecifiedTests=false"` (316 verts au 2026-11-08).
 18. **Beans à plusieurs constructeurs** (`CommissionService`, `PayoutSettingsService`, `AdminUserController`, `AdminCourseService`…) : le constructeur principal porte `@Autowired`, l'autre sert aux tests unitaires (dépendance optionnelle à `null`).
 19. **Réglages de la plateforme** : toute écriture dans `platform_settings` passe par `CommissionService.upsertSetting` (ou le service des reversements) pour être notée dans l'historique (`SettingsHistoryService.record`).
 20. **Listes de choix** : ne plus utiliser de `<select>` ni de `<datalist>` natifs ; utiliser `app-combo-field` ou `app-vehicle-picker`.

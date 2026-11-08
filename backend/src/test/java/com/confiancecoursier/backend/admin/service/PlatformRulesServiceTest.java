@@ -63,11 +63,12 @@ class PlatformRulesServiceTest {
         assertThat(r.reminderHoursBefore()).isEqualTo(ProofDeadlinePolicy.DEFAULT_REMINDER_HOURS_BEFORE);
         assertThat(r.overdueGraceHours()).isEqualTo(ProofDeadlinePolicy.DEFAULT_GRACE_HOURS);
         assertThat(r.maxExtensions()).isEqualTo(ProofDeadlinePolicy.DEFAULT_MAX_EXTENSIONS);
+        assertThat(r.autoValidateHours()).isEqualTo(72);
     }
 
     @Test
     void savedValuesAreReadByTheDeadlinePolicyAndEachRealChangeIsLogged() {
-        rules.update(new Rules(true, true, 36, 6, 24, 0), 9L);
+        rules.update(new Rules(true, true, 36, 6, 24, 0, 72), 9L);
 
         ProofDeadlinePolicy policy = new ProofDeadlinePolicy(commissions);
         assertThat(policy.deadlineHours()).isEqualTo(36);
@@ -75,27 +76,37 @@ class PlatformRulesServiceTest {
         assertThat(policy.maxExtensions()).isZero();
         assertThat(commissions.getBooleanSetting(PlatformRulesService.KEY_REFUND_FEES_FULL_REFUND, false)).isTrue();
 
-        // 6 réglages écrits la première fois (aucun n'existait) : 6 lignes d'historique, toutes signées par l'admin
-        assertThat(changes).hasSize(6).allMatch(c -> c.getChangedBy() == 9L && c.getOldValue() == null);
+        // 7 réglages écrits la première fois (aucun n'existait) : 7 lignes d'historique, toutes signées par l'admin
+        assertThat(changes).hasSize(7).allMatch(c -> c.getChangedBy() == 9L && c.getOldValue() == null);
 
         // Deuxième enregistrement : seule l'échéance change → une seule ligne de plus
-        rules.update(new Rules(true, true, 48, 6, 24, 0), 9L);
-        assertThat(changes).hasSize(7);
-        assertThat(changes.get(6).getSettingKey()).isEqualTo(PlatformRulesService.KEY_DEADLINE_HOURS);
-        assertThat(changes.get(6).getOldValue()).isEqualTo("36");
-        assertThat(changes.get(6).getNewValue()).isEqualTo("48");
+        rules.update(new Rules(true, true, 48, 6, 24, 0, 72), 9L);
+        assertThat(changes).hasSize(8);
+        assertThat(changes.get(7).getSettingKey()).isEqualTo(PlatformRulesService.KEY_DEADLINE_HOURS);
+        assertThat(changes.get(7).getOldValue()).isEqualTo("36");
+        assertThat(changes.get(7).getNewValue()).isEqualTo("48");
     }
 
     @Test
     void outOfBoundsValuesAreRefusedAndNothingIsWritten() {
-        assertThatThrownBy(() -> rules.update(new Rules(false, true, 0, 6, 48, 2), 1L)).isInstanceOf(BusinessException.class);
-        assertThatThrownBy(() -> rules.update(new Rules(false, true, 200, 6, 48, 2), 1L)).isInstanceOf(BusinessException.class);
-        assertThatThrownBy(() -> rules.update(new Rules(false, true, 6, 6, 48, 2), 1L))
+        assertThatThrownBy(() -> rules.update(new Rules(false, true, 0, 6, 48, 2, 72), 1L)).isInstanceOf(BusinessException.class);
+        assertThatThrownBy(() -> rules.update(new Rules(false, true, 200, 6, 48, 2, 72), 1L)).isInstanceOf(BusinessException.class);
+        assertThatThrownBy(() -> rules.update(new Rules(false, true, 6, 6, 48, 2, 72), 1L))
                 .isInstanceOf(BusinessException.class).hasMessageContaining("avant l'échéance");
-        assertThatThrownBy(() -> rules.update(new Rules(false, true, 24, 6, 0, 2), 1L)).isInstanceOf(BusinessException.class);
-        assertThatThrownBy(() -> rules.update(new Rules(false, true, 24, 6, 48, 6), 1L)).isInstanceOf(BusinessException.class);
+        assertThatThrownBy(() -> rules.update(new Rules(false, true, 24, 6, 0, 2, 72), 1L)).isInstanceOf(BusinessException.class);
+        assertThatThrownBy(() -> rules.update(new Rules(false, true, 24, 6, 48, 6, 72), 1L)).isInstanceOf(BusinessException.class);
+        assertThatThrownBy(() -> rules.update(new Rules(false, true, 24, 6, 48, 2, 12), 1L))
+                .isInstanceOf(BusinessException.class).hasMessageContaining("validation automatique");
+        assertThatThrownBy(() -> rules.update(new Rules(false, true, 24, 6, 48, 2, 200), 1L)).isInstanceOf(BusinessException.class);
         assertThat(store).isEmpty();
         assertThat(changes).isEmpty();
+    }
+
+    @Test
+    void autoValidationDelayIsReadFromTheSettingByThePolicy() {
+        rules.update(new Rules(false, true, 24, 6, 48, 2, 120), 3L);
+        assertThat(new ProofDeadlinePolicy(commissions).autoValidateHours()).isEqualTo(120);
+        assertThat(rules.get().autoValidateHours()).isEqualTo(120);
     }
 
     @Test

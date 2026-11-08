@@ -16,6 +16,8 @@ public class ProofDeadlinePolicy {
     public static final int DEFAULT_REMINDER_HOURS_BEFORE = 6;
     public static final int DEFAULT_GRACE_HOURS = 48;
     public static final int DEFAULT_MAX_EXTENSIONS = 2;
+    /** Délai laissé au client pour valider ou contester après l'envoi des preuves (réglable, TICK-093). */
+    public static final int DEFAULT_AUTO_VALIDATE_HOURS = 72;
     /** Durées de prolongation proposées au client. */
     public static final java.util.Set<Integer> ALLOWED_EXTENSION_HOURS = java.util.Set.of(12, 24);
 
@@ -36,6 +38,11 @@ public class ProofDeadlinePolicy {
 
     public int graceHours() {
         return positive(settings.getIntSetting("overdue_grace_hours", DEFAULT_GRACE_HOURS), DEFAULT_GRACE_HOURS);
+    }
+
+    /** Sans réponse du client dans ce délai après l'envoi des preuves, la course est validée automatiquement. */
+    public int autoValidateHours() {
+        return positive(settings.getIntSetting("auto_validate_hours", DEFAULT_AUTO_VALIDATE_HOURS), DEFAULT_AUTO_VALIDATE_HOURS);
     }
 
     /** 0 est admis (aucune prolongation). */

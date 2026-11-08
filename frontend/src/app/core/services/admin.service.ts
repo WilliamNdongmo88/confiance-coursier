@@ -129,6 +129,7 @@ export interface PlatformRules {
   reminderHoursBefore: number;
   overdueGraceHours: number;
   maxExtensions: number;
+  autoValidateHours: number;
 }
 
 /** Une modification de réglage ({@code GET /api/admin/settings-history}, TICK-093). */

@@ -4,6 +4,7 @@ package com.confiancecoursier.backend.proof.service;
 import com.confiancecoursier.backend.shared.exception.NotFoundException;
 import com.confiancecoursier.backend.course.domain.Course;
 import com.confiancecoursier.backend.course.repository.CourseRepository;
+import com.confiancecoursier.backend.course.service.ProofDeadlinePolicy;
 import com.confiancecoursier.backend.notify.service.NotificationService;
 import com.confiancecoursier.backend.proof.api.dto.ProofResponse;
 import com.confiancecoursier.backend.proof.domain.Proof;
@@ -55,7 +56,8 @@ public class ProofService {
     private static final Logger log = LoggerFactory.getLogger(ProofService.class);
 
     static final int  MAX_PROOFS_PER_COURSE = 10;
-    public static final int AUTO_VALIDATE_HOURS = 72;
+    /** Valeur par défaut ; le délai réel est réglable par l'admin ({@link ProofDeadlinePolicy#autoValidateHours()}). */
+    public static final int AUTO_VALIDATE_HOURS = ProofDeadlinePolicy.DEFAULT_AUTO_VALIDATE_HOURS;
     static final long MAX_VIDEO_BYTES       = 60L * 1024 * 1024;
     static final long MAX_IMAGE_BYTES       = 10L * 1024 * 1024;
     /** Durée maximale de la vidéo de preuve (secondes). */
@@ -69,6 +71,8 @@ public class ProofService {
     private final CourseRepository courseRepository;
     private final FileStorageService fileStorageService;
     private final NotificationService notificationService;
+    /** Délais réglables par l'admin (null dans les tests unitaires : 72 h par défaut). */
+    private final ProofDeadlinePolicy deadlinePolicy;
 
     @Value("${minio.bucket-proofs}")
     private String proofsBucket;
@@ -77,10 +81,25 @@ public class ProofService {
                         CourseRepository courseRepository,
                         FileStorageService fileStorageService,
                         NotificationService notificationService) {
+        this(proofRepository, courseRepository, fileStorageService, notificationService, null);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public ProofService(ProofRepository proofRepository,
+                        CourseRepository courseRepository,
+                        FileStorageService fileStorageService,
+                        NotificationService notificationService,
+                        ProofDeadlinePolicy deadlinePolicy) {
         this.proofRepository = proofRepository;
         this.courseRepository = courseRepository;
         this.fileStorageService = fileStorageService;
         this.notificationService = notificationService;
+        this.deadlinePolicy = deadlinePolicy;
+    }
+
+    /** Délai de validation automatique en vigueur (réglage admin, 72 h par défaut). */
+    private int autoValidateHours() {
+        return deadlinePolicy == null ? AUTO_VALIDATE_HOURS : deadlinePolicy.autoValidateHours();
     }
 
     // ─── Téléversement d'un brouillon ─────────────────────────────────────────
@@ -211,7 +230,7 @@ public class ProofService {
         }
 
         course.setStatus("PROOFS_SUBMITTED");
-        course.setAutoValidateAt(LocalDateTime.now().plusHours(AUTO_VALIDATE_HOURS));
+        course.setAutoValidateAt(LocalDateTime.now().plusHours(autoValidateHours()));
         courseRepository.save(course);
         log.info("Course {} : preuves soumises ({} vidéo, {} photo(s), {} reçu(s)), auto-validation à {}",
                 courseId, videos, photos, receipts, course.getAutoValidateAt());

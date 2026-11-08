@@ -11,7 +11,8 @@ import org.springframework.transaction.annotation.Transactional;
  * Une échéance déjà fixée sur une course payée ne bouge pas.
  *
  * <p>Bornes (identiques dans l'écran admin) : échéance 1 à 168 h ; rappel 1 à 48 h et avant l'échéance ;
- * délai de grâce 1 à 168 h ; prolongations 0 à 5.
+ * délai de grâce 1 à 168 h ; prolongations 0 à 5 ; validation automatique 24 à 168 h (fixée à l'envoi des preuves :
+ * un nouveau délai ne vaut que pour les preuves envoyées ensuite).
  */
 @Service
 public class PlatformRulesService {
@@ -22,11 +23,14 @@ public class PlatformRulesService {
     public static final String KEY_REMINDER_HOURS          = "proof_reminder_hours_before";
     public static final String KEY_GRACE_HOURS             = "overdue_grace_hours";
     public static final String KEY_MAX_EXTENSIONS          = "max_extensions";
+    public static final String KEY_AUTO_VALIDATE_HOURS     = "auto_validate_hours";
 
     public static final int MAX_DEADLINE_HOURS = 168;
     public static final int MAX_REMINDER_HOURS = 48;
     public static final int MAX_GRACE_HOURS = 168;
     public static final int MAX_EXTENSIONS = 5;
+    public static final int MIN_AUTO_VALIDATE_HOURS = 24;
+    public static final int MAX_AUTO_VALIDATE_HOURS = 168;
 
     private final CommissionService settings;
     private final ProofDeadlinePolicy policy;
@@ -37,7 +41,7 @@ public class PlatformRulesService {
     }
 
     public record Rules(boolean refundFeesOnFullRefund, boolean refundFeesOnNoShow, int proofDeadlineHours,
-                        int reminderHoursBefore, int overdueGraceHours, int maxExtensions) {}
+                        int reminderHoursBefore, int overdueGraceHours, int maxExtensions, int autoValidateHours) {}
 
     public Rules get() {
         return new Rules(
@@ -46,7 +50,8 @@ public class PlatformRulesService {
                 policy.deadlineHours(),
                 policy.reminderHoursBefore(),
                 policy.graceHours(),
-                policy.maxExtensions());
+                policy.maxExtensions(),
+                policy.autoValidateHours());
     }
 
     @Transactional
@@ -62,6 +67,9 @@ public class PlatformRulesService {
                 "Le délai de grâce doit être compris entre 1 et " + MAX_GRACE_HOURS + " heures.");
         check(r.maxExtensions() >= 0 && r.maxExtensions() <= MAX_EXTENSIONS,
                 "Le nombre de prolongations doit être compris entre 0 et " + MAX_EXTENSIONS + ".");
+        check(r.autoValidateHours() >= MIN_AUTO_VALIDATE_HOURS && r.autoValidateHours() <= MAX_AUTO_VALIDATE_HOURS,
+                "La validation automatique doit intervenir entre " + MIN_AUTO_VALIDATE_HOURS + " et "
+                        + MAX_AUTO_VALIDATE_HOURS + " heures après l'envoi des preuves.");
 
         settings.upsertSetting(KEY_REFUND_FEES_FULL_REFUND, String.valueOf(r.refundFeesOnFullRefund()), adminId);
         settings.upsertSetting(KEY_REFUND_FEES_NO_SHOW, String.valueOf(r.refundFeesOnNoShow()), adminId);
@@ -69,6 +77,7 @@ public class PlatformRulesService {
         settings.upsertSetting(KEY_REMINDER_HOURS, String.valueOf(r.reminderHoursBefore()), adminId);
         settings.upsertSetting(KEY_GRACE_HOURS, String.valueOf(r.overdueGraceHours()), adminId);
         settings.upsertSetting(KEY_MAX_EXTENSIONS, String.valueOf(r.maxExtensions()), adminId);
+        settings.upsertSetting(KEY_AUTO_VALIDATE_HOURS, String.valueOf(r.autoValidateHours()), adminId);
         return r;
     }
 

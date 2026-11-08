@@ -50,4 +50,5 @@ C'est un petit ajout, de la même taille que les autres délais : un réglage, u
 Il n'a d'intérêt que si tu penses vraiment ajuster ce délai, par exemple après les premiers retours des
 utilisateurs. Sinon, le laisser fixe à 72 h est tout à fait correct.
 
-**Ta décision :** on l'ajoute maintenant, ou on garde 72 h fixes ?
+**Décision (2026-11-08) : ajouté.** Le champ « Validation automatique » est dans l'écran admin Règles et délais
+(24 à 168 h, 72 h par défaut, réglage `auto_validate_hours`), noté dans l'historique des réglages.
