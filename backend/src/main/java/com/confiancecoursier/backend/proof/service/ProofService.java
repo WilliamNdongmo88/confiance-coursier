@@ -155,6 +155,11 @@ public class ProofService {
                 .mimeType(kind.mimeType)   // type détecté, pas celui déclaré par le navigateur
                 .videoDurationMs(durationMs)
                 .build());
+        // Première preuve : la course est démarrée (le client ne peut plus l'annuler librement)
+        if (course.getStartedAt() == null) {
+            course.setStartedAt(LocalDateTime.now());
+            courseRepository.save(course);
+        }
         log.info("Preuve (brouillon) : courseId={} courierId={} type={} mime={} durationMs={}",
                 courseId, courierId, type, kind.mimeType, durationMs);
         return toResponse(saved);

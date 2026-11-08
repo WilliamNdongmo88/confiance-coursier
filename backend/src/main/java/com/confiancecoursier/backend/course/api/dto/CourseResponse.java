@@ -22,6 +22,8 @@ public class CourseResponse {
     private BigDecimal realCosts;
     /** TICK-065b : échéance de dépôt des preuves (compte à rebours client et coursier). */
     private LocalDateTime proofDeadline;
+    /** Démarrage par le coursier ; null = le client peut encore annuler et être remboursé intégralement. */
+    private LocalDateTime startedAt;
     /** Prolongations déjà accordées par le client. */
     private Integer extensionCount;
     /** Passage en OVERDUE (début du délai de grâce). */
@@ -91,6 +93,7 @@ public class CourseResponse {
         dto.setRealCosts(course.getRealCosts());
         dto.setClientLocation(course.getClientLocation());
         dto.setProofDeadline(course.getProofDeadline());
+        dto.setStartedAt(course.getStartedAt());
         dto.setExtensionCount(course.getExtensionCount());
         dto.setOverdueSince(course.getOverdueSince());
         dto.setAutoValidateAt(course.getAutoValidateAt());

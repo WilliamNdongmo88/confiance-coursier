@@ -84,7 +84,9 @@ public class SecurityConfig {
                                 "/api/courses/*/accept-offer/*",
                                 "/api/courses/*/validate",
                                 "/api/courses/*/extend",
-                                "/api/courses/*/cancel-overdue").hasRole("CLIENT")
+                                "/api/courses/*/cancel-overdue",
+                                "/api/courses/*/cancel-before-start").hasRole("CLIENT")
+                        .requestMatchers(HttpMethod.POST, "/api/courses/*/start").hasRole("COURIER")
                         .requestMatchers("/api/payment/**").hasRole("CLIENT")
                         .requestMatchers(HttpMethod.GET, "/api/users/couriers").hasRole("CLIENT")
 

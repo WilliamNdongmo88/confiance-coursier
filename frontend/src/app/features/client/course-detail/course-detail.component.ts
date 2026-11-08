@@ -91,6 +91,15 @@ function buildSteps(c: any): Step[] {
       color: #fff; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; text-decoration: none; }
     .next.calm .ghost-w { border-color: var(--cc-line); color: var(--cc-ink); }
     .ghost-w:disabled { opacity: .5; cursor: default; }
+    .cancel-hint { margin: 12px 0 0; font-size: 13px; opacity: .85; }
+    .cancel-box { margin-top: 14px; padding: 14px; border-radius: 12px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.22); animation: cb-in .25s ease both; }
+    .cancel-box b { display: block; font-size: 15px; }
+    .cancel-box p { margin: 6px 0 12px; font-size: 13.5px; line-height: 1.45; opacity: .9; }
+    .cancel-acts { display: flex; flex-wrap: wrap; gap: 8px; }
+    .danger-w { min-height: 46px; padding: 0 16px; border-radius: 10px; border: 0; background: #F0A39C; color: #3b0d09; font: inherit; font-weight: 750; cursor: pointer; }
+    .danger-w:disabled { opacity: .5; cursor: default; }
+    @keyframes cb-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+    @media (prefers-reduced-motion: reduce) { .cancel-box { animation: none; } }
     .hint { margin: 10px 0 0; font-size: 12.5px; color: #cfdcd4; }
     .next.calm .hint { color: var(--cd-m); }
     /* Suivi */
@@ -203,7 +212,7 @@ function buildSteps(c: any): Step[] {
               @case ('IN_PROGRESS') {
                 <section class="box next">
                   <small>En cours</small>
-                  <h3>{{ course.courierName || 'Votre coursier' }} réalise la course</h3>
+                  <h3>{{ course.startedAt ? (course.courierName || 'Votre coursier') + ' réalise la course' : (course.courierName || 'Votre coursier') + ' va démarrer la course' }}</h3>
                   <p>Il doit envoyer ses preuves (vidéo, photos, reçu s’il y a des achats). Vous serez prévenu dès qu’elles arrivent.</p>
                   @if (course.proofDeadline) {
                     <div class="when"><svg lucideClock size="15"></svg> Preuves attendues avant le {{ course.proofDeadline | date:'d MMM à HH:mm' }} · {{ timeLeft(course.proofDeadline) }}</div>
@@ -211,7 +220,25 @@ function buildSteps(c: any): Step[] {
                   <div class="acts">
                     @if (course.chatRoomId) { <a class="primary-action primary-action--lime has-dot" [routerLink]="['/chat', course.chatRoomId]"><svg lucideMessageCircle size="16"></svg> Discuter avec le coursier
                       @if (unread.count(course.chatRoomId); as n) { <span class="chat-dot" aria-hidden="true">{{ n > 9 ? '9+' : n }}</span> }</a> }
+                    @if (!course.startedAt && !confirmCancel) {
+                      <button type="button" class="ghost-w" [disabled]="acting" (click)="confirmCancel = true">Annuler la course</button>
+                    }
                   </div>
+                  <!-- Rétractation : annulation libre tant que le coursier n'a pas démarré -->
+                  @if (!course.startedAt) {
+                    @if (confirmCancel) {
+                      <div class="cancel-box" role="group" aria-label="Annuler la course">
+                        <b>Annuler la course et être remboursé ?</b>
+                        <p>Le coursier n’a pas encore démarré : vous récupérez la totalité de votre paiement, frais de service compris. Le coursier est prévenu. Cette action est définitive.</p>
+                        <div class="cancel-acts">
+                          <button type="button" class="ghost-w" [disabled]="acting" (click)="confirmCancel = false">Garder la course</button>
+                          <button type="button" class="danger-w" [disabled]="acting" (click)="cancelBeforeStart()">{{ acting ? 'Annulation…' : 'Oui, annuler et être remboursé' }}</button>
+                        </div>
+                      </div>
+                    } @else {
+                      <p class="cancel-hint">Pas encore démarrée : vous pouvez encore l’annuler et être remboursé intégralement.</p>
+                    }
+                  }
                 </section>
               }
               @case ('PROOFS_SUBMITTED') {
@@ -450,6 +477,26 @@ export class CourseDetailComponent implements OnInit {
       error: (err) => {
         this.acting = false;
         this.toast.error(err?.error?.message ?? 'Impossible de prolonger le délai.');
+      },
+    });
+  }
+
+  /** Rétractation : annulation d'une course payée que le coursier n'a pas encore démarrée. */
+  confirmCancel = false;
+  cancelBeforeStart(): void {
+    this.acting = true;
+    this.http.post<any>('/api/courses/' + this.courseId + '/cancel-before-start', {}).subscribe({
+      next: () => {
+        this.acting = false;
+        this.confirmCancel = false;
+        this.toast.success('Course annulée : vous êtes remboursé intégralement.');
+        this.loadCourse();
+      },
+      error: (err) => {
+        this.acting = false;
+        this.confirmCancel = false;
+        this.toast.error(err?.error?.message ?? 'Impossible d’annuler la course.');
+        this.loadCourse();
       },
     });
   }

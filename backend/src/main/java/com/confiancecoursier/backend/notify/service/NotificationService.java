@@ -295,6 +295,34 @@ public class NotificationService {
                         "Envoyez vos preuves avant cette date."));
     }
 
+    /** Le coursier a démarré la course (le client ne peut plus l'annuler librement). */
+    public void notifyCourseStarted(Long clientId, Long courseId) {
+        String email = resolveEmail(clientId);
+        if (email != null) sendEmail(email,
+                "Votre course a démarré — " + EmailLayout.BRAND,
+                buildTemplate("Le coursier est en route",
+                        "Votre coursier a démarré la course #" + courseId + ".",
+                        "Vous recevrez ses preuves à la fin de la course. Votre paiement reste bloqué jusqu’à votre validation.",
+                        "Suivre la course", "/client/course-detail/" + courseId));
+    }
+
+    /** Annulation par le client avant démarrage : remboursement intégral, coursier libéré sans incident. */
+    public void notifyCancelledBeforeStart(Long clientId, Long courierId, Long courseId) {
+        String clientEmail = resolveEmail(clientId);
+        if (clientEmail != null) sendEmail(clientEmail,
+                "Course annulée et remboursée — " + EmailLayout.BRAND,
+                buildTemplate("Course annulée",
+                        "Vous avez annulé la course #" + courseId + " avant qu’elle ne démarre.",
+                        "Vous êtes remboursé intégralement, frais de service compris, sur votre moyen de paiement."));
+        String courierEmail = resolveEmail(courierId);
+        if (courierEmail != null) sendEmail(courierEmail,
+                "Course annulée par le client — " + EmailLayout.BRAND,
+                buildTemplate("Le client a annulé la course",
+                        "Le client a annulé la course #" + courseId + " avant que vous ne la démarriez.",
+                        "Aucune pénalité pour vous. D’autres demandes vous attendent dans votre espace.",
+                        "Voir les demandes", "/courier/dashboard"));
+    }
+
     public void notifyNoShowRefund(Long clientId, Long courierId, Long courseId, boolean automatic) {
         String clientEmail = resolveEmail(clientId);
         if (clientEmail != null) sendEmail(clientEmail,

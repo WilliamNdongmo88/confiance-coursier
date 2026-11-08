@@ -118,6 +118,13 @@ public class Course {
     @Column(name = "overdue_since")
     private LocalDateTime overdueSince;
 
+    /**
+     * Démarrage par le coursier (« Je démarre » ou première preuve). Tant qu'il est null sur une course payée,
+     * le client peut l'annuler et être remboursé intégralement (rétractation, V24).
+     */
+    @Column(name = "started_at")
+    private LocalDateTime startedAt;
+
     /** Rappel « échéance − N h » déjà envoyé au coursier. */
     @Column(name = "proof_reminder_sent_at")
     private LocalDateTime proofReminderSentAt;

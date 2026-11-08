@@ -231,12 +231,18 @@ import {
                       <div class="m-due"><svg lucideClock size="13"></svg> Preuves avant le {{ mission.proofDeadline | date:'d MMM à HH:mm' }}</div>
                     }
                     @if (mission.notRetained) { <div class="m-note">Le client a choisi un autre coursier pour cette course.</div> }
+                    @if (!mission.notRetained && mission.status === 'IN_PROGRESS' && !mission.startedAt) {
+                      <div class="m-note">Le client peut encore annuler tant que vous n’avez pas démarré. Démarrez quand vous partez faire la course.</div>
+                    }
                     @if (!mission.notRetained && mission.status === 'OVERDUE') { <div class="m-due late"><svg lucideAlertTriangle size="13"></svg> En retard : envoyez vos preuves au plus vite</div> }
                   </div>
                 </div>
                 <div class="m-act">
                   <!-- TICK-077 : action suivante issue de courseStatus() (preuves, notation…) -->
-                  @if (nextAction(mission); as action) {
+                  @if (!mission.notRetained && mission.status === 'IN_PROGRESS' && !mission.startedAt) {
+                    <button type="button" class="a-main" [disabled]="startingId() === mission.id" (click)="start(mission)">
+                      {{ startingId() === mission.id ? 'Démarrage…' : 'Je démarre la course' }}</button>
+                  } @else if (nextAction(mission); as action) {
                     @if (action.link[0] !== '/chat') { <a [routerLink]="action.link" class="a-main">{{ action.label }}</a> }
                   }
                   @if (mission.chatRoomId) {
@@ -430,6 +436,25 @@ export class CourierDashboardComponent implements OnInit {
     this.courseService.getPublishedCourses().subscribe({
       next: (list: any[]) => { this.publishedCourses = list; this.publishedLoading.set(false); },
       error: () => { this.publishedLoading.set(false); this.publishedError.set(true); },
+    });
+  }
+
+  /** Démarrage de la course : le client ne peut plus l'annuler librement ensuite. */
+  readonly startingId = signal<number | null>(null);
+  start(mission: any): void {
+    if (!window.confirm('Démarrer la course ? Le client ne pourra plus l’annuler librement.')) return;
+    this.startingId.set(mission.id);
+    this.http.post<any>(`/api/courses/${mission.id}/start`, {}).subscribe({
+      next: (c) => {
+        this.startingId.set(null);
+        mission.startedAt = c?.startedAt ?? new Date().toISOString();
+        this.toast.success('Course démarrée : le client est prévenu. Pensez à vos preuves.');
+      },
+      error: (err) => {
+        this.startingId.set(null);
+        this.toast.error(err?.error?.message ?? 'Impossible de démarrer la course.');
+        this.loadMissions();
+      },
     });
   }
 

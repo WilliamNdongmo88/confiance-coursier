@@ -128,6 +128,59 @@ public class ProofDeadlineService {
         });
     }
 
+    // ─── Rétractation : annulation avant démarrage ───────────────────────────
+
+    /**
+     * Le coursier assigné démarre la course : à partir de là, le client ne peut plus l'annuler librement
+     * (retard → règles OVERDUE, désaccord → litige). Sans effet si déjà démarrée.
+     */
+    public Course start(Long courseId, Long courierId) {
+        return runAndNotify(after -> {
+            Course course = courseRepository.findByIdForUpdate(courseId)
+                    .orElseThrow(() -> new NotFoundException("Course introuvable."));
+            if (courierId == null || !courierId.equals(course.getCourierId())) {
+                throw new ForbiddenException("Vous n'êtes pas le coursier assigné à cette course.");
+            }
+            if (!"IN_PROGRESS".equals(course.getStatus()) && !"OVERDUE".equals(course.getStatus())) {
+                throw new ConflictException("Cette course ne peut pas être démarrée (statut actuel : " + course.getStatus() + ").");
+            }
+            if (course.getStartedAt() == null) {
+                course.setStartedAt(now());
+                courseRepository.save(course);
+                log.info("[DÉMARRAGE] courseId={} démarrée par le coursier {}", courseId, courierId);
+                Long clientId = course.getClientId();
+                after.add(() -> notificationService.notifyCourseStarted(clientId, courseId));
+            }
+            return course;
+        });
+    }
+
+    /**
+     * Le client change d'avis après paiement, avant que le coursier ait démarré : remboursement intégral
+     * (frais de service compris), aucun incident pour le coursier, qui est prévenu.
+     */
+    public Course cancelBeforeStart(Long courseId, Long clientId) {
+        return runAndNotify(after -> {
+            Course course = courseRepository.findByIdForUpdate(courseId)
+                    .orElseThrow(() -> new NotFoundException("Course introuvable."));
+            if (!course.getClientId().equals(clientId)) {
+                throw new ForbiddenException("Vous n'êtes pas le propriétaire de cette course.");
+            }
+            if (!"IN_PROGRESS".equals(course.getStatus())) {
+                throw new ConflictException("Annulation possible seulement sur une course payée et pas encore démarrée.");
+            }
+            if (course.getStartedAt() != null || proofRepository.countByCourseId(courseId) > 0) {
+                throw new ConflictException("Le coursier a déjà démarré la course : vous ne pouvez plus l'annuler librement. "
+                        + "En cas de problème, ouvrez un litige.");
+            }
+            escrowService.refundTotal(course, true);
+            log.info("[RÉTRACTATION] courseId={} annulée par le client avant démarrage, remboursement intégral", courseId);
+            Long courierId = course.getCourierId();
+            after.add(() -> notificationService.notifyCancelledBeforeStart(clientId, courierId, courseId));
+            return course;
+        });
+    }
+
     // ─── Traitement planifié ──────────────────────────────────────────────────
 
     public record Result(int reminders, int overdue, int refunded, int disputed, int failed) {}

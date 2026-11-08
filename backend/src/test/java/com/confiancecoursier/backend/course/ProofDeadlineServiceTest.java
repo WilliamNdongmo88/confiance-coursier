@@ -279,4 +279,53 @@ class ProofDeadlineServiceTest {
         assertThat(other.getStatus()).isEqualTo("OVERDUE");
         verify(notifications, never()).notifyNoShowRefund(anyLong(), anyLong(), anyLong(), anyBoolean());
     }
+
+    // ── Rétractation : annulation avant démarrage ────────────────────────────
+
+    @Test
+    void clientCancelsBeforeStartAndIsFullyRefundedWithoutIncident() {
+        at(T0.minusHours(10)).cancelBeforeStart(1L, 10L);
+
+        verify(escrow).refundTotal(course, true);                 // frais de service rendus : remboursement intégral
+        assertThat(course.getStatus()).isEqualTo("REFUNDED");
+        verify(notifications).notifyCancelledBeforeStart(10L, 20L, 1L);
+        verifyNoInteractions(incidents);                           // aucune pénalité pour le coursier
+    }
+
+    @Test
+    void noFreeCancellationOnceTheCourierHasStarted() {
+        course.setStartedAt(T0.minusHours(12));
+        assertThatThrownBy(() -> at(T0.minusHours(10)).cancelBeforeStart(1L, 10L)).isInstanceOf(ConflictException.class);
+        verifyNoInteractions(escrow);
+    }
+
+    @Test
+    void noFreeCancellationOnceAProofWasUploaded() {
+        when(proofs.countByCourseId(1L)).thenReturn(1L);
+        assertThatThrownBy(() -> at(T0.minusHours(10)).cancelBeforeStart(1L, 10L)).isInstanceOf(ConflictException.class);
+        verifyNoInteractions(escrow);
+    }
+
+    @Test
+    void onlyTheOwnerCanCancelAndOnlyAPaidCourse() {
+        assertThatThrownBy(() -> at(T0).cancelBeforeStart(1L, 99L)).isInstanceOf(ForbiddenException.class);
+        course.setStatus("PROOFS_SUBMITTED");
+        assertThatThrownBy(() -> at(T0).cancelBeforeStart(1L, 10L)).isInstanceOf(ConflictException.class);
+        verifyNoInteractions(escrow);
+    }
+
+    @Test
+    void courierStartsOnceAndTheClientIsNotified() {
+        at(T0.minusHours(10)).start(1L, 20L);
+        at(T0.minusHours(9)).start(1L, 20L);                      // deuxième clic : sans effet
+
+        assertThat(course.getStartedAt()).isEqualTo(T0.minusHours(10));
+        verify(notifications, times(1)).notifyCourseStarted(10L, 1L);
+    }
+
+    @Test
+    void onlyTheAssignedCourierCanStart() {
+        assertThatThrownBy(() -> at(T0).start(1L, 99L)).isInstanceOf(ForbiddenException.class);
+        assertThat(course.getStartedAt()).isNull();
+    }
 }

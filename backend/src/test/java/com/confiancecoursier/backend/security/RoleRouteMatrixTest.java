@@ -64,6 +64,8 @@ class RoleRouteMatrixTest {
                 Arguments.of("POST",   "/api/courses/1/validate",               CLIENT),
                 Arguments.of("POST",   "/api/courses/1/extend",                 CLIENT),
                 Arguments.of("POST",   "/api/courses/1/cancel-overdue",         CLIENT),
+                Arguments.of("POST",   "/api/courses/1/cancel-before-start",    CLIENT),
+                Arguments.of("POST",   "/api/courses/1/start",                  COURIER),
                 Arguments.of("POST",   "/api/payment/initiate",                 CLIENT),
                 Arguments.of("GET",    "/api/users/couriers",                   CLIENT),
                 // COURIER

@@ -75,6 +75,25 @@ public class CourseController {
         return ResponseEntity.ok(courseService.getCourseById(courseId, clientId));
     }
 
+    /**
+     * POST /api/courses/{courseId}/cancel-before-start — rétractation : le client annule une course payée que le
+     * coursier n'a pas encore démarrée et est remboursé intégralement.
+     */
+    @PostMapping("/{courseId}/cancel-before-start")
+    public ResponseEntity<CourseResponse> cancelBeforeStart(@PathVariable Long courseId) {
+        Long clientId = getCurrentUserId();
+        proofDeadlineService.cancelBeforeStart(courseId, clientId);
+        return ResponseEntity.ok(courseService.getCourseById(courseId, clientId));
+    }
+
+    /** POST /api/courses/{courseId}/start — le coursier assigné démarre la course. */
+    @PostMapping("/{courseId}/start")
+    public ResponseEntity<CourseResponse> start(@PathVariable Long courseId) {
+        Long courierId = getCurrentUserId();
+        proofDeadlineService.start(courseId, courierId);
+        return ResponseEntity.ok(courseService.getCourseById(courseId, courierId));
+    }
+
     @PostMapping("/{courseId}/accept-offer/{offerId}")
     public ResponseEntity<String> acceptOffer(@PathVariable Long courseId, @PathVariable Long offerId) {
         Long clientId = getCurrentUserId();

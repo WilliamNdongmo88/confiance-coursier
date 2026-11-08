@@ -33,7 +33,7 @@ export const PUBLISHER = {
   phoneHref: '+237655002318',
 };
 
-const UPDATED = '6 novembre 2026';
+const UPDATED = '8 novembre 2026';
 
 export const CGU: LegalDoc = {
   key: 'cgu',
@@ -45,7 +45,7 @@ export const CGU: LegalDoc = {
     'En créant un compte, vous les acceptez. Lisez-les avant de confier ou de réaliser une course.',
   pending: [
     'Forme juridique, numéro RCCM, capital social et numéro de contribuable de l’éditeur (art. 30 de la loi n° 2010/021).',
-    'Validation de l’ensemble du texte par un juriste, notamment sur la conservation des fonds en séquestre et sur l’exercice du droit de rétractation après paiement (l’application ne permet pas encore d’annuler une course payée avant sa réalisation).',
+    'Validation de l’ensemble du texte par un juriste, notamment sur la conservation des fonds en séquestre et sur les modalités du droit de rétractation.',
   ],
   sections: [
     {
@@ -145,7 +145,9 @@ export const CGU: LegalDoc = {
       blocks: [
         'Avant le paiement, le client peut annuler sa course sans frais depuis l’application.',
         'Après le paiement, les fonds restent bloqués. Si les preuves n’arrivent pas avant l’échéance, le client peut annuler et être remboursé. Dans les autres cas, il ouvre un litige, qui peut aboutir à un remboursement total ou partiel.',
-        'Le client dispose d’un délai de rétractation de quinze jours à compter de la conclusion du contrat pour les services (art. 20 de la loi n° 2010/021). En demandant que la course soit réalisée sans attendre la fin de ce délai, il reconnaît que ce droit ne peut plus s’exercer une fois la course réalisée (art. 22). Pour exercer son droit de rétractation avant la réalisation, il nous contacte par email.',
+        'Le client dispose d’un délai de rétractation de quinze jours à compter de la conclusion du contrat pour les services (art. 20 de la loi n° 2010/021). En demandant que la course soit réalisée sans attendre la fin de ce délai, il reconnaît que ce droit ne peut plus s’exercer une fois la course commencée (art. 22).',
+        'Concrètement, après le paiement, le client peut annuler la course depuis son espace tant que le coursier ne l’a pas démarrée : il est alors remboursé intégralement, frais de service compris, et le coursier en est prévenu. Une course est démarrée dès que le coursier l’indique dans l’application ou envoie sa première preuve ; le client en est informé.',
+        'Une fois la course démarrée, elle ne peut plus être annulée librement. Si le coursier ne fournit pas ses preuves à temps, le client peut prolonger le délai, annuler et être remboursé, ou ouvrir un litige ; en cas de désaccord sur la course réalisée, il ouvre un litige.',
         'Lorsqu’un remboursement est dû, il intervient dans un délai de quinze jours au plus, par le moyen de paiement utilisé.',
       ],
     },
