@@ -216,10 +216,11 @@ import {
                   <span class="row-meta-dot"></span>
                   <span>{{ course.scheduledAt | date:'dd/MM/yyyy HH:mm' }}</span>
                 </div>
-                @if (course.status === 'PUBLISHED' && course.conversationRoomIds?.length) {
-                  <div class="row-wrote" [class.hot]="unread.sum(course.conversationRoomIds)">
+                <!-- Seulement s'il y a du nouveau : messages de coursiers pas encore lus -->
+                @if (course.status === 'PUBLISHED' && unread.sum(course.conversationRoomIds); as n) {
+                  <div class="row-wrote hot">
                     <svg lucideMessageCircle size="13"></svg>
-                    {{ course.conversationRoomIds.length }} coursier{{ course.conversationRoomIds.length > 1 ? 's vous ont' : ' vous a' }} écrit@if (unread.sum(course.conversationRoomIds); as n) { · {{ n }} message{{ n > 1 ? 's' : '' }} non lu{{ n > 1 ? 's' : '' }} }
+                    {{ n }} nouveau{{ n > 1 ? 'x' : '' }} message{{ n > 1 ? 's' : '' }} de {{ unread.roomsWithUnread(course.conversationRoomIds) }} coursier{{ unread.roomsWithUnread(course.conversationRoomIds) > 1 ? 's' : '' }}
                   </div>
                 }
               </div>

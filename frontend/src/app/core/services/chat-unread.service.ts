@@ -27,6 +27,13 @@ export class ChatUnreadService {
     return roomId ? this.counts()[roomId] ?? 0 : 0;
   }
 
+  /** Nombre de conversations (parmi celles données) qui ont au moins un message non lu. */
+  roomsWithUnread(roomIds: readonly number[] | null | undefined): number {
+    if (!roomIds?.length) return 0;
+    const c = this.counts();
+    return roomIds.filter((id) => (c[id] ?? 0) > 0).length;
+  }
+
   /** Total non lu sur plusieurs conversations (ex. tous les coursiers qui ont écrit sur une course). */
   sum(roomIds: readonly number[] | null | undefined): number {
     if (!roomIds?.length) return 0;

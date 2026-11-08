@@ -177,9 +177,10 @@ function buildSteps(c: any): Step[] {
                   <small>Prochaine étape</small>
                   <h3>Choisissez votre coursier</h3>
                   <p>Les coursiers vérifiés vous écrivent et proposent leur tarif. Acceptez l’offre qui vous convient dans le chat.</p>
-                  @if (course.conversationRoomIds?.length) {
-                    <div class="when" [class.hot]="unread.sum(course.conversationRoomIds)"><svg lucideMessageCircle size="15"></svg>
-                      {{ course.conversationRoomIds.length }} coursier{{ course.conversationRoomIds.length > 1 ? 's vous ont' : ' vous a' }} écrit@if (unread.sum(course.conversationRoomIds); as n) { · {{ n }} message{{ n > 1 ? 's' : '' }} non lu{{ n > 1 ? 's' : '' }} }</div>
+                  <!-- Seulement s'il y a du nouveau : messages de coursiers pas encore lus -->
+                  @if (unread.sum(course.conversationRoomIds); as n) {
+                    <div class="when hot"><svg lucideMessageCircle size="15"></svg>
+                      {{ n }} nouveau{{ n > 1 ? 'x' : '' }} message{{ n > 1 ? 's' : '' }} de {{ unread.roomsWithUnread(course.conversationRoomIds) }} coursier{{ unread.roomsWithUnread(course.conversationRoomIds) > 1 ? 's' : '' }}</div>
                   }
                   <div class="acts"><a class="primary-action has-dot" [routerLink]="['/client/select-courier', courseId]"
                        [attr.aria-label]="unread.sum(course.conversationRoomIds) ? 'Voir les coursiers : ' + unread.sum(course.conversationRoomIds) + ' message(s) non lu(s)' : 'Voir les coursiers'">
