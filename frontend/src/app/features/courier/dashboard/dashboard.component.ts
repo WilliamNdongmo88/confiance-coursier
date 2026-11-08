@@ -59,8 +59,10 @@ import {
     .m-top { display: flex; gap: 12px; align-items: flex-start; }
     .m-ic { flex: none; width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; background: var(--cc-paper-2); color: var(--primary); }
     .m-b { flex: 1; min-width: 0; }
-    .m-t { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
-    .m-title { font-size: 14.5px; font-weight: 700; line-height: 1.35; color: var(--cc-ink); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    /* Titre d'abord ; le badge passe dessous quand la place manque (jamais de titre écrasé) */
+    .m-t { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 10px; align-items: flex-start; }
+    .m-t app-status-badge { flex: none; }
+    .m-title { flex: 1 1 220px; min-width: 0; font-size: 14.5px; font-weight: 700; line-height: 1.35; color: var(--cc-ink); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
     .m-meta { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 4px; font-size: 13px; color: var(--cm); }
     .m-meta span { display: inline-flex; align-items: center; gap: 4px; }
     .m-meta a { color: var(--primary); font-weight: 700; text-decoration: none; }
