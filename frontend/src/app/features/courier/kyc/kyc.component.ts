@@ -9,6 +9,7 @@ import {
   LucideArrowLeft, LucideArrowRight, LucideCamera, LucideCheck, LucideClock, LucideIdCard, LucideLockKeyhole,
   LucidePencil, LucideRefreshCw, LucideScanFace, LucideSend, LucideShieldCheck, LucideXCircle,
 } from '@lucide/angular';
+import { ComboFieldComponent } from '../../../shared/components/combo-field/combo-field.component';
 
 interface KycStatus {
   status: 'NONE' | 'PENDING' | 'APPROVED' | 'REJECTED';
@@ -42,6 +43,7 @@ const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
   selector: 'app-kyc',
   standalone: true,
   imports: [
+    ComboFieldComponent,
     RouterLink, FormsModule, DatePipe,
     LucideArrowLeft, LucideArrowRight, LucideCamera, LucideCheck, LucideClock, LucideIdCard, LucideLockKeyhole,
     LucidePencil, LucideRefreshCw, LucideScanFace, LucideSend, LucideShieldCheck, LucideXCircle,
@@ -188,8 +190,8 @@ const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
                     <div class="form-group"><label class="form-label" for="k-dob">Date de naissance</label>
                       <input id="k-dob" type="date" class="form-input" name="dob" [(ngModel)]="dob" [max]="maxDob"></div>
                     <div class="form-group"><label class="form-label" for="k-nat">Nationalité</label>
-                      <input id="k-nat" class="form-input" name="nat" [(ngModel)]="nationality" list="k-nats">
-                      <datalist id="k-nats"><option value="Camerounaise"></option><option value="Gabonaise"></option><option value="Tchadienne"></option><option value="Centrafricaine"></option><option value="Nigériane"></option></datalist></div>
+                      <app-combo-field inputId="k-nat" name="nat" [freeText]="true" [options]="nationalities" [value]="nationality"
+                                       (valueChange)="nationality = $event" ariaLabel="Nationalités" /></div>
                   </div>
                   @if (dob && !adult()) { <p class="err" role="alert">Vous devez avoir au moins 18 ans.</p> }
                 }
@@ -282,6 +284,7 @@ export class KycComponent implements OnInit {
   lastName = '';
   dob = '';
   nationality = 'Camerounaise';
+  readonly nationalities = ['Camerounaise', 'Gabonaise', 'Tchadienne', 'Centrafricaine', 'Nigériane', 'Congolaise', 'Équato-guinéenne'];
   documentType = 'CNI';
   payoutMethod: 'MTN' | 'ORANGE' = 'MTN';
   payoutNumber = '';

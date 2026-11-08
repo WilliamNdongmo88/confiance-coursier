@@ -21,12 +21,13 @@ let nextId = 0;
     .cb-chev { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--cc-muted);
       pointer-events: none; transition: transform .18s ease; display: inline-flex; }
     .open .cb-chev { transform: translateY(-50%) rotate(180deg); }
-    .cb-list { position: absolute; left: 0; right: 0; top: calc(100% + 6px); z-index: 40; margin: 0; padding: 6px;
+    .cb-list { position: absolute; left: 0; min-width: 100%; width: max-content; max-width: min(380px, calc(100vw - 32px));
+      top: calc(100% + 6px); z-index: 40; margin: 0; padding: 6px;
       list-style: none; max-height: 248px; overflow-y: auto; overscroll-behavior: contain;
       background: var(--cc-white); border: 1px solid var(--cc-line); border-radius: 12px;
       box-shadow: 0 14px 36px rgb(23 49 34 / .14); animation: cb-in .16s ease-out; }
-    .cb-opt { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px;
-      padding: 0 12px; border-radius: 8px; color: var(--cc-ink); font-size: 14.5px; font-weight: 550; cursor: pointer; }
+    .cb-opt { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 40px;
+      padding: 9px 12px; line-height: 1.35; border-radius: 8px; color: var(--cc-ink); font-size: 14.5px; font-weight: 550; cursor: pointer; }
     .cb-opt.active { background: var(--cc-paper-2); }
     .cb-opt.sel { color: var(--cc-forest); font-weight: 700; }
     .cb-opt.empty { color: var(--cc-muted); font-weight: 500; }
@@ -86,7 +87,9 @@ export class ComboFieldComponent {
   @Input() freeText = false;
   /** Libellé d'une option vide en tête (choix uniquement), ex. « — Sélectionner — ». */
   @Input() emptyLabel: string | null = null;
-  @Input() set options(v: readonly string[]) { this.opts.set([...v]); }
+  @Input() set options(v: readonly string[]) { this.opts.set(v.map((o) => ({ value: o, label: o }))); }
+  /** Variante valeur / libellé (ex. filtre « ALL » affiché « Tous »). */
+  @Input() set items(v: readonly { value: string; label: string }[]) { this.opts.set([...v]); }
   /** La valeur renvoyée par le parent pendant la saisie ne doit pas effacer le filtre en cours. */
   @Input('value') set valueIn(v: string | null | undefined) {
     const next = v ?? '';
@@ -100,14 +103,16 @@ export class ComboFieldComponent {
   readonly value = signal('');
   readonly open = signal(false);
   readonly active = signal(-1);
-  private readonly opts = signal<string[]>([]);
+  private readonly opts = signal<{ value: string; label: string }[]>([]);
   /** Texte tapé depuis l'ouverture (null : on n'a pas encore tapé, on montre tout). */
   private readonly query = signal<string | null>(null);
 
-  readonly displayValue = computed(() => this.value());
+  /** Choix dans la liste : on affiche le libellé ; saisie libre : le texte tapé. */
+  readonly displayValue = computed(() =>
+    this.freeText ? this.value() : (this.opts().find((o) => o.value === this.value())?.label ?? this.value()));
 
   readonly shown = computed(() => {
-    const base = this.opts().map((o) => ({ value: o, label: o }));
+    const base = this.opts();
     const q = this.query();
     if (!this.freeText || q === null || !q.trim()) {
       return this.emptyLabel !== null && !this.freeText ? [{ value: '', label: this.emptyLabel }, ...base] : base;

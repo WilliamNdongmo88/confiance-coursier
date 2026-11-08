@@ -22,11 +22,13 @@ import {
   LucideCalendar,
   LucideMessageCircle,
 } from '@lucide/angular';
+import { ComboFieldComponent } from '../../../shared/components/combo-field/combo-field.component';
 
 @Component({
   selector: 'app-history',
   standalone: true,
   imports: [
+    ComboFieldComponent,
     RouterLink,
     DatePipe,
     DecimalPipe,
@@ -69,21 +71,13 @@ import {
       <div class="history-filters">
         <div class="filter-group">
           <label for="statusFilter">Statut</label>
-          <select id="statusFilter" class="form-select" [value]="statusFilter()"
-                  (change)="statusFilter.set($any($event.target).value)">
-            @for (st of filterStatuses; track st) {
-              <option [value]="st">{{ statusLabel(st) }}</option>
-            }
-            @if (isCourier) { <option value="DECLINED">Offres déclinées</option> }
-          </select>
+          <app-combo-field inputId="statusFilter" [items]="statusItems" [value]="statusFilter()"
+                           (valueChange)="statusFilter.set($event)" ariaLabel="Statut" />
         </div>
         <div class="filter-group">
           <label for="dateSort">Tri par date</label>
-          <select id="dateSort" class="form-select" [value]="dateSort()"
-                  (change)="dateSort.set($any($event.target).value)">
-            <option value="newest">Plus récentes d'abord</option>
-            <option value="oldest">Plus anciennes d'abord</option>
-          </select>
+          <app-combo-field inputId="dateSort" [items]="sortItems" [value]="dateSort()"
+                           (valueChange)="dateSort.set($any($event))" ariaLabel="Tri par date" />
         </div>
       </div>
       }
@@ -231,15 +225,7 @@ import {
       font-weight: 600;
       color: var(--text-muted);
     }
-    .filter-group .form-select {
-      padding: 8px 12px;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      background: var(--bg-card);
-      color: var(--text);
-      font-size: 14px;
-      min-width: 180px;
-    }
+    .filter-group app-combo-field { min-width: 220px; }
 
     /* ── Missions du coursier : cartes ── */
     .mc-list { display: grid; padding: 0 20px 6px; }
@@ -274,6 +260,7 @@ import {
     /* ── Responsive ── */
     @media (max-width: 640px) {
       .history-filters { flex-direction: column; }
+      .filter-group app-combo-field { min-width: 0; }
       .mc-list { padding: 0 14px 4px; }
       .mc-title { flex-basis: 100%; }
       .mc-acts { width: 100%; margin-left: 0; }
@@ -332,6 +319,20 @@ export class HistoryComponent implements OnInit {
   /** Statuts proposés dans le filtre (libellés issus de courseStatus — TICK-077). */
   readonly filterStatuses = ['ALL', 'COMPLETED', 'IN_PROGRESS', 'OVERDUE', 'PROOFS_SUBMITTED', 'ASSIGNED',
     'PUBLISHED', 'DISPUTED', 'REFUNDED', 'CANCELLED'];
+
+  /** Choix des filtres (valeur / libellé) pour le champ de choix commun. */
+  private _statusItems?: { value: string; label: string }[];
+  get statusItems(): { value: string; label: string }[] {
+    if (!this._statusItems) {
+      const items = this.filterStatuses.map((st) => ({ value: st, label: this.statusLabel(st) }));
+      this._statusItems = this.isCourier ? [...items, { value: 'DECLINED', label: 'Offres déclinées' }] : items;
+    }
+    return this._statusItems;
+  }
+  readonly sortItems = [
+    { value: 'newest', label: 'Plus récentes d’abord' },
+    { value: 'oldest', label: 'Plus anciennes d’abord' },
+  ];
 
   statusLabel(status: string): string {
     return status === 'ALL'
