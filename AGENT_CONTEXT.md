@@ -1492,8 +1492,8 @@ Choix utilisateur : deux variantes sur deux branches, comparées visuellement av
 > Méthode : l'utilisateur dépose des captures dans `C:\Users\DELL\Desktop\prompts\captures`, l'écran est refait à partir de
 > `maquette-v2` quand une maquette existe (jamais de « v3 »), avec le skill Impeccable, vérifié par captures Playwright
 > (mobile 393 px, tablette, bureau 1280 px, thèmes clair et sombre), puis commité seulement après « Valide, commite ».
-> Cette refonte recoupe en partie les tickets TICK-080 à TICK-094 de `PLAN_AMELIORATION.md`, **sans qu'aucun n'ait été clos** :
-> à revoir ticket par ticket avec l'utilisateur.
+> Cette refonte recoupe en partie les tickets TICK-080 à TICK-094 de `PLAN_AMELIORATION.md` ; ils ont été revus un par un
+> à la session 88 (voir `docs/bilan-tickets-080-105.md`).
 
 ### Session 72 — Landing v2 et contexte de design (2026-11-06) — `ca33e3a`, `12fa78b`
 
@@ -1601,6 +1601,87 @@ Choix utilisateur : deux variantes sur deux branches, comparées visuellement av
 3. Frais de service client calculés aussi sur les achats avancés : à garder, ou à limiter au tarif du coursier ?
 4. Recouper la refonte avec les tickets TICK-080 à TICK-094 et décider lesquels sont clos.
 
+---
+
+> **Sessions 86 à 93 (2026-11-08, Claude Code) — fonctionnalités, tickets du plan et finitions.**
+> Même méthode que les sessions 72 à 85 (captures, `maquette-v2`, Impeccable, Playwright, commit après « Valide, commite »).
+> Les décisions ouvertes de la session 85 sont tranchées : rétractation (option 1, session 87), frais client sur les achats
+> (choix A, session 87), tickets revus un par un (session 88). Restent ouverts : mentions légales et vrais paiements (voir la fin).
+
+### Session 86 — Plusieurs coursiers sur une même course (2026-11-08) — `eb5681c`, `5fc3010`, `1b6f4f5`, `b82df2f`
+
+- Plusieurs coursiers peuvent écrire au client sur une course publiée : une discussion par coursier, et pas de discussion « principale » tant que la course est PUBLISHED.
+- Cartes de conversation côté client : montant de la dernière offre (`CourseService.listConversations`), pastille des messages non lus, note « N coursiers vous ont écrit » affichée seulement s'il y a du nouveau.
+- Un email au client à chaque nouveau coursier qui écrit, avec le montant si son premier message est une offre (`ChatController.notifyClientOnFirstReply`, `NotificationService.notifyFirstReply`).
+- Acceptation d'une offre : les autres discussions sont archivées (lecture seule, bandeau dans le chat), et le coursier non retenu voit « Offre déclinée » (`CourseResponse.notRetained`).
+- Messages non lus : `ChatUnreadService` (somme + discussions concernées), rafraîchi toutes les 15 s et au retour sur l'onglet ; garde `markReadIfStillMe`.
+- Historique du coursier refait en cartes lisibles ; badge de statut qui passe sous le titre au lieu de l'écraser.
+
+### Session 87 — Rétractation et frais client (2026-11-08) — `09f0a96`, `586d262`
+
+- Rétractation, option 1 : le client peut annuler une course payée tant que le coursier n'a pas démarré, avec remboursement total.
+  - V24 `courses.started_at` ; le premier envoi de preuve fixe aussi `startedAt`.
+  - `POST /api/courses/{id}/cancel-before-start` (CLIENT) et `POST /api/courses/{id}/start` (COURIER), dans `ProofDeadlineService`.
+  - Texte des conditions d'utilisation mis à jour.
+- Frais de service client calculés sur le tarif **et** les achats avancés (choix A conservé) : explication simple dans `docs/frais-client-sur-achats.md` et précision sur l'écran des commissions.
+
+### Session 88 — Revue des tickets, gestion des courses par l'admin (2026-11-08) — `3e9ad90`, `1bd42e3`
+
+- Bilan de la refonte face aux tickets : `docs/bilan-tickets-080-105.md`. **Clos** : TICK-080, 081, 083, 084, 086, 088, 092.
+- TICK-091 : gestion des courses par l'admin.
+  - `AdminCourseService` et `AdminCourseController` : `GET /api/admin/courses?status=&q=&page=&size=` et `GET /api/admin/courses/{id}` (chronologie, registre du séquestre, preuves, discussions, litiges).
+  - `POST /api/admin/courses/{id}/cancel {reason}` : annulation avec motif ; V25 `cancel_reason`, `cancelled_by`, `cancelled_at`.
+  - Front : `features/admin/courses/` (liste paginée et dossier), entrée « Courses » dans le menu.
+- TICK-090 : courses « bloquées » = en retard (OVERDUE), ou argent bloqué (HELD) depuis plus de 72 h ; tuile sur le tableau de bord admin.
+- Tableau de bord admin lisible sur mobile et tablette (débordement corrigé, motifs lisibles, séparateur de milliers).
+
+### Session 89 — Client : annuler ou modifier une course non payée ; suspension avec motif (2026-11-08) — `5069833`, `b88fb38`
+
+- Détail de course client : boutons « Modifier » et « Annuler » tant que la course n'est pas payée ; les coursiers qui avaient écrit sont prévenus (`notifyCourseCancelledByClient`).
+- TICK-094 (1re partie) : motif obligatoire pour suspendre un compte (10 à 500 caractères), envoyé par email.
+  - V26 `users.suspension_reason`, `suspended_at`, `suspended_by` ; email de réactivation.
+  - Un compte administrateur ne peut jamais être suspendu.
+
+### Session 90 — Coursier : nouvelles demandes, litige et signalement depuis la mission (2026-11-08) — `32a681d`, `4fbdad6`, `aeca513`
+
+- TICK-085 : accueil coursier avec les nouvelles demandes avant les missions, rafraîchi en silence toutes les 20 s et au retour sur l'onglet ; repère « Nouvelle » gardé 2 minutes.
+- TICK-087 : menu « ⋯ » sur la carte de mission pour ouvrir un litige ou signaler le client.
+- Imports d'icônes inutilisés retirés (plus d'avertissement NG8113 au build).
+
+### Session 91 — Ville et moyen de déplacement du coursier, champs de choix (2026-11-08) — `e505775`, `936db36`
+
+- TICK-089 (avec TICK-082 et TICK-085) : la ville et le moyen de déplacement (Moto, Voiture, Tricycle, Vélo, À pied) sont demandés à l'inscription coursier et modifiables dans le profil.
+  - V27 `users.vehicle`.
+  - `GET /api/users/couriers?city=` : les coursiers de la ville de la course d'abord, avec des données réelles (identité vérifiée, courses terminées, aucune note inventée).
+  - Choix du coursier : « À Ville » et moyen de déplacement sur les cartes ; accueil coursier filtrable « Ville / Tout le Cameroun ».
+  - Données partagées : `shared/data/courier-profile.ts` (villes du Cameroun, moyens de déplacement).
+- Plus aucune liste native du navigateur dans l'application :
+  - `shared/components/vehicle-picker` : boutons pour le moyen de déplacement ;
+  - `shared/components/combo-field` : champ de choix avec liste filtrable (sans accents), saisie libre possible ou non, variante valeur / libellé. Utilisé pour le pays et la ville (profil, inscription, création de course), les filtres de l'historique et la nationalité du KYC.
+
+### Session 92 — Pagination des utilisateurs, règles et délais, historique des réglages (2026-11-08) — `3523d5c`, `1c13eb3`
+
+- TICK-094 (fin) : liste admin des utilisateurs paginée par le serveur.
+  - `GET /api/admin/users/search?tab=&q=&page=&size=` (`AdminUserSearchService`) : 20 comptes par page, recherche nom / email sans accents (`translate` PostgreSQL) et téléphone sans espaces, compteurs des onglets sur tous les comptes.
+  - `UserRepository` étend `JpaSpecificationExecutor` (attention aux `any()` ambigus dans les tests).
+  - L'ancien `GET /api/admin/users` reste utilisé par le tableau de bord et les signalements.
+- TICK-093 : réglages modifiables et historique.
+  - `GET/PUT /api/admin/platform-rules` (`PlatformRulesService`) : frais rendus si un litige est remboursé en totalité (défaut non) ou si la course n'est pas livrée (défaut oui), échéance des preuves (1 à 168 h), rappel (1 à 48 h, plus court que l'échéance), délai de grâce (1 à 168 h), prolongations (0 à 5). Mêmes bornes à l'écran.
+  - L'échéance est fixée au paiement (vaut pour les prochaines courses payées) ; rappel, grâce, prolongations et remboursements sont lus au moment où ils servent (ils valent aussi pour les courses en cours). L'écran le dit.
+  - V28 `platform_setting_changes` et `SettingsHistoryService` : une ligne par valeur réellement modifiée (commissions, règles, reversements) ; `GET /api/admin/settings-history`.
+  - Front : écrans `/admin/rules` et `/admin/settings-history`, onglets communs `features/admin/settings-tabs` (Commissions · Règles et délais · Reversements · Historique), onglet mobile « Paramètres » actif sur les quatre.
+
+### Session 93 — Anciennes discussions fermées, explication de l'auto-validation (2026-11-08)
+
+- V29 `archive_not_retained_chat_rooms` : rattrapage des discussions « Offre déclinée » ouvertes avant la session 86. Quand une course a un coursier retenu, les discussions des autres coursiers passent en lecture seule (messages conservés).
+- `docs/auto-validation-72h.md` : explication simple du réglage possible de l'auto-validation (aujourd'hui `ProofService.AUTO_VALIDATE_HOURS = 72`, fixé dans le code), en attente de la décision de l'utilisateur.
+- État : **315 tests backend verts** (`AuthControllerTest` exclu) ; build front OK, sans avertissement NG8113.
+
+**Encore ouvert (à l'utilisateur) :**
+1. Vrais paiements, TICK-103, 104 et 105 : en attente du choix d'un prestataire (Mobile Money, carte). Le paiement reste en simulation.
+2. Mentions légales : RCCM, NIU, hébergeur, à fournir (jamais inventés).
+3. Auto-validation à 72 h : la rendre réglable ou la garder fixe (voir `docs/auto-validation-72h.md`).
+
 ## 9. DOMAINES À IMPLÉMENTER (par ordre de priorité métier)
 
 ### 1. Guards Angular (prérequis avant tout)
@@ -1700,7 +1781,7 @@ cd backend
 9. **`status("ACTIVE")`** doit être explicitement défini dans les builders `User` (le défaut `"ACTIVE"` ne s'applique pas via Lombok @Builder).
 10. **`SecurityConfig`** : routes publiques actuelles = `/api/auth/**`, `/api/health`, `/ws/**`. Toute nouvelle route publique doit y être ajoutée.
 11. **⛔ RÈGLE DE VALIDATION OBLIGATOIRE** : après chaque ticket terminé, **s'arrêter et informer l'utilisateur** "Ticket TICK-XXX terminé — je vérifie avant de te demander de continuer." Ne jamais enchaîner deux tickets sans validation explicite de l'utilisateur.
-12. **Migrations** : la dernière est `V23__user_payout_details.sql` → la prochaine est **V24** (le point 4 ci-dessus date de l'époque V1/V2).
+12. **Migrations** : la dernière est `V29__archive_not_retained_chat_rooms.sql` → la prochaine est **V30** (le point 4 ci-dessus date de l'époque V1/V2).
 13. **Paiement en simulation** (`app.payment.mode = SIMULATION`) : ne jamais afficher « Versé » ni laisser croire qu'un vrai paiement a eu lieu ; les reversements ne sont que des écritures du registre de séquestre.
 14. **`provideHttpClient` sans `withFetch`** (XHR) : nécessaire pour voir l'avancement des envois de fichiers.
 15. **Règles de design** (sessions 72 à 85) :
@@ -1712,7 +1793,11 @@ cd backend
     - aucune donnée factice (avis, étoiles, compteurs, badges, mentions légales) sans source réelle ;
     - vérifier par captures Playwright mobile, tablette et bureau.
 16. **Commits** : seulement après « Valide, commite » de l'utilisateur, avec `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>` ; ne jamais inclure `maquette-v2` ni `.env`.
-17. **Tests backend** : `./mvnw -q -o test "-Dtest=!AuthControllerTest" "-Dsurefire.failIfNoSpecifiedTests=false"` (282 verts au 2026-11-07).
+17. **Tests backend** : `./mvnw -q -o test "-Dtest=!AuthControllerTest" "-Dsurefire.failIfNoSpecifiedTests=false"` (315 verts au 2026-11-08).
+18. **Beans à plusieurs constructeurs** (`CommissionService`, `PayoutSettingsService`, `AdminUserController`, `AdminCourseService`…) : le constructeur principal porte `@Autowired`, l'autre sert aux tests unitaires (dépendance optionnelle à `null`).
+19. **Réglages de la plateforme** : toute écriture dans `platform_settings` passe par `CommissionService.upsertSetting` (ou le service des reversements) pour être notée dans l'historique (`SettingsHistoryService.record`).
+20. **Listes de choix** : ne plus utiliser de `<select>` ni de `<datalist>` natifs ; utiliser `app-combo-field` ou `app-vehicle-picker`.
+21. **Explications longues** : l'utilisateur fait difficilement défiler le terminal ; les mettre dans un fichier `docs/*.md` et résumer en quelques lignes.
 
 ---
 
