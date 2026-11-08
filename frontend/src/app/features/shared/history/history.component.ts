@@ -15,6 +15,12 @@ import {
   LucideArrowLeft,
   LucideArrowRight,
   LucidePackageOpen,
+  LucidePackage,
+  LucideShoppingBag,
+  LucideTruck,
+  LucideMapPin,
+  LucideCalendar,
+  LucideMessageCircle,
 } from '@lucide/angular';
 
 @Component({
@@ -32,6 +38,12 @@ import {
     LucideArrowLeft,
     LucideArrowRight,
     LucidePackageOpen,
+    LucidePackage,
+    LucideShoppingBag,
+    LucideTruck,
+    LucideMapPin,
+    LucideCalendar,
+    LucideMessageCircle,
   ],
   template: `
 
@@ -62,6 +74,7 @@ import {
             @for (st of filterStatuses; track st) {
               <option [value]="st">{{ statusLabel(st) }}</option>
             }
+            @if (isCourier) { <option value="DECLINED">Offres déclinées</option> }
           </select>
         </div>
         <div class="filter-group">
@@ -108,8 +121,10 @@ import {
                 <svg lucidePackageOpen size="16"></svg>
               </span>
               <div class="row-body">
-                <div class="row-title">{{ course.description }} — {{ course.zone }}</div>
+                <div class="row-title">{{ course.description }}</div>
                 <div class="row-meta">
+                  <span>{{ zone(course.zone) }}</span>
+                  <span class="row-meta-dot"></span>
                   <span>{{ course.scheduledAt | date:'dd MMM yyyy' }}</span>
                   <span class="row-meta-dot"></span>
                   @if (course.totalAmount) {
@@ -149,67 +164,49 @@ import {
             </div>
           </div>
 
-          <!-- Tableau desktop -->
-          <div class="table-responsive table-desktop">
-            <table class="history-table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Description</th>
-                  <th>Net perçu</th>
-                  <th>Statut</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (course of filteredCourses(); track course.id) {
-                  <tr>
-                    <td>{{ course.scheduledAt | date:'dd/MM/yyyy' }}</td>
-                    <td>{{ course.description }} — {{ course.zone }}</td>
-                    <td class="fw-600" [class.text-success]="course.status === 'COMPLETED'" [class.text-muted]="course.status !== 'COMPLETED'">
-                      {{ course.status === 'COMPLETED' ? netPercu(course) : '—' }}
-                    </td>
-                    <td>
-                      <app-status-badge [status]="course.status" role="COURIER" [notRetained]="course.notRetained" />
-                    </td>
-                    <td>
+          <!-- Une carte par course, lisible à toutes les largeurs (plus de tableau à colonnes serrées) -->
+          <div class="mc-list">
+            @for (course of filteredCourses(); track course.id; let i = $index) {
+              <article class="mc" [class.declined]="course.notRetained" [style.animation-delay.ms]="i < 12 ? i * 30 : 0">
+                <span class="mc-ic" aria-hidden="true">
+                  @switch (kind(course.description)) {
+                    @case ('ACHAT') { <svg lucideShoppingBag size="17"></svg> }
+                    @case ('LIVRAISON') { <svg lucideTruck size="17"></svg> }
+                    @default { <svg lucidePackage size="17"></svg> }
+                  }
+                </span>
+                <div class="mc-body">
+                  <div class="mc-head">
+                    <h3 class="mc-title">{{ title(course.description) }}</h3>
+                    <app-status-badge [status]="course.status" role="COURIER" [notRetained]="course.notRetained" />
+                  </div>
+                  <div class="mc-meta">
+                    <span><svg lucideMapPin size="13"></svg> {{ zone(course.zone) }}</span>
+                    @if (course.scheduledAt) { <span><svg lucideCalendar size="13"></svg> {{ course.scheduledAt | date:'d MMM yyyy' }}</span> }
+                  </div>
+                  <div class="mc-foot">
+                    @if (course.notRetained) {
+                      <span class="mc-note">Le client a choisi un autre coursier.</span>
+                    } @else if (course.status === 'COMPLETED') {
+                      <span class="mc-amount"><small>Net perçu</small><b>{{ netPercu(course) }}</b></span>
+                    } @else if (course.courseAmount) {
+                      <span class="mc-amount"><small>Tarif convenu</small><b class="plain">{{ xaf(course.courseAmount) }}</b></span>
+                    }
+                    <span class="mc-acts">
                       @if (nextAction(course, 'COURIER'); as action) {
-                        <a [routerLink]="action.link" class="text-link">{{ action.label }}</a>
+                        @if (action.link[0] !== '/chat') { <a [routerLink]="action.link" class="mc-btn main">{{ action.label }}</a> }
                       }
                       @if (course.chatRoomId) {
-                        <a [routerLink]="['/chat', course.chatRoomId]" class="text-link has-dot">
-                          Chat @if (unread.count(course.chatRoomId); as n) { <span class="chat-dot" aria-hidden="true">{{ n > 9 ? '9+' : n }}</span> }
+                        <a [routerLink]="['/chat', course.chatRoomId]" class="mc-btn has-dot"
+                           [attr.aria-label]="unread.count(course.chatRoomId) ? 'Chat : ' + unread.count(course.chatRoomId) + ' message(s) non lu(s)' : 'Ouvrir le chat'">
+                          <svg lucideMessageCircle size="14"></svg> Chat
+                          @if (unread.count(course.chatRoomId); as n) { <span class="chat-dot" aria-hidden="true">{{ n > 9 ? '9+' : n }}</span> }
                         </a>
                       }
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-
-          <!-- Cartes mobile -->
-          <div class="hist-cards">
-            @for (course of filteredCourses(); track course.id) {
-              <div class="hist-card-item">
-                <div class="hist-card-top">
-                  <span class="hist-card-title">{{ course.description }} — {{ course.zone }}</span>
-                  <app-status-badge [status]="course.status" role="COURIER" [notRetained]="course.notRetained" />
-                </div>
-                <div class="hist-card-meta">{{ course.scheduledAt | date:'dd/MM/yyyy' }}</div>
-                <div class="hist-card-stats">
-                  <div>
-                    <span class="hist-card-label">Net</span>
-                    <strong [class.text-success]="course.status === 'COMPLETED'" [class.text-muted]="course.status !== 'COMPLETED'">
-                      {{ course.status === 'COMPLETED' ? netPercu(course) : '—' }}
-                    </strong>
-                  </div>
-                  <div>
-                    <span class="hist-card-label">Statut</span>
-                    <strong>{{ isCourier && course.notRetained ? 'Offre déclinée' : statusLabel(course.status) }}</strong>
+                    </span>
                   </div>
                 </div>
-              </div>
+              </article>
             }
           </div>
         </section>
@@ -244,69 +241,45 @@ import {
       min-width: 180px;
     }
 
-    /* ── Table desktop (courier) ── */
-    .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    .history-table { width: 100%; border-collapse: collapse; }
-    .history-table th {
-      font-size: .83rem;
-      color: var(--text-muted);
-      font-weight: 600;
-      padding: 10px 8px;
-      border-bottom: 1px solid var(--border);
-      white-space: nowrap;
-      text-align: left;
-    }
-    .history-table td {
-      padding: 14px 8px;
-      border-bottom: 1px solid var(--border);
-      font-size: .92rem;
-      color: var(--text);
-    }
-    .history-table tr:last-child td { border-bottom: none; }
-
-    /* ── Cartes mobile (courier) ── */
-    .hist-cards { display: none; }
-    .hist-card-item {
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 13px;
-      margin-bottom: 10px;
-    }
-    .hist-card-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 6px;
-    }
-    .hist-card-title {
-      font-size: .88rem;
-      font-weight: 700;
-      color: var(--text);
-      flex: 1;
-      padding-right: 8px;
-    }
-    .hist-card-meta {
-      font-size: .8rem;
-      color: var(--text-muted);
-      margin-bottom: 8px;
-    }
-    .hist-card-stats {
-      display: flex;
-      gap: 16px;
-      font-size: .85rem;
-    }
-    .hist-card-label {
-      display: block;
-      color: var(--text-muted);
-      font-size: .78rem;
-    }
+    /* ── Missions du coursier : cartes ── */
+    .mc-list { display: grid; padding: 0 20px 6px; }
+    .mc { display: flex; gap: 12px; padding: 16px 0; border-top: 1px solid var(--cc-line); animation: mc-in .35s cubic-bezier(.16,1,.3,1) both; }
+    .mc:first-child { border-top: 0; padding-top: 14px; }
+    .mc.declined { opacity: .75; }
+    .mc-ic { flex: none; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: var(--cc-paper-2); color: var(--primary); }
+    .mc-body { flex: 1; min-width: 0; }
+    .mc-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 6px 12px; flex-wrap: wrap; }
+    .mc-title { flex: 1 1 260px; min-width: 0; margin: 0; font-size: 15px; font-weight: 700; line-height: 1.4; color: var(--cc-ink);
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .mc-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 6px; font-size: 13px; color: var(--cc-muted); }
+    .mc-meta span { display: inline-flex; align-items: center; gap: 5px; min-width: 0; }
+    .mc-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+    .mc-amount { display: grid; gap: 1px; }
+    .mc-amount small { font-size: 12px; color: var(--cc-muted); }
+    .mc-amount b { font-size: 16px; font-weight: 800; color: var(--cc-success); font-variant-numeric: tabular-nums; }
+    .mc-amount b.plain { color: var(--cc-ink); }
+    .mc-note { font-size: 13px; color: var(--cc-muted); }
+    .mc-acts { display: flex; gap: 8px; margin-left: auto; }
+    .mc-btn { min-height: 40px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--cc-line); background: var(--cc-white); color: var(--cc-ink);
+      font-size: 13.5px; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+    .mc-btn.main { border-color: transparent; background: var(--primary); color: #fff; }
+    @keyframes mc-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+    :host-context([data-theme="dark"]) .mc-title, :host-context([data-theme="dark"]) .mc-amount b.plain { color: #F3F7F5; }
+    :host-context([data-theme="dark"]) .mc-ic { background: rgba(255,255,255,.05); color: var(--cc-lime); }
+    :host-context([data-theme="dark"]) .mc-amount b { color: #9FDDB4; }
+    :host-context([data-theme="dark"]) .mc-meta, :host-context([data-theme="dark"]) .mc-note, :host-context([data-theme="dark"]) .mc-amount small { color: #B0C0B7; }
+    :host-context([data-theme="dark"]) .mc-btn { background: transparent; color: #F3F7F5; }
+    :host-context([data-theme="dark"]) .mc-btn.main { background: var(--cc-lime); color: #123b32; }
 
     /* ── Responsive ── */
     @media (max-width: 640px) {
       .history-filters { flex-direction: column; }
-      .table-desktop { display: none !important; }
-      .hist-cards { display: block; }
+      .mc-list { padding: 0 14px 4px; }
+      .mc-title { flex-basis: 100%; }
+      .mc-acts { width: 100%; margin-left: 0; }
+      .mc-btn { flex: 1; justify-content: center; }
     }
+    @media (prefers-reduced-motion: reduce) { .mc { animation: none; } }
 
     /* TICK-076 : anciens attributs « style » du template, convertis en classes (mêmes déclarations) */
     .st-jc-center-p-32px-0-c-muted { justify-content: center; padding: 32px 0; color: var(--cc-muted); }
@@ -329,9 +302,9 @@ export class HistoryComponent implements OnInit {
   /** Liste filtrée + triée */
   filteredCourses = computed(() => {
     let result = [...this.courses];
-    if (this.statusFilter() !== 'ALL') {
-      result = result.filter((c) => c.status === this.statusFilter());
-    }
+    const f = this.statusFilter();
+    if (f === 'DECLINED') result = result.filter((c) => c.notRetained);
+    else if (f !== 'ALL') result = result.filter((c) => c.status === f && !c.notRetained);
     result.sort((a, b) => {
       const dateA = new Date(a.scheduledAt || a.createdAt || 0).getTime();
       const dateB = new Date(b.scheduledAt || b.createdAt || 0).getTime();
@@ -367,6 +340,16 @@ export class HistoryComponent implements OnInit {
   }
 
   nextAction(course: any, role: 'CLIENT' | 'COURIER') { return courseStatus(course, role).action; }
+
+  /** Type de course lu en tête de la description (« Achat — … »). */
+  kind(desc?: string): string {
+    const m = /^(Achat|Livraison|Retrait) —/.exec(desc ?? '');
+    return m ? m[1].toUpperCase() : 'AUTRE';
+  }
+  /** Description sans le préfixe de type (déjà montré par l'icône). */
+  title(desc?: string): string { return (desc ?? '').replace(/^(Achat|Livraison|Retrait) —\s*/, '').trim() || 'Course'; }
+  zone(z?: string): string { return String(z ?? '').replace(' - ', ' · '); }
+  xaf(v: number): string { return `${new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(Math.round(Number(v) || 0))} XAF`; }
 
   /** Net perçu par le coursier (tarif − commission, hors remboursement d'achats), fourni par le serveur — TICK-070. */
   netPercu(course: any): string {
